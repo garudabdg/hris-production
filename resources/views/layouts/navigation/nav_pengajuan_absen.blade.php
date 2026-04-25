@@ -1,0 +1,69 @@
+@if (auth()->user()->hasAnyPermission(['izinabsen.index', 'izinkeluar.index', 'izinpulang.index']))
+    @php
+        // Cek departemen user
+        $hideCutiForBU = false;
+        $authUser = auth()->user();
+        $userKaryawan = \App\Models\Userkaryawan::where('id_user', $authUser->id)->first();
+        if ($userKaryawan) {
+            $karyawan = \App\Models\Karyawan::where('nik', $userKaryawan->nik)->first();
+            if ($karyawan && $karyawan->kode_dept == 'BU') {
+                $hideCutiForBU = true;
+            }
+        }
+    @endphp
+    <ul class="nav nav-tabs" role="tablist">
+
+        @can('izinabsen.index')
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('izinabsen.index') }}" class="nav-link {{ request()->is(['izinabsen']) ? 'active' : '' }}">
+                    <i class="tf-icons ti ti-file-description ti-md me-1"></i> Izin Absen
+                    @if (!empty($notifikasi_izinabsen))
+                        <span class="badge bg-danger rounded-pill ms-2">{{ $notifikasi_izinabsen }}</span>
+                    @endif
+                </a>
+            </li>
+        @endcan
+        @can('izinsakit.index')
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('izinsakit.index') }}" class="nav-link {{ request()->is(['izinsakit']) ? 'active' : '' }}">
+                    <i class="tf-icons ti ti-file-description ti-md me-1"></i> Izin Sakit
+                    @if (!empty($notifikasi_izinsakit))
+                        <span class="badge bg-danger rounded-pill ms-2">{{ $notifikasi_izinsakit }}</span>
+                    @endif
+                </a>
+            </li>
+        @endcan
+        @can('izincuti.index')
+            @if (!$hideCutiForBU)
+                <li class="nav-item" role="presentation">
+                    <a href="{{ route('izincuti.index') }}" class="nav-link {{ request()->is(['izincuti']) ? 'active' : '' }}">
+                        <i class="tf-icons ti ti-file-description ti-md me-1"></i> Izin Cuti
+                        @if (!empty($notifikasi_izincuti))
+                            <span class="badge bg-danger rounded-pill ms-2">{{ $notifikasi_izincuti }}</span>
+                        @endif
+                    </a>
+                </li>
+            @endif
+        @endcan
+        @can('izindinas.index')
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('izindinas.index') }}" class="nav-link {{ request()->is(['izindinas']) ? 'active' : '' }}">
+                    <i class="tf-icons ti ti-file-description ti-md me-1"></i> Izin Dinas
+                    @if (!empty($notifikasi_izin_dinas))
+                        <span class="badge bg-danger rounded-pill ms-2">{{ $notifikasi_izin_dinas }}</span>
+                    @endif
+                </a>
+            </li>
+        @endcan
+        @can('ajuanjadwal.index')
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('ajuanjadwal.index') }}" class="nav-link {{ request()->is(['ajuanjadwal']) ? 'active' : '' }}">
+                    <i class="tf-icons ti ti-calendar-stats ti-md me-1"></i> Ajuan Jadwal
+                    @if (!empty($notifikasi_ajuan_jadwal))
+                        <span class="badge bg-danger rounded-pill ms-2">{{ $notifikasi_ajuan_jadwal }}</span>
+                    @endif
+                </a>
+            </li>
+        @endcan
+    </ul>
+@endif

@@ -1,0 +1,48 @@
+
+*.backup
+# Backup files
+/bootstrap/cache/*
+/coverage
+# Development files
+docker-compose.override.yml
+.DS_Store
+.env
+.env.backup
+/.env.local
+/.env.*.local.env
+/.fleet
+Homestead.json
+Homestead.yaml
+/.idea
+_ide_helper_models.php
+_ide_helper.php
+# Laravel specific
+# Local environment
+/node_modules
+npm-debug.log
+*.php~
+.phpstorm.meta.php
+.phpunit.result.cache
+/public/hot
+/public/storage
+*.sql
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitkeep
+*.sublime-project
+*.sublime-workspace
+*.swo
+*.swp
+*.tar
+*.tar.gz
+# Testing
+Thumbs.db
+/vendor
+/.vscode
+yarn-error.log
+*.zip

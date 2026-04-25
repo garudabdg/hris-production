@@ -1,0 +1,126 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Cache untuk Face Recognition Models (24 jam)
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images - 1 year
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    
+    # CSS dan JavaScript - 1 month
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/x-javascript "access plus 1 month"
+    
+    # Fonts - 1 year
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    
+    # JSON files - 24 hours
+    ExpiresByType application/json "access plus 24 hours"
+    <FilesMatch "\.(json|shard.*)$">
+        ExpiresDefault "access plus 24 hours"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Cache model files untuk 24 jam
+    <FilesMatch "\.(json|shard.*)$">
+        Header set Cache-Control "public, max-age=86400, immutable"
+    </FilesMatch>
+    
+    # Cache CSS dan JavaScript - 1 month (hanya untuk assets, bukan upload)
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=2592000, immutable"
+    </FilesMatch>
+    
+    # Cache images - 1 year (hanya untuk static assets, bukan upload)
+    # Folder upload akan di-override di bawah dengan cache lebih pendek
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    
+    # Cache fonts - 1 year
+    <FilesMatch "\.(woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    
+    # Enable compression
+    <FilesMatch "\.(js|css|xml|gz|html)$">
+        Header append Vary: Accept-Encoding
+    </FilesMatch>
+</IfModule>
+
+# Enable GZIP Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/atom+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# NO CACHE untuk foto wajah di folder facerecognition (selalu fetch fresh)
+# Foto wajah harus selalu fresh karena bisa di-update kapan saja
+<LocationMatch "^/storage/uploads/facerecognition/">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-cache, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </IfModule>
+</LocationMatch>
+
+# Cache pendek untuk folder upload lainnya (foto user-uploaded)
+# Ini memastikan foto baru langsung terlihat, tapi tetap di-cache untuk performance
+<LocationMatch "^/storage/uploads/(kunjungan|aktivitas|absensi|presensi)/">
+    <IfModule mod_headers.c>
+        # Cache 1 jam untuk foto upload - balance antara fresh data dan performance
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+        Header unset Expires
+    </IfModule>
+</LocationMatch>
+
+# Cache pendek untuk foto karyawan (mungkin di-update)
+<LocationMatch "^/storage/karyawan/">
+    <IfModule mod_headers.c>
+        # Cache 1 hari untuk foto karyawan
+        Header set Cache-Control "public, max-age=86400, must-revalidate"
+    </IfModule>
+</LocationMatch>

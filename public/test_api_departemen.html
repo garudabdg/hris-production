@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Departemen</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Test API Sub Departemen</h1>
+    <button onclick="testAPI()">Test API /api/departemen/BU/sub-departemen</button>
+    <hr>
+    <div id="result" style="border: 1px solid #ccc; padding: 20px; margin-top: 20px; font-family: monospace; white-space: pre-wrap; background: #f5f5f5;"></div>
+
+    <script>
+        function testAPI() {
+            const resultDiv = $('#result');
+            resultDiv.html('<strong>Loading...</strong>');
+            
+            console.log('Starting AJAX call...');
+            
+            $.ajax({
+                url: '/api/departemen/BU/sub-departemen',
+                type: 'GET',
+                dataType: 'json',
+                timeout: 5000,
+                success: function(response) {
+                    console.log('Success:', response);
+                    resultDiv.html('<strong style="color:green;">✓ SUCCESS</strong>\n\n' + JSON.stringify(response, null, 2));
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', {status, error, xhr});
+                    resultDiv.html('<strong style="color:red;">✗ ERROR</strong>\n\n' +
+                        'Status: ' + xhr.status + '\n' +
+                        'Status Text: ' + xhr.statusText + '\n' +
+                        'Error: ' + error + '\n' +
+                        'Response: ' + xhr.responseText.substring(0, 500));
+                }
+            });
+        }
+    </script>
+</body>
+</html>
