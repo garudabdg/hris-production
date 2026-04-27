@@ -98,8 +98,10 @@ Route::controller(App\Http\Controllers\PublicPresensiController::class)->group(f
 
 // ─── RECRUITMENT PUBLIC ROUTES (No Auth Required) ────────────────────────────
 Route::get('/recruitment/form', [RecruitmentController::class, 'create'])->name('recruitment.form');
+Route::get('/recruitment/form/{kode_cabang}', [RecruitmentController::class, 'createByCabang'])->name('recruitment.form.cabang');
 Route::post('/recruitment/form', [RecruitmentController::class, 'store'])->name('recruitment.store');
 Route::get('/recruitment/success', [RecruitmentController::class, 'success'])->name('recruitment.success');
+Route::get('/recruitment/konfirmasi/{token}/{jawaban}', [RecruitmentController::class, 'konfirmasiInterview'])->name('recruitment.konfirmasi');
 
 // API Routes for Dynamic Form Population (Authenticated)
 Route::middleware('auth')->group(function () {

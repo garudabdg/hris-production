@@ -88,7 +88,29 @@ class RecruitmentController extends Controller
         $data['cabang']    = Cabang::whereIn('kode_cabang', $activeCabangCodes)
             ->orderBy('nama_cabang')
             ->get();
-        $data['vacancies'] = $vacancies;
+        $data['vacancies']       = $vacancies;
+        $data['fixedCabang']     = null;
+
+        return view('recruitment.create', $data);
+    }
+
+    // ─── PUBLIC: Form lamaran khusus cabang tertentu ────────────────────────────
+    public function createByCabang($kode_cabang)
+    {
+        $cabang = Cabang::where('kode_cabang', $kode_cabang)->firstOrFail();
+
+        $vacancies = RecruitmentVacancy::where('status', 'buka')
+            ->where('kode_cabang', $kode_cabang)
+            ->where(function ($q) {
+                $q->whereNull('deadline')->orWhere('deadline', '>=', now()->toDateString());
+            })
+            ->orderBy('posisi')
+            ->get()
+            ->groupBy('kode_cabang');
+
+        $data['cabang']      = collect([$cabang]);
+        $data['vacancies']   = $vacancies;
+        $data['fixedCabang'] = $cabang; // cabang terkunci
 
         return view('recruitment.create', $data);
     }
@@ -191,6 +213,43 @@ class RecruitmentController extends Controller
 
         return redirect()->route('recruitment.success')
             ->with('success', 'Lamaran berhasil dikirim! Kami akan menghubungi Anda segera.');
+    }
+
+    // ─── PUBLIC: Konfirmasi kehadiran interview ────────────────────────────────
+    public function konfirmasiInterview($token, $jawaban)
+    {
+        $recruitment = Recruitment::where('token_konfirmasi', $token)
+            ->where('status', 'interview')
+            ->firstOrFail();
+
+        if (!in_array($jawaban, ['hadir', 'tidak_hadir'])) {
+            abort(404);
+        }
+
+        // Jika sudah pernah konfirmasi, tampilkan status saja
+        if ($recruitment->konfirmasi_interview) {
+            $sudah = $recruitment->konfirmasi_interview === 'hadir' ? 'HADIR' : 'TIDAK HADIR';
+            return view('recruitment.konfirmasi', [
+                'recruitment' => $recruitment,
+                'jawaban'     => $recruitment->konfirmasi_interview,
+                'sudah'       => true,
+                'pesan'       => "Anda sudah mengkonfirmasi: {$sudah}",
+            ]);
+        }
+
+        $recruitment->update([
+            'konfirmasi_interview' => $jawaban,
+            'konfirmasi_at'        => now(),
+        ]);
+
+        return view('recruitment.konfirmasi', [
+            'recruitment' => $recruitment,
+            'jawaban'     => $jawaban,
+            'sudah'       => false,
+            'pesan'       => $jawaban === 'hadir'
+                ? 'Terima kasih! Kehadiran Anda telah dikonfirmasi. Sampai jumpa di sesi interview.'
+                : 'Terima kasih atas konfirmasinya. Kami akan menghubungi Anda untuk penjadwalan ulang.',
+        ]);
     }
 
     // ─── PUBLIC: Halaman sukses setelah daftar ─────────────────────────────────
@@ -311,6 +370,7 @@ class RecruitmentController extends Controller
             'catatan_hr'        => 'nullable|string',
             'catatan_interview' => 'nullable|string',
             'tanggal_interview' => 'nullable|date',
+            'jam_interview'     => 'nullable|date_format:H:i',
         ]);
 
         $recruitment = Recruitment::findOrFail($id);
@@ -319,8 +379,17 @@ class RecruitmentController extends Controller
             'catatan_hr'        => $request->catatan_hr,
             'catatan_interview' => $request->catatan_interview,
             'tanggal_interview' => $request->tanggal_interview,
+            'jam_interview'     => $request->jam_interview,
             'diproses_oleh'     => Auth::id(),
         ]);
+        // Generate token konfirmasi baru jika status interview
+        if ($request->status === 'interview') {
+            $recruitment->token_konfirmasi  = \Illuminate\Support\Str::random(40);
+            $recruitment->konfirmasi_interview = null;
+            $recruitment->konfirmasi_at        = null;
+            $recruitment->save();
+        }
+
         $recruitment->load('cabang');
 
         $notifInfo = [];
@@ -370,16 +439,19 @@ class RecruitmentController extends Controller
         ];
 
         $statusLabel = $statusMap[$recruitment->status] ?? strtoupper($recruitment->status);
-        $appName     = config('app.name', 'HRIS DIDIMAX');
+        $setting     = Pengaturanumum::first();
+        $appName     = $setting->nama_perusahaan ?? config('app.name', 'PT DIDIMAX BERJANGKA');
         $cabang      = $recruitment->cabang->nama_cabang ?? '-';
+        $alamatCabang = $recruitment->cabang->alamat_cabang ?? '-';
 
         $msg  = "━━━━━━━━━━━━━━━━━\n";
         $msg .= "📢 *UPDATE LAMARAN KERJA*\n";
         $msg .= "━━━━━━━━━━━━━━━━━\n\n";
-        $msg .= "Halo *{$recruitment->nama_lengkap}*,\n\n";
+        $msg .= "Halo Yth, *{$recruitment->nama_lengkap}*,\n\n";
         $msg .= "Berikut update status lamaran Anda:\n\n";
         $msg .= "🏢 *Perusahaan:* {$appName}\n";
         $msg .= "📍 *Cabang:* {$cabang}\n";
+        $msg .= "📍*Alamat:* {$alamatCabang}\n";
         $msg .= "💼 *Posisi:* {$recruitment->posisi_dilamar}\n";
         $msg .= "🔖 *Kode Lamaran:* {$recruitment->kode_recruitment}\n";
         $msg .= "📊 *Status:* {$statusLabel}\n";
@@ -388,6 +460,19 @@ class RecruitmentController extends Controller
         if ($recruitment->status === 'interview' && $recruitment->tanggal_interview) {
             $tgl = \Carbon\Carbon::parse($recruitment->tanggal_interview)->translatedFormat('l, d F Y');
             $msg .= "\n📅 *Jadwal Interview:* {$tgl}\n";
+            if ($recruitment->jam_interview) {
+                $jam = \Carbon\Carbon::parse($recruitment->jam_interview)->format('H:i');
+                $msg .= "⏰ *Jam:* {$jam} WIB\n";
+            }
+
+            // Link konfirmasi kehadiran
+            if ($recruitment->token_konfirmasi) {
+                $linkHadir      = url("/recruitment/konfirmasi/{$recruitment->token_konfirmasi}/hadir");
+                $linkTidakHadir = url("/recruitment/konfirmasi/{$recruitment->token_konfirmasi}/tidak_hadir");
+                $msg .= "\n✅ *Konfirmasi Kehadiran:*\n";
+                $msg .= "👍 Hadir: {$linkHadir}\n";
+                $msg .= "👎 Tidak Hadir: {$linkTidakHadir}\n";
+            }
         }
 
         // Tambahkan catatan jika ada
@@ -398,7 +483,7 @@ class RecruitmentController extends Controller
         // Pesan penutup per status
         $closing = [
             'review'    => "\nLamaran Anda sedang kami review. Kami akan segera menghubungi Anda.",
-            'interview' => "\nMohon hadir tepat waktu sesuai jadwal. Bawa dokumen asli dan CV terbaru.",
+            'interview' => "\nMohon hadir tepat waktu sesuai jadwal. Memakai pakaian rapi. Bawa dokumen asli, FC KTP dan CV terbaru.",
             'offering'  => "\nSelamat! Anda lolos seleksi. Tim HR kami akan segera menghubungi untuk detail penawaran.",
             'diterima'  => "\n🎉 *Selamat!* Anda resmi bergabung bersama kami. Silakan tunggu info selanjutnya dari HR.",
             'ditolak'   => "\nTerima kasih telah melamar. Semoga sukses di kesempatan berikutnya.",

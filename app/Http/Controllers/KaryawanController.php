@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Imports\KaryawanImport;
 use App\Exports\TemplateKaryawanExport;
 use App\Exports\KaryawanExport;
+use App\Jobs\SendWaMessage;
 use Maatwebsite\Excel\Facades\Excel;
 
 class KaryawanController extends Controller
@@ -610,6 +611,24 @@ class KaryawanController extends Controller
 
             $user->assignRole('karyawan');
             DB::commit();
+
+            // Kirim notifikasi WA ke karyawan
+            if (!empty($karyawan->no_hp)) {
+                $appName = optional(Pengaturanumum::first())->nama_perusahaan ?? 'HRIS';
+                $loginUrl = url('/');
+                $apkUrl = 'https://hris.didimax.online/assets/app-mobile/app-release.apk';
+                $waMessage = "Halo *{$karyawan->nama_karyawan}*,\n\n"
+                    . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
+                    . "🔐 *Informasi Login:*\n"
+                    . "Username: *{$karyawan->nik}*\n"
+                    . "Password: *{$karyawan->nik}*\n\n"
+                    . "🌐 *Login Web HRIS:*\n{$loginUrl}\n\n"
+                    . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
+                    . "Harap segera login dan ganti email, password Anda.\n"
+                    . "Terima kasih.";
+                SendWaMessage::dispatch($karyawan->no_hp, $waMessage, false, true);
+            }
+
             return Redirect::route('karyawan.index')->with(messageSuccess('User Berhasil Dibuat'));
         } catch (\Exception $e) {
             DB::rollBack();

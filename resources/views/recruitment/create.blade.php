@@ -239,6 +239,10 @@
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label class="form-label">Cabang Tujuan <span class="text-danger">*</span></label>
+                                    @if($fixedCabang)
+                                        <input type="text" class="form-control bg-light" value="{{ textUpperCase($fixedCabang->nama_cabang) }}" readonly>
+                                        <input type="hidden" name="kode_cabang" id="kode_cabang" value="{{ $fixedCabang->kode_cabang }}">
+                                    @else
                                     <select name="kode_cabang" id="kode_cabang" class="form-select select2" required>
                                         <option value="">-- Pilih Cabang --</option>
                                         @foreach ($cabang as $c)
@@ -247,6 +251,7 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Posisi yang Dilamar <span class="text-danger">*</span></label>
@@ -387,6 +392,11 @@
                     $posisi.append('<option value="" disabled>Tidak ada lowongan tersedia</option>');
                 }
             });
+
+            // Jika cabang sudah terkunci (link per cabang), langsung load posisi
+            @if($fixedCabang)
+            $('#kode_cabang').trigger('change');
+            @endif
 
             $('#posisi_dilamar').on('change', function () {
                 const opt = $(this).find(':selected');

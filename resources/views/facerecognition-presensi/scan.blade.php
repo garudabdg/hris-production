@@ -160,6 +160,7 @@
         #canvas {
             width: 100%;
             max-width: 600px;
+            height: auto;
             border-radius: 15px;
         }
 
@@ -525,7 +526,16 @@
 
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+            // Paksa browser render sesuai aspek rasio asli
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+
+            // Flip horizontal agar tidak menyong (mirror effect dari kamera depan)
+            context.save();
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
             context.drawImage(video, 0, 0);
+            context.restore();
 
             // Stop camera
             if (stream) {
@@ -566,7 +576,7 @@
 
             // Send data to server
             try {
-                const response = await fetch('{{ route('qrpresensi.store') }}', {
+                const response = await fetch('{{ route('facerecognition-presensi.store') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

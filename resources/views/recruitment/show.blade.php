@@ -252,6 +252,34 @@
                                     value="{{ $r->tanggal_interview?->format('Y-m-d') }}"
                                     placeholder="Pilih tanggal" autocomplete="off">
                             </div>
+                            <div class="col-md-6" id="rowJamInterview">
+                                <label class="form-label fw-semibold">Jam Interview</label>
+                                <input type="time" name="jam_interview" id="jam_interview"
+                                    class="form-control"
+                                    value="{{ $r->jam_interview ? \Carbon\Carbon::parse($r->jam_interview)->format('H:i') : '' }}">
+                            </div>
+
+                            {{-- Status Konfirmasi Kehadiran --}}
+                            @if($r->status === 'interview' && $r->token_konfirmasi)
+                            <div class="col-12" id="rowKonfirmasi">
+                                <label class="form-label fw-semibold">Status Konfirmasi Kehadiran</label>
+                                @if($r->konfirmasi_interview === 'hadir')
+                                    <div class="alert alert-success py-2 mb-0">
+                                        <i class="ti ti-circle-check me-1"></i>
+                                        <strong>Hadir</strong> — dikonfirmasi pada {{ $r->konfirmasi_at?->format('d/m/Y H:i') }}
+                                    </div>
+                                @elseif($r->konfirmasi_interview === 'tidak_hadir')
+                                    <div class="alert alert-danger py-2 mb-0">
+                                        <i class="ti ti-circle-x me-1"></i>
+                                        <strong>Tidak Hadir</strong> — dikonfirmasi pada {{ $r->konfirmasi_at?->format('d/m/Y H:i') }}
+                                    </div>
+                                @else
+                                    <div class="alert alert-warning py-2 mb-0">
+                                        <i class="ti ti-clock me-1"></i> Belum ada konfirmasi dari pelamar
+                                    </div>
+                                @endif
+                            </div>
+                            @endif
                             <div class="col-12" id="rowCatatanInterview">
                                 <label class="form-label fw-semibold">Catatan Interview</label>
                                 <textarea name="catatan_interview" class="form-control" rows="3"
@@ -327,8 +355,10 @@
         function toggleInterviewFields() {
             const val = $('#statusSelect').val();
             const showInterview = ['interview', 'offering', 'diterima'].includes(val);
+            const showJam       = val === 'interview';
             const showCatatan   = ['interview', 'offering', 'diterima', 'ditolak'].includes(val);
             $('#rowInterview').toggle(showInterview);
+            $('#rowJamInterview').toggle(showJam);
             $('#rowCatatanInterview').toggle(showCatatan);
         }
 

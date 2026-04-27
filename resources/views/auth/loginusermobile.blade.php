@@ -428,7 +428,11 @@
                     <input type="password" name="password" class="form-control" placeholder="Password" required>
                 </div>
                 
-                <div class="forgot-pass">
+                <div class="forgot-pass" style="display: flex; align-items: center; justify-content: space-between; margin-top: -5px; margin-bottom: 25px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #518b82; font-weight: 600; margin: 0;">
+                        <input type="checkbox" name="remember" id="remember" style="width: 16px; height: 16px; accent-color: var(--theme-color-1); cursor: pointer;">
+                        Remember me
+                    </label>
                     <a href="#" onclick="showForgotPasswordModal()">Forgot Password</a>
                 </div>
                 

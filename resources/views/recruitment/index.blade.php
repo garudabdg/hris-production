@@ -129,7 +129,17 @@
                                         <small class="text-muted"><i class="ti ti-mail me-1"></i>{{ $item->email ?? '-' }}</small>
                                     </td>
                                     <td>{{ $item->tanggal_melamar?->format('d/m/Y') }}</td>
-                                    <td>{!! $item->status_badge !!}</td>
+                                    <td>{!! $item->status_badge !!}
+                                        @if($item->status === 'interview')
+                                            @if($item->konfirmasi_interview === 'hadir')
+                                                <br><span class="badge bg-success" style="font-size:10px;">✅ Hadir</span>
+                                            @elseif($item->konfirmasi_interview === 'tidak_hadir')
+                                                <br><span class="badge bg-danger" style="font-size:10px;">❌ Tidak Hadir</span>
+                                            @else
+                                                <br><span class="badge bg-warning text-dark" style="font-size:10px;">⏳ Belum Konfirmasi</span>
+                                            @endif
+                                        @endif
+                                    </td>
                                     <td>
                                         <div class="d-flex gap-1">
                                             <a href="{{ route('recruitment.show', $item->id) }}"

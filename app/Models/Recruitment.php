@@ -14,10 +14,11 @@ class Recruitment extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'tanggal_lahir'    => 'date',
-        'tanggal_melamar'  => 'date',
-        'tanggal_tersedia' => 'date',
-        'tanggal_interview' => 'date',
+        'tanggal_lahir'        => 'date',
+        'tanggal_melamar'      => 'date',
+        'tanggal_tersedia'     => 'date',
+        'tanggal_interview'    => 'date',
+        'konfirmasi_at'        => 'datetime',
     ];
 
     public function cabang()

@@ -20,6 +20,42 @@
     </div>
     @endif
 
+    {{-- Link Recruitment Per Cabang --}}
+    <div class="card mb-3">
+        <div class="card-header py-2">
+            <h6 class="mb-0"><i class="ti ti-link me-2"></i>Link Form Lamaran Per Cabang</h6>
+        </div>
+        <div class="card-body py-2">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cabang</th>
+                            <th>Link</th>
+                            <th width="80">Salin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($cabangs as $c)
+                        @php $link = url('/recruitment/form/' . $c->kode_cabang); @endphp
+                        <tr>
+                            <td class="fw-semibold">{{ $c->nama_cabang }}</td>
+                            <td>
+                                <a href="{{ $link }}" target="_blank" class="text-primary small">{{ $link }}</a>
+                            </td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm btnCopyLink" data-link="{{ $link }}" title="Salin link">
+                                    <i class="ti ti-copy"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     {{-- Filter --}}
     <div class="card mb-3">
         <div class="card-body py-2">
@@ -98,16 +134,6 @@
                             <td class="text-center">
                                 <div class="d-flex gap-1 justify-content-center">
                                     <button class="btn btn-warning btn-sm" onclick="editVacancy({{ $v->id }})"
-                                        data-id="{{ $v->id }}"
-                                        data-kode_cabang="{{ $v->kode_cabang }}"
-                                        data-kode_dept="{{ $v->kode_dept }}"
-                                        data-kode_jabatan="{{ $v->kode_jabatan }}"
-                                        data-posisi="{{ $v->posisi }}"
-                                        data-kuota="{{ $v->kuota }}"
-                                        data-deadline="{{ $v->deadline ? $v->deadline->format('Y-m-d') : '' }}"
-                                        data-deskripsi="{{ $v->deskripsi_pekerjaan }}"
-                                        data-kualifikasi="{{ $v->kualifikasi }}"
-                                        data-status="{{ $v->status }}"
                                         title="Edit">
                                         <i class="ti ti-edit"></i>
                                     </button>
@@ -192,32 +218,70 @@
 
 @endsection
 
-@push('scripts')
+@push('myscript')
+@php
+$_vacancyData = [];
+foreach($vacancies as $v) {
+    $_vacancyData[$v->id] = [
+        'id'                  => $v->id,
+        'kode_cabang'         => $v->kode_cabang,
+        'kode_dept'           => $v->kode_dept,
+        'kode_jabatan'        => $v->kode_jabatan,
+        'posisi'              => $v->posisi,
+        'kuota'               => $v->kuota,
+        'deadline'            => $v->deadline ? $v->deadline->format('Y-m-d') : '',
+        'deskripsi_pekerjaan' => $v->deskripsi_pekerjaan,
+        'kualifikasi'         => $v->kualifikasi,
+        'status'              => $v->status,
+    ];
+}
+@endphp
 <script>
-const depts = @json($departements->keyBy('kode_dept'));
-const jabatans = @json($jabatans->keyBy('kode_jabatan'));
+const vacancyData = @json($_vacancyData);
+
+// Salin link cabang
+document.querySelectorAll('.btnCopyLink').forEach(btn => {
+    btn.addEventListener('click', function() {
+        navigator.clipboard.writeText(this.dataset.link).then(() => {
+            this.innerHTML = '<i class="ti ti-check"></i>';
+            this.classList.replace('btn-outline-secondary', 'btn-success');
+            setTimeout(() => {
+                this.innerHTML = '<i class="ti ti-copy"></i>';
+                this.classList.replace('btn-success', 'btn-outline-secondary');
+            }, 2000);
+        });
+    });
+});
 
 function editVacancy(id) {
-    const btn = document.querySelector(`[data-id="${id}"]`);
+    const v = vacancyData[id];
+    if (!v) {
+        alert('Data tidak ditemukan untuk id: ' + id);
+        return;
+    }
+
     const form = document.getElementById('formEdit');
     form.action = `/recruitment/vacancy/${id}`;
 
     const setVal = (name, val) => {
         const el = form.querySelector(`[name="${name}"]`);
-        if (el) el.value = val ?? '';
+        if (!el) return;
+        el.value = val ?? '';
     };
 
-    setVal('kode_cabang', btn.dataset.kode_cabang);
-    setVal('kode_dept', btn.dataset.kode_dept);
-    setVal('kode_jabatan', btn.dataset.kode_jabatan);
-    setVal('posisi', btn.dataset.posisi);
-    setVal('kuota', btn.dataset.kuota);
-    setVal('deadline', btn.dataset.deadline);
-    setVal('deskripsi_pekerjaan', btn.dataset.deskripsi);
-    setVal('kualifikasi', btn.dataset.kualifikasi);
-    setVal('status', btn.dataset.status);
+    setVal('kode_cabang', v.kode_cabang);
+    setVal('kode_dept', v.kode_dept);
+    setVal('kode_jabatan', v.kode_jabatan);
+    setVal('posisi', v.posisi);
+    setVal('kuota', v.kuota);
+    setVal('deadline', v.deadline);
+    setVal('deskripsi_pekerjaan', v.deskripsi_pekerjaan);
+    setVal('kualifikasi', v.kualifikasi);
+    setVal('status', v.status);
 
-    new bootstrap.Modal(document.getElementById('modalEdit')).show();
+    const modalEl = document.getElementById('modalEdit');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
 }
 </script>
 @endpush
