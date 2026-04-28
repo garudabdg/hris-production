@@ -9,7 +9,18 @@
     <div class="col-lg-12">
         <div class="card">
             <div class="card-header">
-                <a href="#" class="btn btn-primary" id="btnTambah"><i class="fa fa-plus me-2"></i> Tambah Data</a>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <a href="#" class="btn btn-primary" id="btnTambah"><i class="fa fa-plus me-2"></i> Tambah Data</a>
+                    @if (!auth()->user()->isSuperAdmin())
+                        <div class="text-muted small">
+                            <i class="ti ti-building-community me-1"></i>
+                            Menampilkan data cabang:
+                            @foreach (auth()->user()->getCabang() as $c)
+                                <span class="badge bg-label-primary me-1">{{ textUpperCase($c->nama_cabang) }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
             </div>
 
             <!-- Modal Tambah Data -->
@@ -31,12 +42,35 @@
                     <div class="col-12">
                         <form action="{{ route('mutasi.index') }}" method="GET">
                             <div class="row g-2">
-                                <div class="col-lg-11 col-sm-12 col-md-12">
+                                <div class="col-lg-4 col-sm-12 col-md-12">
                                     <x-input-with-icon label="Cari Nama Karyawan" value="{{ Request('nama_karyawan') }}" name="nama_karyawan"
                                         icon="ti ti-search" hideLabel />
                                 </div>
-                                <div class="col-lg-1 col-sm-12 col-md-12">
-                                    <button class="btn btn-primary w-100"><i class="ti ti-icons ti-search me-1"></i></button>
+                                <div class="col-lg-3 col-sm-12">
+                                    <select name="jenis_mutasi" class="form-select">
+                                        <option value="">Semua Jenis</option>
+                                        <option value="MUTASI" {{ Request('jenis_mutasi') == 'MUTASI' ? 'selected' : '' }}>Mutasi</option>
+                                        <option value="PROMOSI" {{ Request('jenis_mutasi') == 'PROMOSI' ? 'selected' : '' }}>Promosi</option>
+                                        <option value="DEMOSI" {{ Request('jenis_mutasi') == 'DEMOSI' ? 'selected' : '' }}>Demosi</option>
+                                    </select>
+                                </div>
+                                @if (auth()->user()->isSuperAdmin())
+                                <div class="col-lg-3 col-sm-12">
+                                    <select name="kode_cabang" class="form-select">
+                                        <option value="">Semua Cabang</option>
+                                        @foreach ($cabang as $c)
+                                            <option value="{{ $c->kode_cabang }}" {{ Request('kode_cabang') == $c->kode_cabang ? 'selected' : '' }}>
+                                                {{ $c->nama_cabang }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                @endif
+                                <div class="col-lg-2 col-sm-12 col-md-12">
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-primary w-100"><i class="ti ti-search me-1"></i> Cari</button>
+                                        <a href="{{ route('mutasi.index') }}" class="btn btn-outline-secondary"><i class="ti ti-refresh"></i></a>
+                                    </div>
                                 </div>
                             </div>
                         </form>

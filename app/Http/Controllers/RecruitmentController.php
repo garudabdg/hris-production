@@ -21,6 +21,10 @@ class RecruitmentController extends Controller
     // ─── ADMIN: List semua pelamar ────────────────────────────────────────────
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $isHrdCabang = !$user->isSuperAdmin() && $user->hasRole('hrd');
+
         $query = Recruitment::with(['cabang', 'departemen', 'jabatan'])
             ->orderByDesc('tanggal_melamar');
 
@@ -46,8 +50,8 @@ class RecruitmentController extends Controller
         }
 
         // Batasi akses berdasarkan cabang user
-        if (!auth()->user()->isSuperAdmin()) {
-            $allowedCabang = auth()->user()->getCabangCodes();
+        if (!$user->isSuperAdmin()) {
+            $allowedCabang = $user->getCabangCodes();
             if (!empty($allowedCabang)) {
                 $query->whereIn('kode_cabang', $allowedCabang);
             }
@@ -55,10 +59,38 @@ class RecruitmentController extends Controller
 
         $recruitments = $query->paginate(20)->withQueryString();
 
-        $data['recruitments'] = $recruitments;
-        $data['cabang']       = auth()->user()->getCabang();
-        $data['departemen']   = auth()->user()->getDepartemen();
-        $data['statuses']     = [
+        // Untuk HRD cabang: data dikelompokkan per cabang
+        $recruitmentsByCabang = null;
+        if ($isHrdCabang) {
+            $allQuery = Recruitment::with(['cabang', 'departemen', 'jabatan'])
+                ->orderByDesc('tanggal_melamar');
+
+            $allowedCabang = $user->getCabangCodes();
+            if (!empty($allowedCabang)) {
+                $allQuery->whereIn('kode_cabang', $allowedCabang);
+            }
+
+            if ($request->filled('search')) {
+                $allQuery->where(function ($q) use ($request) {
+                    $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
+                      ->orWhere('kode_recruitment', 'like', '%' . $request->search . '%')
+                      ->orWhere('email', 'like', '%' . $request->search . '%')
+                      ->orWhere('no_hp', 'like', '%' . $request->search . '%');
+                });
+            }
+            if ($request->filled('status')) {
+                $allQuery->where('status', $request->status);
+            }
+
+            $recruitmentsByCabang = $allQuery->get()->groupBy('kode_cabang');
+        }
+
+        $data['recruitments']       = $recruitments;
+        $data['recruitmentsByCabang'] = $recruitmentsByCabang;
+        $data['isHrdCabang']        = $isHrdCabang;
+        $data['cabang']             = $user->getCabang();
+        $data['departemen']         = $user->getDepartemen();
+        $data['statuses']           = [
             'pending'   => 'Pending',
             'review'    => 'Review',
             'interview' => 'Interview',

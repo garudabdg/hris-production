@@ -25,6 +25,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'username',
         'email',
         'password',
+        'two_factor_code',
+        'two_factor_expires_at',
     ];
 
     /**
@@ -43,8 +45,9 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'email_verified_at'      => 'datetime',
+        'two_factor_expires_at'  => 'datetime',
+        'password'               => 'hashed',
     ];
 
     // Relasi dengan Cabang (Many to Many)

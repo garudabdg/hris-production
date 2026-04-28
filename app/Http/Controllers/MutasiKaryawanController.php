@@ -16,34 +16,69 @@ class MutasiKaryawanController extends Controller
 {
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         $query = MutasiKaryawan::query();
         $query->with(['karyawan', 'cabangLama', 'cabangBaru', 'deptLama', 'deptBaru', 'jabatanLama', 'jabatanBaru']);
-        
+
         if (!empty($request->nama_karyawan)) {
             $query->whereHas('karyawan', function($q) use ($request) {
                 $q->where('nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
             });
         }
 
+        if ($request->filled('jenis_mutasi')) {
+            $query->where('jenis_mutasi', $request->jenis_mutasi);
+        }
+
+        if ($request->filled('kode_cabang')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('kode_cabang_lama', $request->kode_cabang)
+                  ->orWhere('kode_cabang_baru', $request->kode_cabang);
+            });
+        }
+
+        // Batasi akses: non-super-admin hanya lihat data cabangnya
+        if (!$user->isSuperAdmin()) {
+            $allowedCabang = $user->getCabangCodes();
+            if (!empty($allowedCabang)) {
+                $query->whereHas('karyawan', function ($q) use ($allowedCabang) {
+                    $q->whereIn('kode_cabang', $allowedCabang);
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         $query->orderBy('tanggal_mutasi', 'desc');
         $mutasi = $query->paginate(10);
         $mutasi->appends($request->all());
-        
-        $karyawan = Karyawan::orderBy('nama_karyawan')->get();
-        $cabang = Cabang::orderBy('nama_cabang')->get();
-        $departemen = Departemen::orderBy('nama_dept')->get();
-        $jabatan = Jabatan::orderBy('nama_jabatan')->get();
+
+        $karyawan = $user->isSuperAdmin()
+            ? Karyawan::orderBy('nama_karyawan')->get()
+            : Karyawan::whereIn('kode_cabang', $user->getCabangCodes())->orderBy('nama_karyawan')->get();
+
+        $cabang     = $user->getCabang();
+        $departemen = $user->getDepartemen();
+        $jabatan    = Jabatan::orderBy('nama_jabatan')->get();
 
         return view('mutasi.index', compact('mutasi', 'karyawan', 'cabang', 'departemen', 'jabatan'));
     }
 
     public function create()
     {
-        $karyawan = Karyawan::orderBy('nama_karyawan')->get();
-        $cabang = Cabang::orderBy('nama_cabang')->get();
-        $departemen = Departemen::orderBy('nama_dept')->get();
-        $jabatan = Jabatan::orderBy('nama_jabatan')->get();
-        
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        $karyawan = $user->isSuperAdmin()
+            ? Karyawan::orderBy('nama_karyawan')->get()
+            : Karyawan::whereIn('kode_cabang', $user->getCabangCodes())->orderBy('nama_karyawan')->get();
+
+        $cabang     = $user->isSuperAdmin() ? Cabang::orderBy('nama_cabang')->get() : $user->getCabang();
+        $departemen = $user->isSuperAdmin() ? Departemen::orderBy('nama_dept')->get() : $user->getDepartemen();
+        $jabatan    = Jabatan::orderBy('nama_jabatan')->get();
+
         return view('mutasi.create', compact('karyawan', 'cabang', 'departemen', 'jabatan'));
     }
 
