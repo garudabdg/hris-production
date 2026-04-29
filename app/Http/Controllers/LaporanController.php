@@ -421,6 +421,10 @@ class LaporanController extends Controller
             $q_presensi->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
         }
 
+        if (!empty($request->sub_departemen)) {
+            $q_presensi->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
+        }
+
         if (!empty($request->nik)) {
             $q_presensi->whereIn('karyawan.nik', (array) $request->nik);
         }
@@ -716,6 +720,10 @@ class LaporanController extends Controller
                 $presensi_query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
             }
 
+            if (!empty($request->sub_departemen)) {
+                $presensi_query->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
+            }
+
             if (!empty($request->nik)) {
                 $presensi_query->whereIn('presensi.nik', (array) $request->nik);
             }
@@ -734,6 +742,10 @@ class LaporanController extends Controller
 
             if (!empty($request->kode_dept)) {
                 $karyawan_query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
+            }
+
+            if (!empty($request->sub_departemen)) {
+                $karyawan_query->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
             }
 
             if (!empty($request->nik)) {

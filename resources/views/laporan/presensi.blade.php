@@ -29,6 +29,12 @@
                         </select>
                         <div class="text-muted small mt-1"><i class="ti ti-info-circle me-1"></i>Kosongkan untuk semua departemen</div>
                     </div>
+                    <div class="form-group mb-3" id="baris_sub_dept" style="display:none;">
+                        <label class="form-label text-muted small mb-1">Sub Departemen</label>
+                        <select name="sub_departemen[]" id="sub_departemen_presensi" class="form-select select2SubDeptPresensi" multiple>
+                        </select>
+                        <div class="text-muted small mt-1"><i class="ti ti-info-circle me-1"></i>Kosongkan untuk semua sub departemen</div>
+                    </div>
                     <div class="form-group mb-3">
                         <label class="form-label text-muted small mb-1">Karyawan</label>
                         <select name="nik[]" id="nik_presensi" class="form-select select2Nikpresensi" multiple>
@@ -163,6 +169,67 @@
                 });
             });
         }
+
+        const select2SubDeptPresensi = $(".select2SubDeptPresensi");
+        if (select2SubDeptPresensi.length) {
+            select2SubDeptPresensi.each(function() {
+                var $this = $(this);
+                $this.wrap('<div class="position-relative"></div>').select2({
+                    placeholder: 'Semua Sub Departemen',
+                    allowClear: true,
+                    dropdownParent: $this.parent()
+                });
+            });
+        }
+
+        // Daftar dept yang memiliki sub departemen (ambil dari server jika dibutuhkan)
+        const DEPT_WITH_SUBDEPT = ['BU'];
+
+        function loadSubDepartemen(kodeDeptArr) {
+            const hasDeptWithSub = kodeDeptArr.some(k => DEPT_WITH_SUBDEPT.includes(k));
+            if (!hasDeptWithSub || kodeDeptArr.length === 0) {
+                $("#baris_sub_dept").hide();
+                $("#sub_departemen_presensi").empty().trigger('change');
+                return;
+            }
+            // Ambil dept yang punya sub
+            const filteredDepts = kodeDeptArr.filter(k => DEPT_WITH_SUBDEPT.includes(k));
+            // Jika lebih dari 1 dept with sub, gabungkan semua sub
+            const promises = filteredDepts.map(k =>
+                $.get(`/api/departemen/${k}/sub-departemen`)
+            );
+            Promise.all(promises).then(responses => {
+                let allSubs = [];
+                responses.forEach(res => {
+                    if (res.success && Array.isArray(res.sub_departemen)) {
+                        allSubs = allSubs.concat(res.sub_departemen);
+                    }
+                });
+                // Hapus duplikat
+                allSubs = [...new Set(allSubs)];
+                const $sel = $("#sub_departemen_presensi");
+                const prevSelected = $sel.val() || [];
+                $sel.empty();
+                allSubs.forEach(sub => {
+                    $sel.append($('<option>', {
+                        value: sub,
+                        text: sub,
+                        selected: prevSelected.includes(sub)
+                    }));
+                });
+                $sel.trigger('change');
+                if (allSubs.length > 0) {
+                    $("#baris_sub_dept").show();
+                } else {
+                    $("#baris_sub_dept").hide();
+                }
+            });
+        }
+
+        $("#kode_dept_presensi").change(function() {
+            const selected = $(this).val() || [];
+            loadSubDepartemen(selected);
+        });
 
         function loadKaryawan() {
             const kode_cabang = $("#kode_cabang_presensi").val(); // array

@@ -10,22 +10,22 @@
     <table class="datatable3" style="width: 100%; border-collapse: collapse; border: 1px solid #000000">
         <thead>
             <tr>
-                <td colspan="{{ 19 + $jmlhari }}" style="font-weight: bold; font-size: 14px">LAPORAN PRESENSI</td>
+                <td colspan="{{ 20 + $jmlhari }}" style="font-weight: bold; font-size: 14px">LAPORAN PRESENSI</td>
             </tr>
             <tr>
-                <td colspan="{{ 19 + $jmlhari }}" style="font-weight: bold; font-size: 14px">{{ $generalsetting->nama_perusahaan }}</td>
+                <td colspan="{{ 20 + $jmlhari }}" style="font-weight: bold; font-size: 14px">{{ $generalsetting->nama_perusahaan }}</td>
             </tr>
             <tr>
-                <td colspan="{{ 19 + $jmlhari }}" style="font-size: 12px">PERIODE {{ date('d-m-Y', strtotime($periode_dari)) }} - {{ date('d-m-Y', strtotime($periode_sampai)) }}</td>
+                <td colspan="{{ 20 + $jmlhari }}" style="font-size: 12px">PERIODE {{ date('d-m-Y', strtotime($periode_dari)) }} - {{ date('d-m-Y', strtotime($periode_sampai)) }}</td>
             </tr>
             <tr>
-                <td colspan="{{ 19 + $jmlhari }}" style="font-size: 12px; font-style: italic;">{{ $generalsetting->alamat }}</td>
+                <td colspan="{{ 20 + $jmlhari }}" style="font-size: 12px; font-style: italic;">{{ $generalsetting->alamat }}</td>
             </tr>
             <tr>
-                <td colspan="{{ 19 + $jmlhari }}" style="font-size: 12px; font-style: italic;">{{ $generalsetting->telepon }}</td>
+                <td colspan="{{ 20 + $jmlhari }}" style="font-size: 12px; font-style: italic;">{{ $generalsetting->telepon }}</td>
             </tr>
             <tr>
-                <td colspan="{{ 19 + $jmlhari }}"></td>
+                <td colspan="{{ 20 + $jmlhari }}"></td>
             </tr>
             <tr>
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">No</th>
@@ -57,7 +57,8 @@
                 <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Alfa</th>
                 <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Libur</th>
                 <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Terlambat</th>
-                <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Tidak Scan Masuk</th>
+                                <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Total Menit Terlambat</th>
+                                <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Tidak Scan Masuk</th>
                 <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Tidak Scan Pulang</th>
                 <th rowspan="2" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Pulang Cepat</th>
             </tr>
@@ -101,6 +102,7 @@
                         $jml_libur = 0;
                         $jml_alfa = 0;
                         $jml_terlambat = 0;
+                        $total_menit_terlambat = 0;
                         $jml_pulangcepat = 0;
                         $jml_tidakscanmasuk = 0;
                         $jml_tidakscanpulang = 0;
@@ -195,6 +197,7 @@
                                             }
                                             if ($terlambat['menitterlambat'] > 0) {
                                                 $jml_terlambat++;
+                                                $total_menit_terlambat += $terlambat['menitterlambat'];
                                             }
                                         } else {
                                             $potongan_jam_terlambat = 0;
@@ -214,6 +217,7 @@
                                             }
                                             if ($terlambat['menitterlambat'] > 0) {
                                                 $jml_terlambat++;
+                                                $total_menit_terlambat += $terlambat['menitterlambat'];
                                             }
                                         } else {
                                             $potongan_jam_terlambat = 0;
@@ -446,6 +450,7 @@
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_alfa }}</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_libur }}</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_terlambat }}</td>
+                    <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $total_menit_terlambat }} menit</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_tidakscanmasuk }}</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_tidakscanpulang }}</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_pulangcepat }}</td>
@@ -453,7 +458,7 @@
             @endforeach
             {{-- LEGEND --}}
              <tr>
-                <td colspan="{{ 18 + $jmlhari }}"></td>
+                <td colspan="{{ 19 + $jmlhari }}"></td>
             </tr>
              <tr>
                 <th colspan="2" style="border: 1px solid #000000; text-align:center; background-color: #f2f2f2;">Kode</th>

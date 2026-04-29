@@ -262,7 +262,7 @@
                     <th rowspan="3" style="min-width: 60px">Denda</th>
                     <th rowspan="3" style="min-width: 60px">Pot. Jam</th>
                     <th rowspan="3" style="min-width: 60px">Lembur</th>
-                    <th colspan="9">Rekap</th>
+                    <th colspan="10">Rekap</th>
                 </tr>
                 <tr>
                     @php
@@ -280,6 +280,7 @@
                     <th rowspan="2">Alfa</th>
                     <th rowspan="2">Libur</th>
                     <th rowspan="2">Terlambat</th>
+                    <th rowspan="2">Total Menit Terlambat</th>
                     <th rowspan="2">Tidak Scan Masuk</th>
                     <th rowspan="2">Tidak Scan Pulang</th>
                     <th rowspan="2">Pulang Cepat</th>
@@ -323,6 +324,7 @@
                             $jml_libur = 0;
                             $jml_alfa = 0;
                             $jml_terlambat = 0;
+                            $total_menit_terlambat = 0;
                             $jml_pulangcepat = 0;
                             $jml_tidakscanmasuk = 0;
                             $jml_tidakscanpulang = 0;
@@ -420,6 +422,7 @@
                                                 }
                                                 if ($terlambat['menitterlambat'] > 0) {
                                                     $jml_terlambat++;
+                                                    $total_menit_terlambat += $terlambat['menitterlambat'];
                                                 }
                                             } else {
                                                 $potongan_jam_terlambat = 0;
@@ -439,6 +442,7 @@
                                                 }
                                                 if ($terlambat['menitterlambat'] > 0) {
                                                     $jml_terlambat++;
+                                                    $total_menit_terlambat += $terlambat['menitterlambat'];
                                                 }
                                             } else {
                                                 $potongan_jam_terlambat = 0;
@@ -724,6 +728,7 @@
                         <td style="text-align:center">{{ $jml_alfa }}</td>
                         <td style="text-align:center">{{ $jml_libur }}</td>
                         <td style="text-align:center">{{ $jml_terlambat }}</td>
+                        <td style="text-align:center">{{ $total_menit_terlambat }} menit</td>
                         <td style="text-align:center">{{ $jml_tidakscanmasuk }}</td>
                         <td style="text-align:center">{{ $jml_tidakscanpulang }}</td>
                         <td style="text-align:center">{{ $jml_pulangcepat }}</td>
