@@ -29,24 +29,47 @@
                 @else
                     <div class="notification-list">
                         @foreach($notifications as $notif)
+                            @php
+                                $type = $notif['type'] ?? 'approval_status';
+                                $url  = $notif['url'] ?? null;
+                            @endphp
                             <div class="notification-item border-bottom pb-3 mb-3 @if(!$notif['is_read']) bg-light p-3 rounded @endif" data-id="{{ $notif['id'] }}">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center">
-                                            @if($notif['status'] == 1)
-                                                <span class="badge bg-success me-2">✅ Disetujui</span>
-                                            @elseif($notif['status'] == 2)
-                                                <span class="badge bg-danger me-2">❌ Ditolak</span>
+
+                                        {{-- Badge status / tipe --}}
+                                        <div class="d-flex align-items-center gap-1 mb-2">
+                                            @if($type === 'new_recruitment')
+                                                <span class="badge bg-label-info"><i class="ti ti-user-plus me-1"></i>Pelamar Baru</span>
+                                            @elseif($type === 'new_it_ticket')
+                                                @php
+                                                    $pColor = match($notif['prioritas'] ?? '') {
+                                                        'critical' => 'danger', 'high' => 'warning',
+                                                        'medium' => 'info', 'low' => 'success', default => 'secondary'
+                                                    };
+                                                @endphp
+                                                <span class="badge bg-label-{{ $pColor }}"><i class="ti ti-ticket me-1"></i>Tiket IT Baru</span>
                                             @else
-                                                <span class="badge bg-warning me-2">⏳ Pending</span>
+                                                @if($notif['status'] == 1)
+                                                    <span class="badge bg-success">✅ Disetujui</span>
+                                                @elseif($notif['status'] == 2)
+                                                    <span class="badge bg-danger">❌ Ditolak</span>
+                                                @else
+                                                    <span class="badge bg-warning">⏳ Pending</span>
+                                                @endif
                                             @endif
                                             @if(!$notif['is_read'])
                                                 <span class="badge bg-primary">Baru</span>
                                             @endif
                                         </div>
-                                        
-                                        <h6 class="mt-2 mb-1">
-                                            @if($notif['approval_type'] == 'IZIN_SAKIT')
+
+                                        {{-- Judul + ikon --}}
+                                        <h6 class="mb-1">
+                                            @if($type === 'new_recruitment')
+                                                <i class="ti ti-user-plus text-info me-2"></i>
+                                            @elseif($type === 'new_it_ticket')
+                                                <i class="ti ti-ticket text-warning me-2"></i>
+                                            @elseif($notif['approval_type'] == 'IZIN_SAKIT')
                                                 <i class="ti ti-medical-cross text-danger me-2"></i>
                                             @elseif($notif['approval_type'] == 'IZIN_ABSEN')
                                                 <i class="ti ti-calendar-x text-warning me-2"></i>
@@ -57,14 +80,14 @@
                                             @endif
                                             {{ $notif['title'] }}
                                         </h6>
-                                        
-                                        <p class="mb-2 text-muted">
-                                            {{ $notif['message'] }}
-                                        </p>
-                                        
+
+                                        <p class="mb-2 text-muted">{{ $notif['message'] }}</p>
+
                                         <div class="small text-muted">
-                                            <i class="ti ti-user me-1"></i>Dari: {{ $notif['approver_name'] }} <br>
                                             <i class="ti ti-clock me-1"></i>{{ $notif['created_at']->diffForHumans() }}
+                                            @if($notif['approver_name'])
+                                                &nbsp;·&nbsp;<i class="ti ti-user me-1"></i>{{ $notif['approver_name'] }}
+                                            @endif
                                         </div>
 
                                         @if($notif['notes'])
@@ -72,13 +95,21 @@
                                                 <small><strong>Catatan:</strong> {{ $notif['notes'] }}</small>
                                             </div>
                                         @endif
+
+                                        @if($url)
+                                            <div class="mt-2">
+                                                <a href="{{ $url }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="ti ti-arrow-right me-1"></i>Lihat Detail
+                                                </a>
+                                            </div>
+                                        @endif
                                     </div>
 
-                                    <div class="ms-3">
+                                    <div class="ms-3 d-flex flex-column gap-1">
                                         @if(!$notif['is_read'])
                                             <form method="POST" action="{{ route('notification.mark-as-read', $notif['id']) }}" class="d-inline">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-link text-muted" title="Tandai sudah dibaca">
+                                                <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Tandai sudah dibaca">
                                                     <i class="ti ti-circle-check"></i>
                                                 </button>
                                             </form>
@@ -86,7 +117,7 @@
                                         <form method="POST" action="{{ route('notification.delete', $notif['id']) }}" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-link text-danger" title="Hapus" onclick="return confirm('Hapus notifikasi ini?')">
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Hapus" onclick="return confirm('Hapus notifikasi ini?')">
                                                 <i class="ti ti-trash"></i>
                                             </button>
                                         </form>

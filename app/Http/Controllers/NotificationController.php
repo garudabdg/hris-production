@@ -73,17 +73,20 @@ class NotificationController extends Controller
             })
             ->map(function($notif) {
                 return [
-                    'id' => $notif->id,
-                    'title' => $notif->data['title'] ?? 'Notifikasi',
-                    'message' => $notif->data['message'] ?? '',
+                    'id'            => $notif->id,
+                    'type'          => $notif->data['type'] ?? 'approval_status',
+                    'title'         => $notif->data['title'] ?? 'Notifikasi',
+                    'message'       => $notif->data['message'] ?? '',
                     'approval_type' => $notif->data['approval_type'] ?? '',
                     'approval_code' => $notif->data['approval_code'] ?? '',
-                    'status' => $notif->data['status'] ?? null,
+                    'status'        => $notif->data['status'] ?? null,
                     'approver_name' => $notif->data['approver_name'] ?? '',
-                    'notes' => $notif->data['notes'] ?? null,
-                    'created_at' => $notif->created_at,
-                    'read_at' => $notif->read_at,
-                    'is_read' => !is_null($notif->read_at)
+                    'notes'         => $notif->data['notes'] ?? null,
+                    'prioritas'     => $notif->data['prioritas'] ?? null,
+                    'url'           => $notif->data['url'] ?? null,
+                    'created_at'    => $notif->created_at,
+                    'read_at'       => $notif->read_at,
+                    'is_read'       => !is_null($notif->read_at)
                 ];
             });
 
@@ -200,15 +203,18 @@ class NotificationController extends Controller
             })
             ->map(function($notif) {
                 return [
-                    'id' => $notif->id,
-                    'title' => $notif->data['title'] ?? 'Notifikasi',
-                    'message' => $notif->data['message'] ?? '',
+                    'id'            => $notif->id,
+                    'type'          => $notif->data['type'] ?? 'approval_status',
+                    'title'         => $notif->data['title'] ?? 'Notifikasi',
+                    'message'       => $notif->data['message'] ?? '',
                     'approval_type' => $notif->data['approval_type'] ?? '',
                     'approval_code' => $notif->data['approval_code'] ?? '',
-                    'status' => $notif->data['status'] ?? null,
+                    'status'        => $notif->data['status'] ?? null,
                     'approver_name' => $notif->data['approver_name'] ?? '',
-                    'created_at' => $notif->created_at->diffForHumans(),
-                    'is_read' => !is_null($notif->read_at)
+                    'prioritas'     => $notif->data['prioritas'] ?? null,
+                    'url'           => $notif->data['url'] ?? null,
+                    'created_at'    => $notif->created_at->diffForHumans(),
+                    'is_read'       => !is_null($notif->read_at)
                 ];
             });
 
@@ -220,8 +226,8 @@ class NotificationController extends Controller
 
         return response()->json([
             'notifications' => $notifications->values(),
-            'unread_count' => $unreadCount,
-            'total' => $notifications->count()
+            'unread_count'  => $unreadCount,
+            'total'         => $notifications->count()
         ]);
     }
 }

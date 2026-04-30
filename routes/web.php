@@ -56,6 +56,8 @@ use App\Http\Controllers\UpdateController;
 use App\Http\Controllers\Admin\UpdateManagementController;
 use App\Http\Controllers\RecruitmentController;
 use App\Http\Controllers\RecruitmentVacancyController;
+use App\Http\Controllers\AssetController;
+use App\Http\Controllers\ItTicketController;
 
 
 /*
@@ -211,7 +213,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Audit Log Routes
-    Route::middleware('role:super admin|hrd|direktur utama')->controller(\App\Http\Controllers\AuditController::class)->prefix('audit')->group(function () {
+    Route::middleware('permission:audit.index')->controller(\App\Http\Controllers\AuditController::class)->prefix('audit')->group(function () {
         Route::get('/', 'index')->name('audit.index');
         Route::get('/export', 'export')->name('audit.export');
         Route::post('/cleanup', 'cleanup')->name('audit.cleanup');
@@ -706,6 +708,37 @@ Route::middleware('auth')->group(function () {
     // Mutasi Karyawan
     Route::resource('mutasi', App\Http\Controllers\MutasiKaryawanController::class);
     Route::get('/mutasi/{nik}/getKaryawan', [App\Http\Controllers\MutasiKaryawanController::class, 'getKaryawan'])->name('mutasi.getKaryawan');
+
+    // IT Ticket — semua user yang login bisa buat tiket, IT Staff & Super Admin bisa manage
+    Route::prefix('it-ticket')->name('it-ticket.')->controller(ItTicketController::class)->group(function () {
+        Route::get('/',                      'index')->name('index');
+        Route::get('/create',                'create')->name('create');
+        Route::post('/',                     'store')->name('store');
+        Route::get('/{itTicket}',            'show')->name('show');
+        Route::post('/{itTicket}/respond',    'respond')->name('respond');
+        Route::get('/{itTicket}/responses',  'getResponses')->name('responses');
+        Route::put('/{itTicket}/status',     'updateStatus')->name('update-status');
+        Route::put('/{itTicket}/assign',     'assign')->name('assign');
+        Route::delete('/{itTicket}',         'destroy')->name('destroy');
+    });
+
+    // Asset Management
+    Route::prefix('manajemen-aset')->name('assets.')->controller(AssetController::class)->group(function () {
+        Route::get('/export', 'export')->name('export');
+        Route::get('/import/template', 'importTemplate')->name('import.template');
+        Route::post('/import', 'import')->name('import');
+        Route::get('/kategori', 'kategoriIndex')->name('kategori.index');
+        Route::post('/kategori', 'kategoriStore')->name('kategori.store');
+        Route::put('/kategori/{category}', 'kategoriUpdate')->name('kategori.update');
+        Route::delete('/kategori/{category}', 'kategoriDestroy')->name('kategori.destroy');
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{asset}', 'show')->name('show');
+        Route::get('/{asset}/edit', 'edit')->name('edit');
+        Route::put('/{asset}', 'update')->name('update');
+        Route::delete('/{asset}', 'destroy')->name('destroy');
+    });
 });
 
 

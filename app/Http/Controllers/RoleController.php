@@ -126,6 +126,7 @@ class RoleController extends Controller
         try {
             $role->revokePermissionTo($old_permissions);
             $role->givePermissionTo($permissions);
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
             return Redirect::back()->with(['success' => 'Data Berhasil Disimpan']);
         } catch (\Exception $e) {
             return Redirect::back()->with(['error' => $e->getMessage()]);

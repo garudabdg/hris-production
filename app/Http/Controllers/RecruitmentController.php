@@ -11,6 +11,8 @@ use App\Models\Jabatan;
 use App\Models\Pengaturanumum;
 use App\Models\Recruitment;
 use App\Models\RecruitmentVacancy;
+use App\Models\User;
+use App\Notifications\NewRecruitmentNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -241,6 +243,14 @@ class RecruitmentController extends Controller
                 // Gagal kirim email tidak menghentikan proses
                 \Log::warning('Gagal kirim email recruitment: ' . $e->getMessage());
             }
+        }
+
+        // Kirim notifikasi ke semua user yang punya permission recruitment.index
+        try {
+            $recipients = User::permission('recruitment.index')->get();
+            \Illuminate\Support\Facades\Notification::send($recipients, new NewRecruitmentNotification($recruitment));
+        } catch (\Exception $e) {
+            \Log::warning('Gagal kirim notifikasi recruitment: ' . $e->getMessage());
         }
 
         return redirect()->route('recruitment.success')

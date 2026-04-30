@@ -466,6 +466,25 @@
                         <br><span style="font-size:0.75rem; font-weight:400; color: {{ $t['primary'] ?? '#2d5a4c' }};">Lainnya</span>
                     </div>
                 </a>
+
+                {{-- IT Ticket --}}
+                @can('it-ticket.index')
+                <a href="{{ route('it-ticket.index') }}" class="block">
+                    <div class="bg-white rounded-[12px] text-center relative" style="padding:5px 5px; line-height:0.8rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        @php
+                            $myOpenTickets = \App\Models\ItTicket::where('pemohon_id', auth()->id())
+                                ->whereIn('status', ['open','in_progress','pending'])
+                                ->count();
+                        @endphp
+                        @if($myOpenTickets > 0)
+                            <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-1 z-10">{{ $myOpenTickets }}</span>
+                        @endif
+                        <ion-icon name="headset-outline" style="font-size:40px; color: {{ $t['primary'] ?? '#2d5a4c' }}; margin-bottom:0;"></ion-icon>
+                        <br><span style="font-size:0.75rem; font-weight:400; color: {{ $t['primary'] ?? '#2d5a4c' }};">IT Ticket</span>
+                    </div>
+                </a>
+                @endcan
+
             </div>
         </div>
 
@@ -624,9 +643,65 @@
                             </div>
                         </a>
                     @endforeach
-                @endif
+                @endcan
             </div>
         </div>
+
+        {{-- ===== IT TICKET SUMMARY ===== --}}
+        @can('it-ticket.index')
+        @php
+            $myTickets = \App\Models\ItTicket::where('pemohon_id', auth()->id())
+                ->whereIn('status', ['open','in_progress','pending'])
+                ->orderByRaw("FIELD(prioritas,'critical','high','medium','low')")
+                ->orderByDesc('created_at')
+                ->take(3)
+                ->get();
+        @endphp
+        @if($myTickets->count() > 0)
+        <div class="px-4 mt-4 fade-in" style="animation-delay:.28s;">
+            <div class="flex justify-between items-center mb-2">
+                <h4 style="font-size:15px; font-weight:700; color:#333;">🎫 IT Ticket Aktif</h4>
+                <a href="{{ route('it-ticket.index') }}" style="font-size:12px; color:{{ $t['primary'] ?? '#2d5a4c' }}; font-weight:600;">Lihat Semua →</a>
+            </div>
+            @foreach($myTickets as $tkt)
+            @php
+                $tktColors = ['critical'=>'#dc3545','high'=>'#fd7e14','medium'=>'#0d6efd','low'=>'#6c757d'];
+                $tktColor = $tktColors[$tkt->prioritas] ?? '#6c757d';
+                $statusLabels = ['open'=>'Open','in_progress'=>'In Progress','pending'=>'Pending'];
+                $statusLabel = $statusLabels[$tkt->status] ?? $tkt->status;
+            @endphp
+            <a href="{{ route('it-ticket.show', $tkt->id) }}" class="block">
+                <div class="bg-white rounded-[12px] mb-2 p-3 flex items-start gap-3" style="border:1px solid {{ $tktColor }}33; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                    <div class="shrink-0 flex items-center justify-center rounded-[10px] mt-1" style="width:36px;height:36px;background:{{ $tktColor }}18;">
+                        <ion-icon name="headset-outline" style="font-size:20px;color:{{ $tktColor }};"></ion-icon>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start gap-1">
+                            <span style="font-size:13px;font-weight:600;color:#333;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">{{ $tkt->judul }}</span>
+                            <span style="font-size:10px;font-weight:700;color:{{ $tktColor }};background:{{ $tktColor }}18;padding:2px 7px;border-radius:20px;white-space:nowrap;">{{ ucfirst($tkt->prioritas) }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span style="font-size:10px;color:#888;">{{ $tkt->nomor_tiket }}</span>
+                            <span style="font-size:10px;background:#f0f0f0;color:#555;padding:1px 6px;border-radius:10px;">{{ $statusLabel }}</span>
+                            @if($tkt->isOverdue())
+                                <span style="font-size:10px;background:#dc354518;color:#dc3545;padding:1px 6px;border-radius:10px;">⚠ Overdue</span>
+                            @else
+                                <span style="font-size:10px;color:#aaa;">SLA: {{ $tkt->tanggal_target?->format('d/m') }}</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </a>
+            @endforeach
+            <a href="{{ route('it-ticket.create') }}" class="block mt-2">
+                <div class="rounded-[12px] flex items-center justify-center gap-2 py-2" style="border:1.5px dashed {{ $t['primary'] ?? '#2d5a4c' }}55;background:{{ $t['primary'] ?? '#2d5a4c' }}08;">
+                    <ion-icon name="add-circle-outline" style="font-size:18px;color:{{ $t['primary'] ?? '#2d5a4c' }};"></ion-icon>
+                    <span style="font-size:13px;font-weight:600;color:{{ $t['primary'] ?? '#2d5a4c' }};">Buat Tiket Baru</span>
+                </div>
+            </a>
+        </div>
+        @endif
+        @endcan
 
         </div>
     </div>

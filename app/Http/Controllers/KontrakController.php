@@ -527,9 +527,9 @@ class KontrakController extends Controller
        $rules = [
     'nik' => ['required', 'exists:karyawan,nik'],
     'tanggal' => ['required', 'date'],
-    'jenis_kontrak' => ['required', 'string', 'in:K,T,M,O'],
-    'dari' => ['nullable', 'required_if:jenis_kontrak,K,M,O', 'date'],
-    'sampai' => ['nullable', 'required_if:jenis_kontrak,K,M,O', 'date', 'after_or_equal:dari'],
+    'jenis_kontrak' => ['required', 'string', 'in:K,T,M,O,P,G'],
+    'dari' => ['nullable', 'required_if:jenis_kontrak,K,M,O,P,G', 'date'],
+    'sampai' => ['nullable', 'required_if:jenis_kontrak,K,M,O,P,G', 'date', 'after_or_equal:dari'],
     'kode_jabatan' => ['required', 'exists:jabatan,kode_jabatan'],
     'kode_cabang' => ['required', 'exists:cabang,kode_cabang'],
     'kode_dept' => ['required', 'exists:departemen,kode_dept'],

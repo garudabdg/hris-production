@@ -437,6 +437,40 @@
                  </ul>
              </li>
          @endif
+
+         {{-- IT Ticket: tampil untuk semua user yang punya permission --}}
+         @can('it-ticket.index')
+             <li class="menu-item {{ request()->is(['it-ticket', 'it-ticket/*']) ? 'active' : '' }}">
+                 <a href="{{ route('it-ticket.index') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-headset"></i>
+                     <div>IT Ticket</div>
+                 </a>
+             </li>
+         @endcan
+
+         @can('asset.index')
+             <li class="menu-item {{ request()->is(['manajemen-aset', 'manajemen-aset/*']) ? 'open' : '' }}">
+                 <a href="javascript:void(0);" class="menu-link menu-toggle">
+                     <i class="menu-icon tf-icons ti ti-package"></i>
+                     <div>Manajemen Aset</div>
+                 </a>
+                 <ul class="menu-sub">
+                     <li class="menu-item {{ request()->is(['manajemen-aset']) || (request()->is(['manajemen-aset/*']) && !request()->is(['manajemen-aset/kategori*'])) ? 'active' : '' }}">
+                         <a href="{{ route('assets.index') }}" class="menu-link">
+                             <div>Daftar Aset</div>
+                         </a>
+                     </li>
+                     @can('asset.kategori')
+                     <li class="menu-item {{ request()->is(['manajemen-aset/kategori', 'manajemen-aset/kategori/*']) ? 'active' : '' }}">
+                         <a href="{{ route('assets.kategori.index') }}" class="menu-link">
+                             <div>Kategori Aset</div>
+                         </a>
+                     </li>
+                     @endcan
+                 </ul>
+             </li>
+         @endcan
+
          @if (auth()->user()->hasRole(['super admin']))
              <li
                  class="menu-item {{ request()->is(['roles', 'roles/*', 'permissiongroups', 'permissiongroups/*', 'permissions', 'permissions/*', 'users', 'users/*', 'audit', 'audit/*', 'bersihkanfoto', 'bersihkanfoto/*', 'resetdata', 'resetdata/*']) ? 'open' : '' }} ">
@@ -465,11 +499,13 @@
                              <div>Group Permission</div>
                          </a>
                      </li>
+                     @can('audit.index')
                      <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
                          <a href="{{ route('audit.index') }}" class="menu-link">
                              <div><i class="ti ti-file-text me-1"></i>Audit Log</div>
                          </a>
                      </li>
+                     @endcan
                      @can('bersihkanfoto.index')
                          <li class="menu-item {{ request()->is(['bersihkanfoto', 'bersihkanfoto/*']) ? 'active' : '' }}">
                              <a href="{{ route('bersihkanfoto.index') }}" class="menu-link">
@@ -485,14 +521,16 @@
                  </ul>
              </li>
          @endif
-         @if (auth()->user()->hasRole(['hrd', 'direktur utama']) && !auth()->user()->hasRole(['super admin']))
+         @can('audit.index')
+             @if (!auth()->user()->hasRole(['super admin']))
              <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
                  <a href="{{ route('audit.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-file-text"></i>
                      <div>Audit Log</div>
                  </a>
              </li>
-         @endif
+             @endif
+         @endcan
          @can('recruitment.index')
              <li class="menu-item {{ request()->is(['recruitment', 'recruitment/vacancy*']) ? 'open' : '' }}">
                  <a href="javascript:void(0)" class="menu-link menu-toggle">

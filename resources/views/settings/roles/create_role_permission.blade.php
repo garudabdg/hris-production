@@ -38,7 +38,7 @@
                         @endphp
                         @foreach ($list_permissions as $p)
                             @php
-                                $permission = explode('-', $p);
+                                $permission = explode('-', $p, 2);
                                 $permission_id = $permission[0];
                                 $permission_name = $permission[1];
                                 $cek = in_array($permission_name, $rolepermissions);
