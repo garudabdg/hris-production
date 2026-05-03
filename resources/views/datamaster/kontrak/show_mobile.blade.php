@@ -244,7 +244,7 @@
                 <tr>
                     <td class="label">Jenis Kelamin</td>
                     <td class="colon">:</td>
-                    <td class="font-semibold text-slate-800">{{ $kontrak->jenis_kelamin }}</td>
+                    <td class="font-semibold text-slate-800">{{ $kontrak->jenis_kelamin == 'L' ? 'Laki-laki' : ($kontrak->jenis_kelamin == 'P' ? 'Perempuan' : $kontrak->jenis_kelamin) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Alamat</td>

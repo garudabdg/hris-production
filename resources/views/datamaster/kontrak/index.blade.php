@@ -111,13 +111,25 @@
                                             
                                             <div class="mt-1">
                                                @php
-    $jenis_kontrak_text = $kontrak->jenis_kontrak == 'K' ? 'Kontrak' 
-        : ($kontrak->jenis_kontrak == 'T' ? 'Tetap' 
-        : ($kontrak->jenis_kontrak == 'M' ? 'Mitra' 
-        : ($kontrak->jenis_kontrak == 'O' ? 'Outsourcing' 
-        : $kontrak->jenis_kontrak)));
+    $jenis_kontrak_text = match($kontrak->jenis_kontrak) {
+        'K' => 'Kontrak',
+        'T' => 'Tetap',
+        'M' => 'Mitra',
+        'O' => 'Outsourcing',
+        'P' => 'Probation',
+        'G' => 'Magang',
+        default => $kontrak->jenis_kontrak,
+    };
+    $jenis_kontrak_color = match($kontrak->jenis_kontrak) {
+        'T' => 'bg-label-success',
+        'P' => 'bg-label-warning',
+        'G' => 'bg-label-secondary',
+        'M' => 'bg-label-info',
+        'O' => 'bg-label-dark',
+        default => 'bg-label-primary',
+    };
 @endphp
-                                                <span class="badge @if($kontrak->jenis_kontrak == 'T') bg-label-success @else bg-label-primary @endif" style="font-size: 10px;">{{ $jenis_kontrak_text }}</span>
+                                                <span class="badge {{ $jenis_kontrak_color }}" style="font-size: 10px;">{{ $jenis_kontrak_text }}</span>
                                             </div>
                                         </div>
                                         <!-- Actions -->

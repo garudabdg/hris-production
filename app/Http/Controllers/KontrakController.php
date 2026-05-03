@@ -437,7 +437,7 @@ class KontrakController extends Controller
             '{{nama_karyawan}}' => $kontrak->nama_karyawan,
             '{{tempat_lahir}}' => $kontrak->tempat_lahir ?? '-',
             '{{tanggal_lahir}}' => $kontrak->tanggal_lahir ? Carbon::parse($kontrak->tanggal_lahir)->format('d-m-Y') : '-',
-            '{{jenis_kelamin}}' => $kontrak->jenis_kelamin,
+            '{{jenis_kelamin}}' => $kontrak->jenis_kelamin == 'L' ? 'Laki-laki' : ($kontrak->jenis_kelamin == 'P' ? 'Perempuan' : $kontrak->jenis_kelamin),
             '{{alamat_karyawan}}' => $kontrak->alamat ?? '-',
             '{{no_ktp}}' => $kontrak->no_ktp ?? '-',
             '{{jabatan}}' => $kontrak->nama_jabatan,

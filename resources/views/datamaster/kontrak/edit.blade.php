@@ -16,7 +16,7 @@
                 <option value="T" @selected(old('jenis_kontrak', $kontrak->jenis_kontrak) == 'T')>Tetap (PKWTT)</option>
                 <option value="M" @selected(old('jenis_kontrak', $kontrak->jenis_kontrak) == 'M')>Mitra</option>
                 <option value="O" @selected(old('jenis_kontrak', $kontrak->jenis_kontrak) == 'O')>Outsourcing</option>
-                <option value="P" @selected(old('jenis_kontrak', $kontrak->jenis_kontrak) == 'P')>Probition</option>
+                <option value="P" @selected(old('jenis_kontrak', $kontrak->jenis_kontrak) == 'P')>Probation</option>
                 <option value="G" @selected(old('jenis_kontrak', $kontrak->jenis_kontrak) == 'G')>Magang</option>
             </select>
             @error('jenis_kontrak')
