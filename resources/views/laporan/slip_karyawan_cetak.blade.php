@@ -26,6 +26,10 @@
             border: 1px solid #e0e7ef;
         }
 
+        .slip-card:first-child {
+            margin-top: 64px;
+        }
+
         /* ── HEADER ── */
         .slip-header {
             display: flex;
