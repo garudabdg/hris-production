@@ -33,18 +33,34 @@ class Lembur extends Model
 
     public function getNextApprovalLayer()
     {
-        $nextLevel = $this->approval_step;
+        $nextLevel    = $this->approval_step;
         $kode_dept    = $this->kode_dept    ?? null;
         $kode_jabatan = $this->kode_jabatan ?? null;
         $kode_cabang  = $this->kode_cabang  ?? null;
 
-        $layer = ApprovalLayer::where('feature', 'IZIN')
+        // Ambil semua kandidat layer yang cocok untuk level ini
+        $layers = ApprovalLayer::where('feature', 'IZIN')
             ->where('level', $nextLevel)
-            ->where(function ($q) use ($kode_dept) {
-                $q->where('kode_dept', $kode_dept)->orWhereNull('kode_dept');
-            })
-            ->first();
+            ->get();
 
-        return $layer;
+        $validLayers = $layers->filter(function ($layer) use ($kode_cabang, $kode_dept, $kode_jabatan) {
+            $cabangMatch   = is_null($layer->kode_cabang)  || $layer->kode_cabang  === $kode_cabang;
+            $deptMatch     = is_null($layer->kode_dept)    || $layer->kode_dept    === $kode_dept;
+            $jabatanMatch  = is_null($layer->kode_jabatan) || $layer->kode_jabatan === $kode_jabatan;
+            return $cabangMatch && $deptMatch && $jabatanMatch;
+        });
+
+        if ($validLayers->isEmpty()) {
+            return null;
+        }
+
+        // Prioritas: Cabang (100) > Dept (10) > Jabatan (1)
+        return $validLayers->sortByDesc(function ($layer) {
+            $score = 0;
+            if (!is_null($layer->kode_cabang))  $score += 100;
+            if (!is_null($layer->kode_dept))    $score += 10;
+            if (!is_null($layer->kode_jabatan)) $score += 1;
+            return $score;
+        })->first();
     }
 }

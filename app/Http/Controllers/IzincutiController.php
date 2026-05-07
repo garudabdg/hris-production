@@ -103,7 +103,7 @@ class IzincutiController extends Controller
             }
         }
         
-        $qcuti->select('presensi_izincuti.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'presensi_izincuti.keterangan as nama_cuti');
+        $qcuti->select('presensi_izincuti.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'karyawan.foto', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'presensi_izincuti.keterangan as nama_cuti');
         if (!empty($request->dari) && !empty($request->sampai)) {
             $qcuti->whereBetween('izincuti.dari', [$request->dari, $request->sampai]);
         }
@@ -118,7 +118,7 @@ class IzincutiController extends Controller
             $qcuti->where('karyawan.kode_dept', $request->kode_dept);
         }
         
-        $qcuti->addSelect('karyawan.kode_dept');
+        $qcuti->addSelect('karyawan.kode_dept', 'karyawan.kode_cabang', 'karyawan.kode_jabatan');
 
         if (!empty($request->status) || $request->status === '0') {
             $qcuti->where('presensi_izincuti.status', $request->status);

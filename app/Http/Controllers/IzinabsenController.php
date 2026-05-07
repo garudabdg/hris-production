@@ -79,9 +79,11 @@ class IzinabsenController extends Controller
             'presensi_izinabsen.*',
             'karyawan.nama_karyawan',
             'karyawan.nik_show',
+            'karyawan.foto',
             'jabatan.nama_jabatan',
             'karyawan.kode_dept',
             'karyawan.kode_cabang',
+            'karyawan.kode_jabatan',
             'departemen.nama_dept',
             'cabang.nama_cabang'
         );

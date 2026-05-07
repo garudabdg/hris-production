@@ -16,29 +16,35 @@ class Izinabsen extends Model
 
     public function getNextApprovalLayer()
     {
-        // Asumsi Feature Code untuk model ini adalah 'IZIN_ABSEN'
-        // Kita butuh akses ke department karyawan terkait untuk logic dept-specific
-        // Namun relationship karyawan belum definisikan di model ini secara explicit di sini
-        // Tapi di query controller sudah di-join.
-        // Untuk aman-nya, kita query manual saja atau rely on properties kalau sudah di-hydrated.
-        
-        // Cek next level
-        $nextLevel = $this->approval_step;
-        
-        // Kita perlu tahu kode_dept pengunuju. 
-        // Jika model ini di-load via query builder di controller yang men-select 'karyawan.kode_dept', 
-        // maka $this->kode_dept tersedia.
-        $kode_dept = $this->kode_dept ?? null;
+        $nextLevel    = $this->approval_step;
+        $kode_dept    = $this->kode_dept    ?? null;
+        $kode_cabang  = $this->kode_cabang  ?? null;
+        $kode_jabatan = $this->kode_jabatan ?? null;
 
-        $layer = ApprovalLayer::where('feature', 'IZIN')
+        // Ambil semua kandidat layer yang cocok untuk level ini
+        $layers = ApprovalLayer::where('feature', 'IZIN')
             ->where('level', $nextLevel)
-            ->where(function ($q) use ($kode_dept) {
-                $q->where('kode_dept', $kode_dept)
-                  ->orWhereNull('kode_dept');
-            })
-            ->first();
+            ->get();
 
-        return $layer;
+        $validLayers = $layers->filter(function ($layer) use ($kode_cabang, $kode_dept, $kode_jabatan) {
+            $cabangMatch   = is_null($layer->kode_cabang)  || $layer->kode_cabang  === $kode_cabang;
+            $deptMatch     = is_null($layer->kode_dept)    || $layer->kode_dept    === $kode_dept;
+            $jabatanMatch  = is_null($layer->kode_jabatan) || $layer->kode_jabatan === $kode_jabatan;
+            return $cabangMatch && $deptMatch && $jabatanMatch;
+        });
+
+        if ($validLayers->isEmpty()) {
+            return null;
+        }
+
+        // Prioritas: Cabang (100) > Dept (10) > Jabatan (1)
+        return $validLayers->sortByDesc(function ($layer) {
+            $score = 0;
+            if (!is_null($layer->kode_cabang))  $score += 100;
+            if (!is_null($layer->kode_dept))    $score += 10;
+            if (!is_null($layer->kode_jabatan)) $score += 1;
+            return $score;
+        })->first();
     }
 
     public function approvals()

@@ -84,36 +84,37 @@ class LemburController extends Controller
 
         $qlembur->orderBy('lembur.status');
         $qlembur->orderBy('lembur.tanggal', 'desc');
+        $qlembur->select(
+            'lembur.*',
+            'karyawan.nama_karyawan',
+            'karyawan.foto',
+            'karyawan.kode_dept',
+            'karyawan.kode_cabang',
+            'karyawan.kode_jabatan',
+            'jabatan.nama_jabatan',
+            'departemen.nama_dept',
+            'cabang.nama_cabang'
+        );
         $lembur = $qlembur->paginate(15);
         $lembur->appends($request->all());
+
+        $approvalService = app(\App\Services\ApprovalService::class);
 
         // Resolve waiting_role untuk karyawan (tampil di mobile view)
         if ($user->hasRole('karyawan') && $karyawan) {
             foreach ($lembur as $item) {
                 $item->waiting_role = null;
                 if ($item->status == 0 && $item->approval_step) {
-                    $layer = ApprovalLayer::where('feature', 'IZIN')
-                        ->where('level', $item->approval_step)
-                        ->where(function ($q) use ($karyawan) {
-                            $q->where('kode_dept', $karyawan->kode_dept)->orWhereNull('kode_dept');
-                        })
-                        ->orderByRaw('CASE WHEN kode_dept IS NOT NULL THEN 0 ELSE 1 END')
-                        ->first();
+                    $layer = $approvalService->getLayer('IZIN', $item->approval_step, $karyawan->kode_dept, $karyawan->kode_jabatan, $karyawan->kode_cabang);
                     $item->waiting_role = $layer?->role_name;
                 }
             }
         } else {
-            // Admin/HRD view: resolve waiting_role per item berdasarkan dept masing-masing
+            // Admin/HRD view: resolve waiting_role per item berdasarkan dept+cabang masing-masing
             foreach ($lembur as $item) {
                 $item->waiting_role = null;
                 if ($item->status == 0 && $item->approval_step) {
-                    $layer = ApprovalLayer::where('feature', 'IZIN')
-                        ->where('level', $item->approval_step)
-                        ->where(function ($q) use ($item) {
-                            $q->where('kode_dept', $item->kode_dept)->orWhereNull('kode_dept');
-                        })
-                        ->orderByRaw('CASE WHEN kode_dept IS NOT NULL THEN 0 ELSE 1 END')
-                        ->first();
+                    $layer = $approvalService->getLayer('IZIN', $item->approval_step, $item->kode_dept, $item->kode_jabatan, $item->kode_cabang);
                     $item->waiting_role = $layer?->role_name;
                 }
             }

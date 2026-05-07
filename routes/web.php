@@ -57,6 +57,7 @@ use App\Http\Controllers\Admin\UpdateManagementController;
 use App\Http\Controllers\RecruitmentController;
 use App\Http\Controllers\RecruitmentVacancyController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AssetPinjamController;
 use App\Http\Controllers\ItTicketController;
 
 
@@ -738,6 +739,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/{asset}/edit', 'edit')->name('edit');
         Route::put('/{asset}', 'update')->name('update');
         Route::delete('/{asset}', 'destroy')->name('destroy');
+    });
+
+    // Asset Pinjam
+    Route::prefix('asset-pinjam')->name('asset-pinjam.')->controller(AssetPinjamController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}/show', 'show')->name('show');
+        Route::get('/{id}/approve', 'approve')->name('approve');
+        Route::post('/{id}/storeapprove', 'storeapprove')->name('storeapprove');
+        Route::delete('/{id}/cancelapprove', 'cancelapprove')->name('cancelapprove');
+        Route::get('/{id}/kembali', 'kembali')->name('kembali');
+        Route::post('/{id}/storekembali', 'storekembali')->name('storekembali');
+        Route::delete('/{id}', 'destroy')->name('destroy');
     });
 });
 

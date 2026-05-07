@@ -449,7 +449,7 @@
          @endcan
 
          @can('asset.index')
-             <li class="menu-item {{ request()->is(['manajemen-aset', 'manajemen-aset/*']) ? 'open' : '' }}">
+             <li class="menu-item {{ request()->is(['manajemen-aset', 'manajemen-aset/*', 'asset-pinjam', 'asset-pinjam/*']) ? 'open' : '' }}">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-package"></i>
                      <div>Manajemen Aset</div>
@@ -460,6 +460,13 @@
                              <div>Daftar Aset</div>
                          </a>
                      </li>
+                     @can('asset.pinjam.index')
+                     <li class="menu-item {{ request()->is(['asset-pinjam', 'asset-pinjam/*']) ? 'active' : '' }}">
+                         <a href="{{ route('asset-pinjam.index') }}" class="menu-link">
+                             <div>Peminjaman Aset</div>
+                         </a>
+                     </li>
+                     @endcan
                      @can('asset.kategori')
                      <li class="menu-item {{ request()->is(['manajemen-aset/kategori', 'manajemen-aset/kategori/*']) ? 'active' : '' }}">
                          <a href="{{ route('assets.kategori.index') }}" class="menu-link">
