@@ -10,11 +10,9 @@
         }
 
         #content-section {
-            margin-top: 90px;
             padding: 12px 8px 24px 8px;
             position: relative;
             z-index: 1;
-            min-height: 100vh;
             background: var(--md-background);
         }
 
@@ -187,7 +185,7 @@
             <div class="right"></div>
         </div>
     </div>
-    <div id="content-section" style="margin-top: 30px;">
+    <div id="content-section">
         @foreach ($laporan_presensi as $d)
             @php
                 $tanggal_presensi = $periode_dari;
