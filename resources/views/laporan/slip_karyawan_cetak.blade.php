@@ -1,160 +1,179 @@
 @extends('layouts.mobile.app')
 @section('content')
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-
             margin: 0;
-            padding: 15px;
-            font-size: 11px;
-            line-height: 1.3;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         #content-section {
             margin-top: 90px;
-            padding: 16px 8px 8px 8px;
+            padding: 12px 8px 24px 8px;
             position: relative;
             z-index: 1;
             min-height: 100vh;
             background: var(--md-background);
         }
 
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .slip-struk {
+        .slip-card {
             width: 100%;
-            background: white;
-            border: 1px solid #333;
-            border-radius: 3px;
-            padding: 12px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            page-break-inside: avoid;
-            margin-top: 50px;
-        }
-
-        .header {
-            text-align: center;
-            border-bottom: 1px dashed #333;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-        }
-
-        .company-name {
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        .slip-title {
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 2px;
-        }
-
-        .periode {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .employee-section {
-            margin-bottom: 8px;
-            border-bottom: 1px dotted #666;
-            padding-bottom: 6px;
-        }
-
-        .row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2px;
-            font-size: 14px;
-        }
-
-        .label {
-            font-weight: bold;
-        }
-
-        .value {
-            text-align: right;
-        }
-
-        .section-title {
-            font-weight: bold;
-            font-size: 12px;
-            text-align: center;
-            margin: 8px 0 4px 0;
-            padding: 2px;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-        }
-
-        .earning {
-            background: #e8f5e8;
-            border-color: #28a745;
-        }
-
-        .deduction {
-            background: #fde8e8;
-            border-color: #dc3545;
-        }
-
-        .adjustment {
-            background: #e8f4f8;
-            border-color: #17a2b8;
-        }
-
-        .total-section {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
             margin-top: 8px;
-            border-top: 2px solid #333;
-            padding-top: 6px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+            border: 1px solid #e0e7ef;
         }
 
-        .net-salary {
+        /* ── HEADER ── */
+        .slip-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 3px solid #1a56b0;
+        }
+        .slip-header img.logo {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .slip-header .logo-placeholder {
+            width: 48px; height: 48px;
+            background: #1a56b0;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: bold; font-size: 16px;
+            flex-shrink: 0;
+        }
+        .company-info { flex: 1; min-width: 0; }
+        .company-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #1a56b0;
+            text-transform: uppercase;
+            line-height: 1.3;
+        }
+        .company-address {
+            font-size: 9px;
+            color: #666;
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+        .slip-title-box {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .slip-title-box .title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1a56b0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .slip-title-box .periode {
+            font-size: 9px;
+            color: #666;
+            margin-top: 2px;
+            line-height: 1.5;
+        }
+
+        /* ── INFO KARYAWAN ── */
+        .employee-section {
+            background: #f4f8ff;
+            border-bottom: 1px solid #dce6f0;
+            padding: 10px 16px;
+        }
+        .emp-row {
+            display: flex;
+            padding: 2.5px 0;
+            font-size: 12px;
+        }
+        .emp-label {
+            width: 90px;
+            color: #555;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .emp-sep { margin: 0 4px; color: #888; }
+        .emp-value { color: #222; flex: 1; }
+
+        /* ── BAGIAN KEUANGAN ── */
+        .finance-section { padding: 12px 16px; border-bottom: 1px solid #e8edf3; }
+        .finance-title {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .finance-title.earn  { background: #d4edda; color: #155724; }
+        .finance-title.deduct { background: #f8d7da; color: #721c24; }
+        .finance-title.adjust { background: #fff3cd; color: #856404; }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+            font-size: 12px;
+            border-bottom: 1px dotted #eee;
+        }
+        .item-row:last-child { border-bottom: none; }
+        .item-name { color: #444; }
+        .item-amount { font-family: 'Courier New', monospace; text-align: right; white-space: nowrap; }
+        .item-amount.plus  { color: #155724; }
+        .item-amount.minus { color: #721c24; }
+
+        .subtotal-row {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 16px;
-            padding: 4px;
-            background: #f8f9fa;
-            border: 1px solid #333;
-        }
-
-        .work-info {
             font-size: 12px;
-            color: #666;
-            text-align: center;
-            margin: 6px 0;
-            border-top: 1px dotted #666;
-            padding-top: 4px;
+            padding: 6px 0 0 0;
+            margin-top: 4px;
+            border-top: 1.5px solid #999;
         }
 
-        .currency {
+        /* ── GAJI BERSIH ── */
+        .net-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: #1a56b0;
+            color: #fff;
+        }
+        .net-label {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .net-sub { font-size: 9px; opacity: 0.8; margin-top: 2px; }
+        .net-amount {
+            font-size: 18px;
+            font-weight: bold;
             font-family: 'Courier New', monospace;
         }
 
-        .footer {
+        /* ── FOOTER ── */
+        .slip-footer {
+            padding: 10px 16px;
             text-align: center;
-            font-size: 10px;
-            color: #888;
-            margin-top: 8px;
-            border-top: 1px dashed #333;
-            padding-top: 6px;
+            font-size: 9px;
+            color: #aaa;
+            background: #f9f9f9;
         }
 
         @media print {
-            body {
-                margin: 0;
-                padding: 10px;
-                background: white;
-            }
-
-            .slip-struk {
-                box-shadow: none;
-                border: 1px solid #000;
-            }
+            .slip-card { box-shadow: none; border: 1px solid #999; }
         }
     </style>
     <div id="header-section">
@@ -345,9 +364,7 @@
             <!-- Slip akan ditampilkan dalam container flex untuk layout horizontal -->
         @endforeach
 
-        <!-- Container untuk layout horizontal -->
-        <div class="container">
-            @foreach ($laporan_presensi as $d)
+        @foreach ($laporan_presensi as $d)
                 @php
                     $tanggal_presensi = $periode_dari;
                     $total_denda = 0;
@@ -494,149 +511,178 @@
                     if ($total_potongan_jam > $generalsetting->total_jam_bulan) {
                         $total_potongan_jam = $generalsetting->total_jam_bulan;
                     }
+                    $upah_lembur = ROUND($upah_perjam) * ROUND($total_jam_lembur, 2);
                     $jumlah_potongan_jam = ROUND($upah_perjam) * $total_potongan_jam;
                     $total_potongan = ROUND($jumlah_potongan_jam) + $total_denda + $d['bpjs_kesehatan'] + $d['bpjs_tenagakerja'];
-                    $gaji_bersih = $d['gaji_pokok'] + $total_tunjangan - $total_potongan + $d['penambah'] - $d['pengurang'];
+                    $bruto_total = $bruto + ROUND($upah_lembur);
+                    $gaji_bersih = $d['gaji_pokok'] + $total_tunjangan - $total_potongan + $d['penambah'] - $d['pengurang'] + ROUND($upah_lembur);
                 @endphp
 
-                <div class="slip-struk">
-                    <!-- Header -->
-                    <div class="header">
-                        <div class="company-name">{{ $generalsetting->nama_perusahaan }}</div>
-                        <div class="slip-title">SLIP GAJI</div>
-                        <div class="periode">{{ date('d/m/Y', strtotime($periode_dari)) }} -
-                            {{ date('d/m/Y', strtotime($periode_sampai)) }}</div>
-                    </div>
+                <div class="slip-card">
 
-                    <!-- Employee Info -->
-                    <div class="employee-section">
-                        <div class="row">
-                            <span class="label">NIK:</span>
-                            <span class="value">{{ $d['nik'] }}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Nama:</span>
-                            <span class="value">{{ $d['nama_karyawan'] }}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Jabatan:</span>
-                            <span class="value">{{ $d['nama_jabatan'] }}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Dept:</span>
-                            <span class="value">{{ $d['kode_dept'] }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Work Summary -->
-                    <div class="work-info">
-                        {{ $generalsetting->total_jam_bulan }} jam | Rp {{ number_format($upah_perjam, 0, ',', '.') }}/jam |
-                        {{ number_format($total_potongan_jam, 1) }} jam potong
-                    </div>
-
-                    <!-- Penghasilan -->
-                    <div class="section-title earning">PENGHASILAN</div>
-                    <div class="row">
-                        <span>Gaji Pokok</span>
-                        <span class="currency">{{ number_format($d['gaji_pokok'], 0, ',', '.') }}</span>
-                    </div>
-                    @foreach ($jenis_tunjangan as $j)
-                        @if ($d[$j->kode_jenis_tunjangan] > 0)
-                            <div class="row">
-                                <span>{{ $j->jenis_tunjangan }}</span>
-                                <span class="currency">{{ number_format($d[$j->kode_jenis_tunjangan], 0, ',', '.') }}</span>
-                            </div>
+                    {{-- ── HEADER ── --}}
+                    <div class="slip-header">
+                        @if (!empty($generalsetting->logo) && file_exists(storage_path('app/public/logo/' . $generalsetting->logo)))
+                            <img src="{{ asset('storage/logo/' . $generalsetting->logo) }}" alt="Logo" class="logo">
+                        @else
+                            <div class="logo-placeholder">{{ strtoupper(substr($generalsetting->nama_perusahaan, 0, 2)) }}</div>
                         @endif
-                    @endforeach
-                    @if ($total_jam_lembur > 0)
-                        <div class="row">
-                            <span>Lembur {{ formatAngkaDesimal($total_jam_lembur) }} jam </span>
-                            <span class="currency">
-                                @php
-                                    $upah_lembur = ROUND($upah_perjam) * ROUND($total_jam_lembur, 2);
-                                @endphp
-                                {{ formatAngka($upah_lembur) }}
-                            </span>
-                        </div>
-                    @else
-                        @php
-                            $upah_lembur = 0;
-                        @endphp
-                    @endif
-                    <div class="row" style="font-weight: bold; border-top: 1px dotted #333; padding-top: 2px;">
-                        <span>Sub Total</span>
-                        @php
-                            $bruto_total = $bruto + ROUND($upah_lembur);
-                        @endphp
-                        <span class="currency">{{ number_format($bruto_total, 0, ',', '.') }}</span>
-                    </div>
-
-                    <!-- Potongan -->
-                    <div class="section-title deduction">POTONGAN</div>
-                    @if ($total_denda > 0)
-                        <div class="row">
-                            <span>Denda</span>
-                            <span class="currency">{{ number_format($total_denda, 0, ',', '.') }}</span>
-                        </div>
-                    @endif
-                    @if ($jumlah_potongan_jam > 0)
-                        <div class="row">
-                            <span>Pot. Jam ({{ number_format($total_potongan_jam, 2) }})</span>
-                            <span class="currency">{{ number_format($jumlah_potongan_jam, 0, ',', '.') }}</span>
-                        </div>
-                    @endif
-                    @if ($d['bpjs_kesehatan'] > 0)
-                        <div class="row">
-                            <span>BPJS Kes</span>
-                            <span class="currency">{{ number_format($d['bpjs_kesehatan'], 0, ',', '.') }}</span>
-                        </div>
-                    @endif
-                    @if ($d['bpjs_tenagakerja'] > 0)
-                        <div class="row">
-                            <span>BPJS TK</span>
-                            <span class="currency">{{ number_format($d['bpjs_tenagakerja'], 0, ',', '.') }}</span>
-                        </div>
-                    @endif
-                    <div class="row" style="font-weight: bold; border-top: 1px dotted #333; padding-top: 2px;">
-                        <span>Sub Total</span>
-                        <span class="currency">{{ number_format($total_potongan, 0, ',', '.') }}</span>
-                    </div>
-
-                    <!-- Penyesuaian -->
-                    @if ($d['penambah'] > 0 || $d['pengurang'] > 0)
-                        <div class="section-title adjustment">PENYESUAIAN</div>
-                        @if ($d['penambah'] > 0)
-                            <div class="row">
-                                <span>Penambah</span>
-                                <span class="currency">{{ number_format($d['penambah'], 0, ',', '.') }}</span>
+                        <div class="company-info">
+                            <div class="company-name">{{ $generalsetting->nama_perusahaan }}</div>
+                            <div class="company-address">
+                                {{ $generalsetting->alamat }}<br>
+                                @if ($generalsetting->telepon) Telp: {{ $generalsetting->telepon }} @endif
                             </div>
+                        </div>
+                        <div class="slip-title-box">
+                            <div class="title">Slip Gaji</div>
+                            <div class="periode">
+                                {{ \Carbon\Carbon::parse($periode_dari)->translatedFormat('d M Y') }}<br>
+                                s/d {{ \Carbon\Carbon::parse($periode_sampai)->translatedFormat('d M Y') }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ── INFO KARYAWAN ── --}}
+                    <div class="employee-section">
+                        <div class="emp-row">
+                            <span class="emp-label">NIK</span>
+                            <span class="emp-sep">:</span>
+                            <span class="emp-value">{{ $d['nik_show'] ?? $d['nik'] }}</span>
+                        </div>
+                        <div class="emp-row">
+                            <span class="emp-label">Nama</span>
+                            <span class="emp-sep">:</span>
+                            <span class="emp-value"><strong>{{ $d['nama_karyawan'] }}</strong></span>
+                        </div>
+                        <div class="emp-row">
+                            <span class="emp-label">Jabatan</span>
+                            <span class="emp-sep">:</span>
+                            <span class="emp-value">{{ $d['nama_jabatan'] ?? '-' }}</span>
+                        </div>
+                        <div class="emp-row">
+                            <span class="emp-label">Departemen</span>
+                            <span class="emp-sep">:</span>
+                            <span class="emp-value">{{ $d['nama_dept'] ?? $d['kode_dept'] ?? '-' }}</span>
+                        </div>
+                        <div class="emp-row">
+                            <span class="emp-label">Cabang</span>
+                            <span class="emp-sep">:</span>
+                            <span class="emp-value">{{ $d['nama_cabang'] ?? $d['kode_cabang'] ?? '-' }}</span>
+                        </div>
+                        @if (!empty($d['tanggal_masuk']))
+                        <div class="emp-row">
+                            <span class="emp-label">Tgl Masuk</span>
+                            <span class="emp-sep">:</span>
+                            <span class="emp-value">{{ \Carbon\Carbon::parse($d['tanggal_masuk'])->translatedFormat('d M Y') }}</span>
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- ── PENGHASILAN ── --}}
+                    <div class="finance-section">
+                        <div class="finance-title earn">&#43; Penghasilan</div>
+
+                        <div class="item-row">
+                            <span class="item-name">Gaji Pokok</span>
+                            <span class="item-amount plus">{{ number_format($d['gaji_pokok'], 0, ',', '.') }}</span>
+                        </div>
+                        @foreach ($jenis_tunjangan as $j)
+                            @if ($d[$j->kode_jenis_tunjangan] > 0)
+                            <div class="item-row">
+                                <span class="item-name">{{ $j->jenis_tunjangan }}</span>
+                                <span class="item-amount plus">{{ number_format($d[$j->kode_jenis_tunjangan], 0, ',', '.') }}</span>
+                            </div>
+                            @endif
+                        @endforeach
+                        @if ($total_jam_lembur > 0)
+                        <div class="item-row">
+                            <span class="item-name">Lembur ({{ formatAngkaDesimal($total_jam_lembur) }} jam)</span>
+                            <span class="item-amount plus">{{ formatAngka($upah_lembur) }}</span>
+                        </div>
+                        @endif
+
+                        <div class="subtotal-row">
+                            <span>Sub Total</span>
+                            <span style="font-family:'Courier New',monospace;">{{ number_format($bruto_total, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    {{-- ── POTONGAN ── --}}
+                    <div class="finance-section">
+                        <div class="finance-title deduct">&#8722; Potongan</div>
+
+                        @if ($total_denda > 0)
+                        <div class="item-row">
+                            <span class="item-name">Denda Keterlambatan</span>
+                            <span class="item-amount minus">{{ number_format($total_denda, 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if ($jumlah_potongan_jam > 0)
+                        <div class="item-row">
+                            <span class="item-name">Potongan Jam ({{ number_format($total_potongan_jam, 2) }} jam)</span>
+                            <span class="item-amount minus">{{ number_format($jumlah_potongan_jam, 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if ($d['bpjs_kesehatan'] > 0)
+                        <div class="item-row">
+                            <span class="item-name">BPJS Kesehatan</span>
+                            <span class="item-amount minus">{{ number_format($d['bpjs_kesehatan'], 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if ($d['bpjs_tenagakerja'] > 0)
+                        <div class="item-row">
+                            <span class="item-name">BPJS Ketenagakerjaan</span>
+                            <span class="item-amount minus">{{ number_format($d['bpjs_tenagakerja'], 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if ($total_denda == 0 && $jumlah_potongan_jam == 0 && $d['bpjs_kesehatan'] == 0 && $d['bpjs_tenagakerja'] == 0)
+                        <div class="item-row" style="color:#aaa; font-style:italic;">
+                            <span class="item-name">Tidak ada potongan</span>
+                            <span class="item-amount">-</span>
+                        </div>
+                        @endif
+
+                        <div class="subtotal-row">
+                            <span>Sub Total</span>
+                            <span style="font-family:'Courier New',monospace;">{{ number_format($total_potongan, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    {{-- ── PENYESUAIAN ── --}}
+                    @if ($d['penambah'] > 0 || $d['pengurang'] > 0)
+                    <div class="finance-section">
+                        <div class="finance-title adjust">&#9654; Penyesuaian</div>
+                        @if ($d['penambah'] > 0)
+                        <div class="item-row">
+                            <span class="item-name">Penambah</span>
+                            <span class="item-amount plus">{{ number_format($d['penambah'], 0, ',', '.') }}</span>
+                        </div>
                         @endif
                         @if ($d['pengurang'] > 0)
-                            <div class="row">
-                                <span>Pengurang</span>
-                                <span class="currency">{{ number_format($d['pengurang'], 0, ',', '.') }}</span>
-                            </div>
+                        <div class="item-row">
+                            <span class="item-name">Pengurang</span>
+                            <span class="item-amount minus">{{ number_format($d['pengurang'], 0, ',', '.') }}</span>
+                        </div>
                         @endif
+                    </div>
                     @endif
 
-                    <!-- Total -->
-                    <div class="total-section">
-                        <div class="net-salary">
-                            <span>GAJI BERSIH</span>
-                            @php
-                                $gaji_bersih =
-                                    $d['gaji_pokok'] + $total_tunjangan - $total_potongan + $d['penambah'] - $d['pengurang'] + ROUND($upah_lembur);
-                            @endphp
-                            <span class="currency">{{ number_format($gaji_bersih, 0, ',', '.') }}</span>
+                    {{-- ── GAJI BERSIH ── --}}
+                    <div class="net-section">
+                        <div>
+                            <div class="net-label">&#9654; Gaji Bersih</div>
+                            <div class="net-sub">{{ \Carbon\Carbon::parse($periode_dari)->translatedFormat('M Y') }}</div>
                         </div>
+                        <div class="net-amount">Rp {{ number_format($gaji_bersih, 0, ',', '.') }}</div>
                     </div>
 
-                    <!-- Footer -->
-                    <div class="footer">
-                        Dicetak: {{ date('d/m/Y H:i') }}<br>
-                        Sistem Payroll v1.0
+                    {{-- ── FOOTER ── --}}
+                    <div class="slip-footer">
+                        Dicetak: {{ date('d/m/Y H:i') }} &nbsp;|&nbsp; Dokumen ini dicetak secara otomatis oleh sistem
                     </div>
-                </div>
+
+                </div>{{-- end slip-card --}}
             @endforeach
         </div>
     </div>
