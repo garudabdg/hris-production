@@ -46,3 +46,4 @@ Thumbs.db
 /.vscode
 yarn-error.log
 *.zip
+public/assets/apps-mobile/*.apk
