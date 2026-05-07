@@ -356,11 +356,13 @@ class LaporanController extends Controller
             'karyawan.nik',
             'karyawan.nik_show',
             'nama_karyawan',
+            'karyawan.tanggal_masuk',
             'nama_jabatan',
             'karyawan.kode_dept',
             'nama_dept',
             'karyawan.sub_departemen',
             'karyawan.kode_cabang',
+            'cabang.nama_cabang',
             'presensi.tanggal',
             'presensi.status',
             'presensi.kode_jam_kerja',
@@ -389,6 +391,7 @@ class LaporanController extends Controller
         );
         $q_presensi->leftJoin('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan');
         $q_presensi->leftJoin('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
+        $q_presensi->leftJoin('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
         $q_presensi->leftJoinSub($presensi_detail, 'presensi', function ($join) {
             $join->on('karyawan.nik', '=', 'presensi.nik');
         });
@@ -490,6 +493,8 @@ class LaporanController extends Controller
                     'nama_dept' => $rows->first()->nama_dept,
                     'sub_departemen' => $rows->first()->sub_departemen,
                     'kode_cabang' => $rows->first()->kode_cabang,
+                    'nama_cabang' => $rows->first()->nama_cabang,
+                    'tanggal_masuk' => $rows->first()->tanggal_masuk,
                     'gaji_pokok' => $rows->first()->gaji_pokok,
                     'jenis_upah' => $rows->first()->jenis_upah,
                     'bpjs_kesehatan' => $rows->first()->bpjs_kesehatan,
