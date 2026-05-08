@@ -405,6 +405,7 @@
                 @csrf
                 <input type="hidden" name="nik" value="{{ $karyawan->nik }}">
                 <input type="hidden" name="kpi_period_id" value="{{ $period->id }}">
+                <input type="hidden" name="redirect_to" value="kpi.transactions.myscore">
 
                  @if ($indicators->isEmpty())
                     <div class="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl p-3 mb-3 flex items-center gap-2 text-sm fade-up">

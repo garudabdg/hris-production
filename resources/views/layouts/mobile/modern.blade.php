@@ -103,7 +103,7 @@
         </div>
     </header>
 
-    <main class="pt-[calc(4rem+env(safe-area-inset-top))] pb-24 px-3 max-w-lg mx-auto">
+    <main class="pt-[calc(4rem+env(safe-area-inset-top))] pb-24 px-3 max-w-lg mx-auto" style="background: var(--bg-main, {{ $t['bg_body'] }}); min-height: 100vh;">
         @yield('content')
     </main>
 

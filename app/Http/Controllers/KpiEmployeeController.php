@@ -167,7 +167,8 @@ class KpiEmployeeController extends Controller
             }
 
             DB::commit();
-            return Redirect::route('kpi.transactions.index')->with(['success' => 'Target KPI Berhasil Disimpan']);
+            $redirectTo = $request->input('redirect_to', 'kpi.transactions.index');
+            return Redirect::route($redirectTo)->with(['success' => 'Target KPI Berhasil Disimpan']);
         } catch (\Exception $e) {
             DB::rollBack();
             return Redirect::back()->with(['warning' => $e->getMessage()]);

@@ -9,8 +9,19 @@
 
 @push('mystyle')
     <style>
-        body {
+        :root { --bg-main: #f8fafc; }
+        html, body, main {
             background-color: #f8fafc !important; 
+        }
+        body > main,
+        body > div,
+        #app,
+        .app-wrap {
+            background-color: #f8fafc !important;
+        }
+        /* Override bg_body dari layout */
+        body[class], body[style], body {
+            background: #f8fafc !important;
         }
 
         /* Replicating the minimal card style from histori */
@@ -97,7 +108,7 @@
 @endpush
 
 @section('content')
-    <div class="px-1 pt-2 pb-24">
+    <div class="px-1 pt-2 pb-24" style="min-height:100vh; background:#f8fafc;">
 
         {{-- Top Info / Feedback --}}
         @if (Session::get('success') || Session::has('warning'))
