@@ -19,7 +19,7 @@ Pengajuan **{{ $typeText }}** Anda (Kode: **{{ $approvalCode }}**) telah **{{ $s
 **Catatan:** {{ $notes }}
 @endif
 
-@component('mail::button', ['url' => route('dashboard')])
+@component('mail::button', ['url' => route('dashboard.index')])
 Lihat Dashboard
 @endcomponent
 

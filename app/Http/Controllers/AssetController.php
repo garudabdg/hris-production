@@ -224,6 +224,11 @@ class AssetController extends Controller
         return redirect()->route('assets.index')->with('success', 'Asset berhasil dihapus.');
     }
 
+    public function barcode(Asset $asset)
+    {
+        return view('assets.barcode', compact('asset'));
+    }
+
     // ── Kategori ────────────────────────────────────────────────────────────────
 
     public function kategoriIndex()

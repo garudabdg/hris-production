@@ -199,7 +199,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/permissions/{id}/delete', 'destroy')->name('permissions.delete');
     });
 
-    Route::middleware('role:super admin')->controller(UserController::class)->group(function () {
+    Route::middleware('permission:users.index')->controller(UserController::class)->group(function () {
         Route::get('/users', 'index')->name('users.index');
         Route::get('/users/create', 'create')->name('users.create');
         Route::post('/users', 'store')->name('users.store');
@@ -737,6 +737,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', 'store')->name('store');
         Route::get('/{asset}', 'show')->name('show');
         Route::get('/{asset}/edit', 'edit')->name('edit');
+        Route::get('/{asset}/barcode', 'barcode')->name('barcode');
         Route::put('/{asset}', 'update')->name('update');
         Route::delete('/{asset}', 'destroy')->name('destroy');
     });

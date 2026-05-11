@@ -478,7 +478,7 @@
              </li>
          @endcan
 
-         @if (auth()->user()->hasRole(['super admin']))
+         @can('users.index')
              <li
                  class="menu-item {{ request()->is(['roles', 'roles/*', 'permissiongroups', 'permissiongroups/*', 'permissions', 'permissions/*', 'users', 'users/*', 'audit', 'audit/*', 'bersihkanfoto', 'bersihkanfoto/*', 'resetdata', 'resetdata/*']) ? 'open' : '' }} ">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
@@ -527,7 +527,7 @@
                      </li>
                  </ul>
              </li>
-         @endif
+         @endcan
          @can('audit.index')
              @if (!auth()->user()->hasRole(['super admin']))
              <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">

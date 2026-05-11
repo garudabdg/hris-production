@@ -177,7 +177,12 @@
                 @forelse ($assets as $a)
                     <tr>
                         <td>{{ $assets->firstItem() + $loop->index }}</td>
-                        <td><code>{{ $a->kode_asset }}</code></td>
+                        <td>
+                            <a href="{{ route('assets.barcode', $a->id) }}" target="_blank" title="Print Barcode" class="text-decoration-none">
+                                <code>{{ $a->kode_asset }}</code>
+                                <i class="ti ti-barcode ms-1 text-muted" style="font-size:12px;"></i>
+                            </a>
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 @if ($a->foto && Storage::disk('public')->exists('assets/' . $a->foto))
