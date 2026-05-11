@@ -246,6 +246,27 @@ class FacerecognitionController extends Controller
         return response()->json($wajah);
     }
 
+    // Return URL foto referensi wajah untuk NIK tertentu (dipakai saat verifikasi absen)
+    public function getFaceImages($nik)
+    {
+        $karyawan = Karyawan::where('nik', $nik)->first();
+        if (!$karyawan) {
+            return response()->json(['success' => false, 'message' => 'Karyawan tidak ditemukan'], 404);
+        }
+
+        $wajahList = Facerecognition::where('nik', $nik)->get();
+        if ($wajahList->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Data wajah belum terdaftar'], 404);
+        }
+
+        $namaFolder = $karyawan->nik . '-' . getNamaDepan(strtolower($karyawan->nama_karyawan));
+        $urls = $wajahList->map(function ($w) use ($namaFolder) {
+            return url('/storage/uploads/facerecognition/' . rawurlencode($namaFolder) . '/' . rawurlencode($w->wajah));
+        });
+
+        return response()->json(['success' => true, 'images' => $urls->values()]);
+    }
+
     // Hapus semua wajah berdasarkan NIK
     public function destroyAll($nik)
     {

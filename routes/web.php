@@ -600,6 +600,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/facerecognition/{id}/delete', 'destroy')->name('facerecognition.delete');
 
         Route::get('/facerecognition/getwajah', 'getWajah')->name('facerecognition.getwajah');
+        Route::get('/facerecognition/{nik}/face-images', 'getFaceImages')->name('facerecognition.face-images');
     });
 
     Route::middleware('role:super admin|hrd|direktur utama')->controller(WagatewayController::class)->group(function () {

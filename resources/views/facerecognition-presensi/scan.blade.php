@@ -19,6 +19,8 @@
 
     <!-- QR Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Face API -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
     <style>
         body {
@@ -307,6 +309,62 @@
             pointer-events: none;
             z-index: 10;
         }
+
+        /* Face Verification */
+        .face-verify-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        .face-verify-overlay.active { display: flex; }
+        .face-verify-video-wrap {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid rgba(255,255,255,0.3);
+            margin-bottom: 20px;
+        }
+        .face-verify-video-wrap video {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .face-verify-video-wrap.detecting { border-color: #fbbf24; }
+        .face-verify-video-wrap.matched   { border-color: #22c55e; box-shadow: 0 0 30px rgba(34,197,94,0.6); }
+        .face-verify-video-wrap.failed    { border-color: #ef4444; box-shadow: 0 0 30px rgba(239,68,68,0.5); }
+        .face-verify-status {
+            font-size: 16px; font-weight: 600; margin-bottom: 8px;
+        }
+        .face-verify-sub {
+            font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 20px;
+        }
+        .face-verify-progress {
+            width: 200px; height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px; overflow: hidden; margin-bottom: 20px;
+        }
+        .face-verify-progress-fill {
+            height: 100%; width: 0%;
+            background: #667eea;
+            transition: width 0.3s;
+        }
+        .face-verify-cancel {
+            background: rgba(255,255,255,0.15);
+            border: none; color: #fff;
+            padding: 10px 24px; border-radius: 8px;
+            cursor: pointer; font-size: 14px;
+        }
     </style>
 </head>
 
@@ -371,6 +429,20 @@
         <div class="status-message" id="statusMessage"></div>
     </div>
 
+    <!-- Face Verification Overlay -->
+    <div class="face-verify-overlay" id="faceVerifyOverlay">
+        <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">Verifikasi Wajah</p>
+        <div class="face-verify-video-wrap" id="faceVerifyWrap">
+            <video id="faceVerifyVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="face-verify-status" id="faceVerifyStatus">Memuat model AI...</div>
+        <div class="face-verify-sub" id="faceVerifySub">Mohon tunggu sebentar</div>
+        <div class="face-verify-progress">
+            <div class="face-verify-progress-fill" id="faceVerifyProgress"></div>
+        </div>
+        <button class="face-verify-cancel" onclick="cancelFaceVerify()">Batalkan</button>
+    </div>
+
     <!-- Vendor js -->
     <script src="{{ asset('assets/js/vendor.min.js') }}"></script>
 
@@ -382,6 +454,217 @@
         let currentStatus = null;
         let html5QrcodeScanner = null;
         const karyawan = @json($karyawan);
+
+        // ── Face API state ──
+        let faceModelsLoaded = false;
+        let faceVerifyStream = null;
+        let faceVerifyAborted = false;
+        const FACE_MATCH_THRESHOLD = 0.5; // jarak euclidean, makin kecil makin ketat
+        const FACE_API_MODELS_URL = '{{ asset("models") }}';
+        const FACE_IMAGES_URL = '{{ route("facerecognition.face-images", $karyawan->nik) }}';
+
+        // ── Load face-api models di background saat halaman dimuat ──
+        async function loadFaceModels() {
+            try {
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODELS_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODELS_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODELS_URL),
+                ]);
+                faceModelsLoaded = true;
+                console.log('Face API models loaded');
+            } catch (e) {
+                console.error('Gagal load face models:', e);
+            }
+        }
+
+        // ── Ambil descriptor dari array URL foto referensi ──
+        async function loadReferenceDescriptors(imageUrls) {
+            const descriptors = [];
+            for (const url of imageUrls) {
+                try {
+                    const img = await faceapi.fetchImage(url);
+                    const detection = await faceapi
+                        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+                    if (detection) descriptors.push(detection.descriptor);
+                } catch (e) {
+                    console.warn('Skip referensi:', url, e.message);
+                }
+            }
+            return descriptors;
+        }
+
+        // ── Main: verifikasi wajah sebelum absen ──
+        async function verifyFaceThenAbsen(status) {
+            faceVerifyAborted = false;
+            currentStatus = status;
+
+            // Tampilkan overlay
+            const overlay   = document.getElementById('faceVerifyOverlay');
+            const wrap      = document.getElementById('faceVerifyWrap');
+            const statusEl  = document.getElementById('faceVerifyStatus');
+            const subEl     = document.getElementById('faceVerifySub');
+            const progressEl = document.getElementById('faceVerifyProgress');
+
+            overlay.classList.add('active');
+            wrap.className = 'face-verify-video-wrap detecting';
+            statusEl.textContent = 'Memuat model AI...';
+            subEl.textContent = 'Mohon tunggu sebentar';
+            progressEl.style.width = '0%';
+
+            // 1. Pastikan model sudah load
+            if (!faceModelsLoaded) {
+                statusEl.textContent = 'Memuat model AI...';
+                await loadFaceModels();
+                if (!faceModelsLoaded) {
+                    statusEl.textContent = 'Gagal memuat model AI';
+                    subEl.textContent = 'Silakan refresh halaman';
+                    return;
+                }
+            }
+            progressEl.style.width = '20%';
+            if (faceVerifyAborted) return;
+
+            // 2. Ambil foto referensi dari server
+            statusEl.textContent = 'Mengambil data wajah...';
+            subEl.textContent = 'Menghubungi server';
+            let referenceUrls = [];
+            try {
+                const res = await fetch(FACE_IMAGES_URL);
+                const json = await res.json();
+                if (!json.success || !json.images.length) {
+                    overlay.classList.remove('active');
+                    showStatus('Data wajah belum terdaftar. Daftarkan wajah terlebih dahulu.', 'error');
+                    enableButtons();
+                    return;
+                }
+                referenceUrls = json.images;
+            } catch (e) {
+                overlay.classList.remove('active');
+                showStatus('Gagal mengambil data wajah referensi', 'error');
+                enableButtons();
+                return;
+            }
+            progressEl.style.width = '40%';
+            if (faceVerifyAborted) return;
+
+            // 3. Ekstrak descriptors dari referensi
+            statusEl.textContent = 'Memproses wajah referensi...';
+            subEl.textContent = referenceUrls.length + ' foto referensi';
+            const refDescriptors = await loadReferenceDescriptors(referenceUrls);
+            if (!refDescriptors.length) {
+                overlay.classList.remove('active');
+                showStatus('Wajah tidak terdeteksi pada foto referensi. Daftar ulang wajah Anda.', 'error');
+                enableButtons();
+                return;
+            }
+            const faceMatcher = new faceapi.FaceMatcher(
+                refDescriptors.map(d => new faceapi.LabeledFaceDescriptors('ref', [d])),
+                FACE_MATCH_THRESHOLD
+            );
+            progressEl.style.width = '60%';
+            if (faceVerifyAborted) return;
+
+            // 4. Buka kamera untuk verifikasi live
+            statusEl.textContent = 'Posisikan wajah Anda';
+            subEl.textContent = 'Pastikan wajah terlihat jelas';
+            try {
+                faceVerifyStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                document.getElementById('faceVerifyVideo').srcObject = faceVerifyStream;
+            } catch (e) {
+                overlay.classList.remove('active');
+                showStatus('Gagal akses kamera untuk verifikasi', 'error');
+                enableButtons();
+                return;
+            }
+
+            progressEl.style.width = '70%';
+
+            // 5. Loop deteksi: coba hingga 20 frame (10 detik) sebelum menyerah
+            const videoEl = document.getElementById('faceVerifyVideo');
+            let matched = false;
+            let attempts = 0;
+            const MAX_ATTEMPTS = 20;
+
+            while (!faceVerifyAborted && attempts < MAX_ATTEMPTS) {
+                attempts++;
+                progressEl.style.width = (70 + Math.round((attempts / MAX_ATTEMPTS) * 25)) + '%';
+
+                // Tunggu video siap
+                if (videoEl.readyState < 2) {
+                    await new Promise(r => setTimeout(r, 500));
+                    continue;
+                }
+
+                const detection = await faceapi
+                    .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    statusEl.textContent = 'Wajah tidak terdeteksi...';
+                    subEl.textContent = 'Hadapkan wajah ke kamera';
+                    await new Promise(r => setTimeout(r, 500));
+                    continue;
+                }
+
+                statusEl.textContent = 'Wajah terdeteksi, mencocokkan...';
+                subEl.textContent = 'Harap diam sebentar';
+
+                const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+                console.log('Face match distance:', bestMatch.distance, 'label:', bestMatch.label);
+
+                if (bestMatch.label !== 'unknown') {
+                    matched = true;
+                    break;
+                } else {
+                    statusEl.textContent = 'Tidak cocok (jarak: ' + bestMatch.distance.toFixed(2) + ')';
+                    subEl.textContent = 'Mencoba lagi...';
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            // 6. Hentikan stream verifikasi
+            if (faceVerifyStream) {
+                faceVerifyStream.getTracks().forEach(t => t.stop());
+                faceVerifyStream = null;
+            }
+            if (faceVerifyAborted) return;
+
+            progressEl.style.width = '100%';
+
+            if (matched) {
+                wrap.className = 'face-verify-video-wrap matched';
+                statusEl.textContent = '✓ Wajah Terverifikasi!';
+                subEl.textContent = 'Memproses absen...';
+                await new Promise(r => setTimeout(r, 1000));
+                overlay.classList.remove('active');
+                // Lanjut ambil foto & kirim presensi
+                startCamera();
+            } else {
+                wrap.className = 'face-verify-video-wrap failed';
+                statusEl.textContent = '✗ Wajah Tidak Dikenali';
+                subEl.textContent = 'Pastikan wajah tidak terhalang masker / helm';
+                await new Promise(r => setTimeout(r, 2500));
+                overlay.classList.remove('active');
+                showStatus('Verifikasi wajah gagal. Wajah tidak cocok dengan data terdaftar.', 'error');
+                enableButtons();
+            }
+        }
+
+        function cancelFaceVerify() {
+            faceVerifyAborted = true;
+            if (faceVerifyStream) {
+                faceVerifyStream.getTracks().forEach(t => t.stop());
+                faceVerifyStream = null;
+            }
+            document.getElementById('faceVerifyOverlay').classList.remove('active');
+            enableButtons();
+        }
 
         // Update waktu real-time
         function updateTime() {
@@ -407,10 +690,7 @@
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", {
                     fps: 10,
-                    qrbox: {
-                        width: 250,
-                        height: 250
-                    },
+                    qrbox: { width: 250, height: 250 },
                     aspectRatio: 1.0,
                     showTorchButtonIfSupported: true,
                     showZoomSliderIfSupported: true,
@@ -419,97 +699,61 @@
                 },
                 false
             );
-
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
 
         // QR Scan Success
         function onScanSuccess(decodedText, decodedResult) {
-            // Stop scanner
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear();
-            }
+            if (html5QrcodeScanner) html5QrcodeScanner.clear();
 
-            // Parse QR code data
             try {
                 const url = new URL(decodedText);
                 const pathParts = url.pathname.split('/');
                 const scannedNik = pathParts[pathParts.length - 1];
 
-                // Validate if scanned NIK matches current employee
                 if (scannedNik === karyawan.nik) {
-                    showStatus('QR Code terdeteksi! Memulai proses absen...', 'success');
-
-                    // Auto detect status (masuk/pulang) based on time
+                    showStatus('QR Code terdeteksi! Memulai verifikasi wajah...', 'success');
                     const currentHour = new Date().getHours();
-                    const status = currentHour < 12 ? 1 : 0; // Masuk before 12, pulang after 12
-
-                    setTimeout(() => {
-                        startAbsenProcess(status);
-                    }, 1000);
+                    const status = currentHour < 12 ? 1 : 0;
+                    setTimeout(() => { startAbsenProcess(status); }, 800);
                 } else {
                     showStatus('QR Code tidak valid untuk karyawan ini', 'error');
-                    // Restart scanner
-                    setTimeout(() => {
-                        initQRScanner();
-                    }, 2000);
+                    setTimeout(() => { initQRScanner(); }, 2000);
                 }
             } catch (error) {
                 showStatus('QR Code tidak valid', 'error');
-                // Restart scanner
-                setTimeout(() => {
-                    initQRScanner();
-                }, 2000);
+                setTimeout(() => { initQRScanner(); }, 2000);
             }
         }
 
-        // QR Scan Failure
         function onScanFailure(error) {
-            // Handle scan failure silently
             console.log(`QR scan failure: ${error}`);
         }
 
-        // Manual absen function
+        // Manual absen — sekarang lewat verifikasi wajah dulu
         function manualAbsen(status) {
-            currentStatus = status;
-            startAbsenProcess(status);
-        }
-
-        // Start absen process
-        function startAbsenProcess(status) {
-            currentStatus = status;
-
-            // Disable buttons
             document.querySelectorAll('.btn-absen').forEach(btn => btn.disabled = true);
-
-            // Show camera for photo capture
-            startCamera();
+            verifyFaceThenAbsen(status);
         }
 
-        // Start camera
+        // Start absen process — sekarang lewat verifikasi wajah dulu
+        function startAbsenProcess(status) {
+            document.querySelectorAll('.btn-absen').forEach(btn => btn.disabled = true);
+            verifyFaceThenAbsen(status);
+        }
+
+        // Start camera (dipanggil setelah verifikasi berhasil)
         async function startCamera() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'user',
-                        width: {
-                            ideal: 1280
-                        },
-                        height: {
-                            ideal: 720
-                        }
-                    }
+                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
 
                 const video = document.getElementById('video');
                 video.srcObject = stream;
-
                 document.getElementById('cameraContainer').style.display = 'block';
 
-                // Auto capture after 3 seconds
-                setTimeout(() => {
-                    capturePhoto();
-                }, 3000);
+                setTimeout(() => { capturePhoto(); }, 3000);
 
             } catch (error) {
                 console.error('Error accessing camera:', error);
@@ -526,26 +770,20 @@
 
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            // Paksa browser render sesuai aspek rasio asli
             canvas.style.width = '100%';
             canvas.style.height = 'auto';
 
-            // Flip horizontal agar tidak menyong (mirror effect dari kamera depan)
             context.save();
             context.translate(canvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0);
             context.restore();
 
-            // Stop camera
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
+            if (stream) stream.getTracks().forEach(track => track.stop());
 
             document.getElementById('cameraContainer').style.display = 'none';
             document.getElementById('canvasContainer').style.display = 'block';
 
-            // Process absen
             processAbsen();
         }
 
@@ -554,27 +792,21 @@
             const canvas = document.getElementById('canvas');
             const imageData = canvas.toDataURL('image/png');
 
-            // Get location
             let location = '';
             if (navigator.geolocation) {
                 try {
                     const position = await getCurrentPosition();
                     location = `${position.coords.latitude},${position.coords.longitude}`;
                 } catch (error) {
-                    console.error('Error getting location:', error);
-                    location = '0,0'; // Default location
+                    location = '0,0';
                 }
             } else {
-                location = '0,0'; // Default location
+                location = '0,0';
             }
 
-            // Get cabang location from database
             const cabangLocation = '{{ $cabang->lokasi_cabang ?? '0,0' }}';
-
-            // Show loading
             document.getElementById('loading').style.display = 'block';
 
-            // Send data to server
             try {
                 const response = await fetch('{{ route('facerecognition-presensi.store') }}', {
                     method: 'POST',
@@ -588,12 +820,11 @@
                         image: imageData,
                         lokasi: location,
                         lokasi_cabang: cabangLocation,
-                        kode_jam_kerja: '{{ $karyawan->kode_jadwal ?? '0001' }}' // Default jam kerja
+                        kode_jam_kerja: '{{ $karyawan->kode_jadwal ?? '0001' }}'
                     })
                 });
 
                 const result = await response.json();
-
                 if (result.status) {
                     showStatus(result.message, 'success');
                     playNotificationSound('success');
@@ -601,23 +832,18 @@
                     showStatus(result.message, 'error');
                     playNotificationSound('error');
                 }
-
             } catch (error) {
-                console.error('Error sending data:', error);
                 showStatus('Terjadi kesalahan saat mengirim data', 'error');
             }
 
-            // Hide loading and enable buttons
             document.getElementById('loading').style.display = 'none';
             enableButtons();
 
-            // Hide canvas after 3 seconds
             setTimeout(() => {
                 document.getElementById('canvasContainer').style.display = 'none';
             }, 3000);
         }
 
-        // Get current position
         function getCurrentPosition() {
             return new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -628,48 +854,38 @@
             });
         }
 
-        // Show status message
         function showStatus(message, type) {
             const statusElement = document.getElementById('statusMessage');
             statusElement.textContent = message;
             statusElement.className = `status-message status-${type}`;
             statusElement.style.display = 'block';
-
-            // Hide after 5 seconds
-            setTimeout(() => {
-                statusElement.style.display = 'none';
-            }, 5000);
+            setTimeout(() => { statusElement.style.display = 'none'; }, 5000);
         }
 
-        // Enable buttons
         function enableButtons() {
             document.querySelectorAll('.btn-absen').forEach(btn => btn.disabled = false);
         }
 
-        // Play notification sound
         function playNotificationSound(type) {
             const audio = new Audio();
-            if (type === 'success') {
-                audio.src = '{{ asset('assets/sound/absenmasuk.wav') }}';
-            } else {
-                audio.src = '{{ asset('assets/sound/akhirabsen.wav') }}';
-            }
+            audio.src = type === 'success'
+                ? '{{ asset('assets/sound/absenmasuk.wav') }}'
+                : '{{ asset('assets/sound/akhirabsen.wav') }}';
             audio.play().catch(e => console.log('Audio play failed:', e));
         }
 
-        // Initialize QR Scanner when page loads
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Request camera permission immediately
-            navigator.mediaDevices.getUserMedia({
-                    video: true
-                })
-                .then(function(stream) {
-                    // Camera permission granted, initialize scanner
+            // Load face models di background
+            loadFaceModels();
+
+            // Init QR scanner
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(s) {
                     initQRScanner();
-                    stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+                    s.getTracks().forEach(t => t.stop());
                 })
-                .catch(function(err) {
-                    console.log('Camera permission denied, but continuing...');
+                .catch(function() {
                     initQRScanner();
                 });
         });
