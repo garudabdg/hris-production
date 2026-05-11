@@ -463,6 +463,42 @@
         const FACE_API_MODELS_URL = '{{ asset("models") }}';
         const FACE_IMAGES_URL = '{{ route("facerecognition.face-images", $karyawan->nik) }}';
 
+        // ── Deteksi masker: cek apakah area mulut/hidung terhalang ──
+        // Landmark 27-30: hidung bridge→tip, 48-67: area mulut
+        // Jika spread vertikal mulut < 3% tinggi wajah → kemungkinan pakai masker
+        function isMaskDetected(landmarks, detection) {
+            try {
+                const pts = landmarks.positions; // array of {x, y}
+                const box = detection.box;
+
+                // Ambil titik mulut (48–67)
+                const mouthPts = pts.slice(48, 68);
+                const mouthYMin = Math.min(...mouthPts.map(p => p.y));
+                const mouthYMax = Math.max(...mouthPts.map(p => p.y));
+                const mouthSpread = mouthYMax - mouthYMin;
+
+                // Ambil nose tip (landmark 30) dan chin (landmark 8)
+                const noseTip = pts[30];
+                const chin    = pts[8];
+                const noseToChin = chin.y - noseTip.y;
+
+                // Jika spread mulut < 15% jarak hidung-dagu → terhalang
+                if (noseToChin > 0 && (mouthSpread / noseToChin) < 0.15) {
+                    return true;
+                }
+
+                // Jika nose tip lebih rendah dari rata-rata mulut → hidung tertutup masker
+                const mouthAvgY = mouthPts.reduce((s, p) => s + p.y, 0) / mouthPts.length;
+                if (noseTip.y > mouthAvgY - 5) {
+                    return true;
+                }
+
+                return false;
+            } catch (e) {
+                return false;
+            }
+        }
+
         // ── Load face-api models di background saat halaman dimuat ──
         async function loadFaceModels() {
             try {
@@ -608,12 +644,23 @@
                 if (!detection) {
                     statusEl.textContent = 'Wajah tidak terdeteksi...';
                     subEl.textContent = 'Hadapkan wajah ke kamera';
+                    wrap.className = 'face-verify-video-wrap detecting';
                     await new Promise(r => setTimeout(r, 500));
+                    continue;
+                }
+
+                // Cek masker sebelum pencocokan
+                if (isMaskDetected(detection.landmarks, detection.detection)) {
+                    statusEl.textContent = '⚠ Masker terdeteksi!';
+                    subEl.textContent = 'Harap lepaskan masker / helm terlebih dahulu';
+                    wrap.className = 'face-verify-video-wrap failed';
+                    await new Promise(r => setTimeout(r, 1000));
                     continue;
                 }
 
                 statusEl.textContent = 'Wajah terdeteksi, mencocokkan...';
                 subEl.textContent = 'Harap diam sebentar';
+                wrap.className = 'face-verify-video-wrap detecting';
 
                 const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
                 console.log('Face match distance:', bestMatch.distance, 'label:', bestMatch.label);
@@ -622,8 +669,15 @@
                     matched = true;
                     break;
                 } else {
-                    statusEl.textContent = 'Tidak cocok (jarak: ' + bestMatch.distance.toFixed(2) + ')';
-                    subEl.textContent = 'Mencoba lagi...';
+                    // Bedakan: jarak sangat jauh → kemungkinan masker tipis/buff
+                    if (bestMatch.distance > 0.65) {
+                        statusEl.textContent = '⚠ Wajah terhalang?';
+                        subEl.textContent = 'Harap lepaskan masker / helm';
+                    } else {
+                        statusEl.textContent = '✗ Wajah tidak dikenali';
+                        subEl.textContent = 'Pastikan pencahayaan cukup & wajah jelas';
+                    }
+                    wrap.className = 'face-verify-video-wrap failed';
                 }
                 await new Promise(r => setTimeout(r, 500));
             }
@@ -647,11 +701,11 @@
                 startCamera();
             } else {
                 wrap.className = 'face-verify-video-wrap failed';
-                statusEl.textContent = '✗ Wajah Tidak Dikenali';
-                subEl.textContent = 'Pastikan wajah tidak terhalang masker / helm';
+                statusEl.textContent = '✗ Verifikasi Gagal';
+                subEl.textContent = 'Pastikan wajah tidak terhalang masker / helm, lalu coba lagi';
                 await new Promise(r => setTimeout(r, 2500));
                 overlay.classList.remove('active');
-                showStatus('Verifikasi wajah gagal. Wajah tidak cocok dengan data terdaftar.', 'error');
+                showStatus('Verifikasi wajah gagal. Pastikan wajah tidak terhalang masker atau helm.', 'error');
                 enableButtons();
             }
         }
