@@ -460,72 +460,66 @@
         let faceModelsLoaded = false;
         let faceVerifyStream = null;
         let faceVerifyAborted = false;
-        const FACE_MATCH_THRESHOLD = 0.5; // jarak euclidean, makin kecil makin ketat
-        const FACE_API_MODELS_URL = '{{ asset("models") }}';
-        const FACE_IMAGES_URL = '{{ route("facerecognition.face-images", $karyawan->nik) }}';
+        const FACE_MATCH_THRESHOLD  = 0.45;  // lebih ketat dari default 0.6
+        const FACE_MATCH_CONSENSUS  = 2;      // butuh N frame cocok sebelum lulus
+        const FACE_MAX_ATTEMPTS     = 25;     // max frame dicoba
+        const FACE_API_MODELS_URL   = '{{ asset("models") }}';
+        const FACE_IMAGES_URL       = '{{ route("facerecognition.face-images", $karyawan->nik) }}';
 
-        // ── Deteksi masker: cek apakah area mulut/hidung terhalang ──
-        // Landmark 27-30: hidung bridge→tip, 48-67: area mulut
-        // Jika spread vertikal mulut < 3% tinggi wajah → kemungkinan pakai masker
+        // ── Deteksi masker via landmark 68 titik ──
         function isMaskDetected(landmarks, detection) {
             try {
-                const pts = landmarks.positions; // array of {x, y}
-                const box = detection.box;
-
-                // Ambil titik mulut (48–67)
-                const mouthPts = pts.slice(48, 68);
-                const mouthYMin = Math.min(...mouthPts.map(p => p.y));
-                const mouthYMax = Math.max(...mouthPts.map(p => p.y));
+                const pts        = landmarks.positions;
+                const noseTip    = pts[30];
+                const chin       = pts[8];
+                const noseToChin = chin.y - noseTip.y;
+                const mouthPts   = pts.slice(48, 68);
+                const mouthYMin  = Math.min(...mouthPts.map(p => p.y));
+                const mouthYMax  = Math.max(...mouthPts.map(p => p.y));
                 const mouthSpread = mouthYMax - mouthYMin;
 
-                // Ambil nose tip (landmark 30) dan chin (landmark 8)
-                const noseTip = pts[30];
-                const chin    = pts[8];
-                const noseToChin = chin.y - noseTip.y;
+                // Spread vertikal mulut < 15% jarak hidung-dagu → tertutup masker
+                if (noseToChin > 0 && (mouthSpread / noseToChin) < 0.15) return true;
 
-                // Jika spread mulut < 15% jarak hidung-dagu → terhalang
-                if (noseToChin > 0 && (mouthSpread / noseToChin) < 0.15) {
-                    return true;
-                }
-
-                // Jika nose tip lebih rendah dari rata-rata mulut → hidung tertutup masker
+                // Nose tip lebih rendah dari rata-rata Y mulut → hidung tertutup
                 const mouthAvgY = mouthPts.reduce((s, p) => s + p.y, 0) / mouthPts.length;
-                if (noseTip.y > mouthAvgY - 5) {
-                    return true;
-                }
+                if (noseTip.y > mouthAvgY - 5) return true;
 
                 return false;
-            } catch (e) {
-                return false;
-            }
+            } catch (e) { return false; }
         }
 
-        // ── Load face-api models di background saat halaman dimuat ──
+        // ── Load models: SSD MobileNetV1 (lebih akurat dari TinyFaceDetector) ──
         async function loadFaceModels() {
             try {
                 await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODELS_URL),
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(FACE_API_MODELS_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODELS_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODELS_URL),
                 ]);
                 faceModelsLoaded = true;
-                console.log('Face API models loaded');
+                console.log('Face API models loaded (SSD MobileNetV1)');
             } catch (e) {
                 console.error('Gagal load face models:', e);
             }
         }
 
-        // ── Ambil descriptor dari array URL foto referensi ──
+        // ── Ambil descriptor dari foto referensi — gunakan SSD + inputSize lebih besar ──
         async function loadReferenceDescriptors(imageUrls) {
             const descriptors = [];
             for (const url of imageUrls) {
                 try {
                     const img = await faceapi.fetchImage(url);
-                    const detection = await faceapi
-                        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
+                    const det = await faceapi
+                        .detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
                         .withFaceLandmarks()
                         .withFaceDescriptor();
-                    if (detection) descriptors.push(detection.descriptor);
+                    if (det) {
+                        descriptors.push(det.descriptor);
+                        console.log('Loaded reference descriptor from', url);
+                    } else {
+                        console.warn('No face in reference:', url);
+                    }
                 } catch (e) {
                     console.warn('Skip referensi:', url, e.message);
                 }
@@ -597,10 +591,9 @@
                 enableButtons();
                 return;
             }
-            const faceMatcher = new faceapi.FaceMatcher(
-                refDescriptors.map(d => new faceapi.LabeledFaceDescriptors('ref', [d])),
-                FACE_MATCH_THRESHOLD
-            );
+            // ✅ BENAR: satu LabeledFaceDescriptors dengan semua descriptor referensi
+            const labeledDescriptors = new faceapi.LabeledFaceDescriptors('karyawan', refDescriptors);
+            const faceMatcher = new faceapi.FaceMatcher([labeledDescriptors], FACE_MATCH_THRESHOLD);
             progressEl.style.width = '60%';
             if (faceVerifyAborted) return;
 
@@ -621,66 +614,75 @@
 
             progressEl.style.width = '70%';
 
-            // 5. Loop deteksi: coba hingga 20 frame (10 detik) sebelum menyerah
+            // 5. Loop deteksi dengan sistem konsensus
             const videoEl = document.getElementById('faceVerifyVideo');
-            let matched = false;
-            let attempts = 0;
-            const MAX_ATTEMPTS = 20;
+            let matched       = false;
+            let attempts      = 0;
+            let matchCount    = 0; // frame yang cocok
+            let noFaceCount   = 0;
 
-            while (!faceVerifyAborted && attempts < MAX_ATTEMPTS) {
+            while (!faceVerifyAborted && attempts < FACE_MAX_ATTEMPTS) {
                 attempts++;
-                progressEl.style.width = (70 + Math.round((attempts / MAX_ATTEMPTS) * 25)) + '%';
+                const pct = 70 + Math.round((attempts / FACE_MAX_ATTEMPTS) * 25);
+                progressEl.style.width = pct + '%';
 
-                // Tunggu video siap
                 if (videoEl.readyState < 2) {
-                    await new Promise(r => setTimeout(r, 500));
+                    await new Promise(r => setTimeout(r, 400));
                     continue;
                 }
 
                 const detection = await faceapi
-                    .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
+                    .detectSingleFace(videoEl, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
                     .withFaceLandmarks()
                     .withFaceDescriptor();
 
                 if (!detection) {
+                    noFaceCount++;
                     statusEl.textContent = 'Wajah tidak terdeteksi...';
                     subEl.textContent = 'Hadapkan wajah ke kamera';
                     wrap.className = 'face-verify-video-wrap detecting';
-                    await new Promise(r => setTimeout(r, 500));
+                    await new Promise(r => setTimeout(r, 400));
                     continue;
                 }
+                noFaceCount = 0;
 
-                // Cek masker sebelum pencocokan
+                // Cek masker
                 if (isMaskDetected(detection.landmarks, detection.detection)) {
                     statusEl.textContent = '⚠ Masker terdeteksi!';
                     subEl.textContent = 'Harap lepaskan masker / helm terlebih dahulu';
                     wrap.className = 'face-verify-video-wrap failed';
-                    await new Promise(r => setTimeout(r, 1000));
+                    matchCount = 0; // reset konsensus
+                    await new Promise(r => setTimeout(r, 800));
                     continue;
                 }
 
-                statusEl.textContent = 'Wajah terdeteksi, mencocokkan...';
-                subEl.textContent = 'Harap diam sebentar';
-                wrap.className = 'face-verify-video-wrap detecting';
-
+                // Cocokkan dengan referensi
                 const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-                console.log('Face match distance:', bestMatch.distance, 'label:', bestMatch.label);
+                console.log(`Frame ${attempts}: distance=${bestMatch.distance.toFixed(3)} label=${bestMatch.label}`);
 
                 if (bestMatch.label !== 'unknown') {
-                    matched = true;
-                    break;
+                    matchCount++;
+                    const needed = FACE_MATCH_CONSENSUS;
+                    statusEl.textContent = `✓ Cocok (${matchCount}/${needed}) — jarak: ${bestMatch.distance.toFixed(2)}`;
+                    subEl.textContent = matchCount < needed ? 'Tahan posisi...' : 'Verifikasi berhasil!';
+                    wrap.className = 'face-verify-video-wrap matched';
+
+                    if (matchCount >= FACE_MATCH_CONSENSUS) {
+                        matched = true;
+                        break;
+                    }
                 } else {
-                    // Bedakan: jarak sangat jauh → kemungkinan masker tipis/buff
-                    if (bestMatch.distance > 0.65) {
+                    matchCount = 0; // reset jika ada frame yang tidak cocok
+                    if (bestMatch.distance > 0.60) {
                         statusEl.textContent = '⚠ Wajah terhalang?';
                         subEl.textContent = 'Harap lepaskan masker / helm';
                     } else {
-                        statusEl.textContent = '✗ Wajah tidak dikenali';
+                        statusEl.textContent = `✗ Tidak cocok — jarak: ${bestMatch.distance.toFixed(2)}`;
                         subEl.textContent = 'Pastikan pencahayaan cukup & wajah jelas';
                     }
                     wrap.className = 'face-verify-video-wrap failed';
                 }
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 400));
             }
 
             // 6. Hentikan stream verifikasi
