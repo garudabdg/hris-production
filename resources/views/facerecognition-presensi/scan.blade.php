@@ -152,6 +152,7 @@
             width: 100%;
             max-width: 600px;
             border-radius: 15px;
+            transform: scaleX(-1); /* Mirror — tampilan seperti cermin */
         }
 
         .canvas-container {
