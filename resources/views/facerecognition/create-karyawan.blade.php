@@ -287,8 +287,8 @@
     
     <script>
         // Configuration
-        const TOTAL_IMAGES_NEEDED = 10;  // lebih banyak referensi = akurasi lebih baik
-        const CAPTURE_INTERVAL = 400;    // ms antar capture
+        const TOTAL_IMAGES_NEEDED = 5;
+        const CAPTURE_INTERVAL = 300; // ms between captures
         const CONFIDENCE_THRESHOLD = 0.5;
         
         // State
@@ -350,16 +350,14 @@
             btnStart.disabled = true;
             
             try {
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri('{{ asset("models") }}'),
-                    faceapi.nets.faceLandmark68Net.loadFromUri('{{ asset("models") }}'),
-                    faceapi.nets.faceRecognitionNet.loadFromUri('{{ asset("models") }}'),
-                ]);
+                await faceapi.nets.tinyFaceDetector.loadFromUri('{{ asset("models") }}');
+                // Optional: load landmarks if we want strict checks, but tinyDetector is enough for simple presence
+                // await faceapi.nets.faceLandmark68Net.loadFromUri('/models'); 
                 
                 modelLoaded = true;
                 updateStatus('ready', 'Kamera Siap. Klik tombol Mulai.');
                 btnStart.disabled = false;
-                console.log("Models loaded (SSD MobileNetV1)");
+                console.log("Models loaded");
             } catch (err) {
                 console.error("Model Load Error:", err);
                 updateStatus('error', 'Gagal memuat model AI.');
@@ -391,7 +389,7 @@
 
             // Detect face using TinyFaceDetector (fastest)
             // We use inputSize 224 or 320 for speed on mobile
-            const detection = await faceapi.detectSingleFace(videoEl, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }));
+            const detection = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }));
 
             if (detection && detection.score > CONFIDENCE_THRESHOLD) {
                 // Face detected!
