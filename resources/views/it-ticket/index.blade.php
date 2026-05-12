@@ -52,7 +52,12 @@
 <div class="card">
     <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
-            <h5 class="mb-0"><i class="ti ti-headset me-2"></i>Daftar IT Ticket</h5>
+            <h5 class="mb-0">
+                <i class="ti ti-headset me-2"></i>Daftar IT Ticket
+                <span class="badge bg-success ms-2" id="realtimeIndicator" style="font-size:10px;">
+                    <i class="ti ti-wifi"></i> Real-time Active
+                </span>
+            </h5>
             <small class="text-muted">Pengaduan layanan IT — standar ISO 27001</small>
         </div>
         <a href="{{ route('it-ticket.create') }}" class="btn btn-primary btn-sm">
@@ -183,6 +188,10 @@
 @push('myscript')
 <script>
 $(function () {
+    let lastTicketId = {{ $tickets->first()->id ?? 0 }};
+    let pollingInterval = null;
+
+    // Delete handler
     $('.btn-delete').on('click', function () {
         const id    = $(this).data('id');
         const nomor = $(this).data('nomor');
@@ -196,6 +205,67 @@ $(function () {
                 $('#formDelete').attr('action', `{{ url('it-ticket') }}/${id}`).submit();
             }
         });
+    });
+
+    // Real-time polling untuk tiket baru
+    function checkNewTickets() {
+        // Blink indicator
+        $('#realtimeIndicator').addClass('opacity-50');
+        
+        $.ajax({
+            url: '{{ route("it-ticket.check-new") }}',
+            method: 'GET',
+            data: { last_id: lastTicketId },
+            success: function(response) {
+                // Reset indicator
+                $('#realtimeIndicator').removeClass('opacity-50');
+                
+                if (response.has_new && response.tickets.length > 0) {
+                    // Update lastTicketId
+                    lastTicketId = response.tickets[0].id;
+                    
+                    // Tampilkan notifikasi
+                    const count = response.tickets.length;
+                    const ticketWord = count > 1 ? 'tiket baru' : 'tiket baru';
+                    
+                    Swal.fire({
+                        icon: 'info',
+                        title: `${count} ${ticketWord}!`,
+                        text: `Ada ${count} tiket baru. Halaman akan di-refresh.`,
+                        timer: 3000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end',
+                    });
+
+                    // Refresh halaman setelah 3 detik
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                }
+            },
+            error: function(xhr) {
+                console.error('Error checking new tickets:', xhr);
+                
+                // Show error indicator
+                $('#realtimeIndicator').removeClass('bg-success').addClass('bg-danger')
+                    .html('<i class="ti ti-wifi-off"></i> Connection Lost');
+                
+                // Try to reconnect after 30 seconds
+                setTimeout(function() {
+                    $('#realtimeIndicator').removeClass('bg-danger').addClass('bg-success')
+                        .html('<i class="ti ti-wifi"></i> Real-time Active');
+                }, 30000);
+            }
+        });
+    }
+
+    // Mulai polling setiap 15 detik
+    pollingInterval = setInterval(checkNewTickets, 15000);
+
+    // Stop polling ketika user leave page
+    $(window).on('beforeunload', function() {
+        if (pollingInterval) clearInterval(pollingInterval);
     });
 });
 </script>

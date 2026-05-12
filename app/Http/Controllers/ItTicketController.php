@@ -87,6 +87,32 @@ class ItTicketController extends Controller
         return view($view, compact('tickets', 'cabang', 'summary'));
     }
 
+    // ── Check New Tickets (untuk polling real-time) ───────────────────────────
+
+    public function checkNew(Request $request)
+    {
+        $lastId = $request->input('last_id', 0);
+        $query  = $this->scopedQuery();
+
+        // Cari tiket yang lebih baru dari last_id
+        $newTickets = $query->where('id', '>', $lastId)
+                            ->orderBy('id', 'desc')
+                            ->limit(10)
+                            ->get();
+
+        return response()->json([
+            'has_new' => $newTickets->isNotEmpty(),
+            'count'   => $newTickets->count(),
+            'tickets' => $newTickets->map(fn($t) => [
+                'id'          => $t->id,
+                'nomor_tiket' => $t->nomor_tiket,
+                'judul'       => $t->judul,
+                'prioritas'   => $t->prioritas,
+                'status'      => $t->status,
+            ]),
+        ]);
+    }
+
     // ── Create / Store ─────────────────────────────────────────────────────────
 
     public function create()

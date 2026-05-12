@@ -714,6 +714,7 @@ Route::middleware('auth')->group(function () {
     // IT Ticket — semua user yang login bisa buat tiket, IT Staff & Super Admin bisa manage
     Route::prefix('it-ticket')->name('it-ticket.')->controller(ItTicketController::class)->group(function () {
         Route::get('/',                      'index')->name('index');
+        Route::get('/check-new',             'checkNew')->name('check-new');
         Route::get('/create',                'create')->name('create');
         Route::post('/',                     'store')->name('store');
         Route::get('/{itTicket}',            'show')->name('show');
