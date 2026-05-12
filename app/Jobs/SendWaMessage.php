@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Device;
+use App\Models\Message;
 use App\Models\Pengaturanumum;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -98,7 +99,25 @@ class SendWaMessage implements ShouldQueue
                 'penerima' => $penerima,
             ]);
 
-            if (!$response->successful()) {
+            $body = $response->json() ?? [];
+            if ($response->successful() && ($body['status'] ?? false)) {
+                Message::create([
+                    'pengirim'      => 'local',
+                    'penerima'      => $penerima,
+                    'pesan'         => $this->message,
+                    'status'        => 'success',
+                    'message_id'    => null,
+                    'error_message' => null,
+                ]);
+            } else {
+                Message::create([
+                    'pengirim'      => 'local',
+                    'penerima'      => $penerima,
+                    'pesan'         => $this->message,
+                    'status'        => 'failed',
+                    'message_id'    => null,
+                    'error_message' => $body['msg'] ?? $response->body(),
+                ]);
                 throw new \RuntimeException('SendWaMessage Local Gateway gagal: HTTP ' . $response->status() . ' - ' . $response->body());
             }
             return;
@@ -145,8 +164,25 @@ class SendWaMessage implements ShouldQueue
             ]);
 
             if ($errno || $httpCode >= 400) {
+                Message::create([
+                    'pengirim'      => 'fonnte',
+                    'penerima'      => $penerima,
+                    'pesan'         => $this->message,
+                    'status'        => 'failed',
+                    'message_id'    => null,
+                    'error_message' => $err ?: ('HTTP ' . $httpCode . ': ' . $response),
+                ]);
                 throw new \RuntimeException('SendWaMessage Fonnte gagal: ' . ($err ?: ('HTTP ' . $httpCode)));
             }
+
+            Message::create([
+                'pengirim'      => 'fonnte',
+                'penerima'      => $penerima,
+                'pesan'         => $this->message,
+                'status'        => 'success',
+                'message_id'    => json_decode($response, true)['id'] ?? null,
+                'error_message' => null,
+            ]);
             return;
         }
 
@@ -190,7 +226,26 @@ class SendWaMessage implements ShouldQueue
             'tujuan_notifikasi' => $tujuanNotifikasi,
         ]);
 
-        if (!$response->successful()) {
+        if ($response->successful()) {
+            $resData = $response->json() ?? [];
+            Message::create([
+                'pengirim'      => $sender->number,
+                'penerima'      => $penerima,
+                'pesan'         => $this->message,
+                'status'        => 'success',
+                'message_id'    => $resData['message_id'] ?? null,
+                'error_message' => null,
+            ]);
+        } else {
+            $resData = $response->json() ?? [];
+            Message::create([
+                'pengirim'      => $sender->number,
+                'penerima'      => $penerima,
+                'pesan'         => $this->message,
+                'status'        => 'failed',
+                'message_id'    => null,
+                'error_message' => $resData['message'] ?? ('HTTP ' . $response->status()),
+            ]);
             throw new \RuntimeException('SendWaMessage Gateway gagal: HTTP ' . $response->status());
         }
     }
