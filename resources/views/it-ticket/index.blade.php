@@ -188,7 +188,14 @@
 @push('myscript')
 <script>
 $(function () {
-    let lastTicketId = {{ $tickets->first()->id ?? 0 }};
+    // Ambil lastTicketId dari localStorage atau dari database
+    const currentMaxId = {{ $tickets->first()->id ?? 0 }};
+    const storedLastId = localStorage.getItem('lastTicketId');
+    let lastTicketId = storedLastId ? Math.max(parseInt(storedLastId), currentMaxId) : currentMaxId;
+    
+    // Update localStorage
+    localStorage.setItem('lastTicketId', lastTicketId);
+    
     let pollingInterval = null;
 
     // Delete handler
@@ -221,8 +228,9 @@ $(function () {
                 $('#realtimeIndicator').removeClass('opacity-50');
                 
                 if (response.has_new && response.tickets.length > 0) {
-                    // Update lastTicketId
+                    // Update lastTicketId and save to localStorage
                     lastTicketId = response.tickets[0].id;
+                    localStorage.setItem('lastTicketId', lastTicketId);
                     
                     // Tampilkan notifikasi
                     const count = response.tickets.length;
