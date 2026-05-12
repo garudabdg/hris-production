@@ -93,10 +93,18 @@
                         {{-- Cabang --}}
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Cabang</label>
+                            @php
+                                $defaultKodeCabang = old('kode_cabang');
+                                // Auto-select cabang dari data karyawan jika belum ada
+                                if (empty($defaultKodeCabang)) {
+                                    $karyawan = \App\Models\Karyawan::where('nik', auth()->user()->username)->first();
+                                    $defaultKodeCabang = $karyawan ? $karyawan->kode_cabang : null;
+                                }
+                            @endphp
                             <select name="kode_cabang" class="form-select select2">
                                 <option value="">-- Pilih Cabang --</option>
                                 @foreach ($cabang as $c)
-                                    <option value="{{ $c->kode_cabang }}" {{ old('kode_cabang')==$c->kode_cabang?'selected':'' }}>
+                                    <option value="{{ $c->kode_cabang }}" {{ $defaultKodeCabang==$c->kode_cabang?'selected':'' }}>
                                         {{ textUpperCase($c->nama_cabang) }}
                                     </option>
                                 @endforeach

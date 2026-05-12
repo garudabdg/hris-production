@@ -117,6 +117,7 @@
                     <th>Klasifikasi</th>
                     <th>Cabang</th>
                     <th>Pemohon</th>
+                    <th>Departemen</th>
                     <th>Assigned To</th>
                     <th>SLA Target</th>
                     <th>Status</th>
@@ -140,7 +141,24 @@
                         <td>{!! $t->priority_badge !!}</td>
                         <td>{!! $t->klasifikasi_badge !!}</td>
                         <td><small>{{ optional($t->cabang)->nama_cabang ?? '-' }}</small></td>
-                        <td><small>{{ $t->pemohon->name ?? '-' }}</small></td>
+                        <td>
+                            <small>{{ $t->pemohon->name ?? '-' }}</small>
+                        </td>
+                        <td>
+                            @php
+                                $karyawan = \App\Models\Karyawan::where('nik', $t->pemohon->username ?? null)->first();
+                                $dept = $karyawan ? optional($karyawan->departemen)->nama_dept : null;
+                                $subDept = $karyawan ? $karyawan->sub_dept : null;
+                            @endphp
+                            @if($dept)
+                                <small class="d-block fw-semibold">{{ $dept }}</small>
+                                @if($subDept)
+                                    <small class="text-muted" style="font-size:10px;">{{ $subDept }}</small>
+                                @endif
+                            @else
+                                <small class="text-muted">-</small>
+                            @endif
+                        </td>
                         <td>
                             @if($t->assignedTo)
                                 <span class="badge bg-label-info">{{ $t->assignedTo->name }}</span>
@@ -169,7 +187,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11" class="text-center py-4 text-muted">
+                        <td colspan="12" class="text-center py-4 text-muted">
                             <i class="ti ti-ticket-off fs-2 d-block mb-2"></i>Belum ada tiket.
                         </td>
                     </tr>

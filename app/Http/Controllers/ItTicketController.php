@@ -68,7 +68,8 @@ class ItTicketController extends Controller
         if ($request->filled('kategori'))  $query->where('kategori', $request->kategori);
         if ($request->filled('kode_cabang')) $query->where('kode_cabang', $request->kode_cabang);
 
-        $tickets = $query->orderByRaw("FIELD(prioritas,'critical','high','medium','low')")
+        $tickets = $query->with(['pemohon', 'assignedTo', 'cabang'])
+                         ->orderByRaw("FIELD(prioritas,'critical','high','medium','low')")
                          ->orderByDesc('created_at')
                          ->paginate(15)->withQueryString();
 
@@ -149,6 +150,14 @@ class ItTicketController extends Controller
         $data['pemohon_id']     = $user->id;
         $data['status']         = 'open';
         $data['tanggal_target'] = now()->addDays(ItTicket::slaDays($request->prioritas))->toDateString();
+        
+        // Auto-set cabang dari karyawan jika tidak diisi
+        if (empty($data['kode_cabang'])) {
+            $karyawan = \App\Models\Karyawan::where('nik', $user->username)->first();
+            if ($karyawan && $karyawan->kode_cabang) {
+                $data['kode_cabang'] = $karyawan->kode_cabang;
+            }
+        }
 
         if ($request->hasFile('lampiran')) {
             $file = $request->file('lampiran');
