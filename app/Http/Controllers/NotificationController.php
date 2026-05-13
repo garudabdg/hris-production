@@ -112,6 +112,12 @@ class NotificationController extends Controller
             $notification->update(['read_at' => now()]);
         }
 
+        // Redirect ke URL tujuan notifikasi jika ada, atau ke halaman sebelumnya
+        $redirect = request('redirect');
+        if ($redirect && filter_var($redirect, FILTER_VALIDATE_URL)) {
+            return redirect($redirect);
+        }
+
         return redirect()->back()->with('success', 'Notifikasi ditandai sudah dibaca');
     }
 

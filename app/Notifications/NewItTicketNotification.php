@@ -29,6 +29,7 @@ class NewItTicketNotification extends Notification
 
         return [
             'type'         => 'new_it_ticket',
+            'icon'         => 'ti-headset',
             'title'        => "🎫 Tiket IT Baru — {$prioritasLabel}",
             'message'      => "[{$this->ticket->nomor_tiket}] {$this->ticket->judul} — diajukan oleh {$this->ticket->pemohon->name}.",
             'nomor_tiket'  => $this->ticket->nomor_tiket,

@@ -125,7 +125,7 @@
                         <ul class="list-group list-group-flush">
                             @foreach (auth()->user()->unreadNotifications->where('type', '!=', 'App\Notifications\PengumumanNotification') as $notification)
                                 <li class="list-group-item list-group-item-action dropdown-notifications-item">
-                                    <div class="d-flex">
+                                    <a href="{{ route('notification.mark-as-read', $notification->id) }}?redirect={{ urlencode($notification->data['url'] ?? url('/')) }}" class="d-flex text-body text-decoration-none">
                                         <div class="flex-shrink-0 me-3">
                                             <div class="avatar">
                                                 <span class="avatar-initial rounded-circle bg-label-primary"><i class="ti {{ $notification->data['icon'] ?? 'ti-bell' }}"></i></span>
@@ -133,13 +133,13 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <h6 class="mb-1">{{ $notification->data['title'] ?? 'Notification' }}</h6>
-                                            <p class="mb-0">{{ $notification->data['message'] ?? '' }}</p>
+                                            <p class="mb-0 text-muted" style="font-size:12px;">{{ Str::limit($notification->data['message'] ?? '', 80) }}</p>
                                             <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
                                         </div>
                                         <div class="flex-shrink-0 dropdown-notifications-actions">
-                                            <a href="{{ $notification->data['url'] ?? '#' }}" class="dropdown-notifications-read"><span class="badge badge-dot"></span></a>
+                                            <span class="dropdown-notifications-read"><span class="badge badge-dot"></span></span>
                                         </div>
-                                    </div>
+                                    </a>
                                 </li>
                             @endforeach
                             @php
