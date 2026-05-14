@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../screens/login_screen.dart';
-import '../screens/home_screen.dart';
-import '../screens/presensi_screen.dart';
-import '../services/auth_service.dart';
+import '../../screens/login_screen.dart';
+import '../../screens/home_screen.dart';
+import '../../screens/presensi_screen.dart';
+import '../../services/auth_service.dart';
 
 class AppRouter {
   static final _authService = AuthService();
