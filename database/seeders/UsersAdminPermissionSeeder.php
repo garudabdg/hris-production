@@ -15,11 +15,17 @@ class UsersAdminPermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Cari permission group Users
+        // Cari permission group Users (yang sudah ada)
         $permissiongroup = Permission_group::where('name', 'Users')->first();
         
+        // Jika tidak ada, cari dengan ID 8 (biasanya ini group Users yang sebenarnya)
         if (!$permissiongroup) {
-            $permissiongroup = Permission_group::create(['name' => 'Users']);
+            $permissiongroup = Permission_group::find(8);
+        }
+        
+        if (!$permissiongroup) {
+            $this->command->error('Permission group Users not found!');
+            return;
         }
 
         // Buat permission baru untuk manage admin users
@@ -28,8 +34,15 @@ class UsersAdminPermissionSeeder extends Seeder
         ], [
             'id_permission_group' => $permissiongroup->id
         ]);
+        
+        // Update group jika sudah ada tapi group berbeda
+        if ($permission->id_permission_group != $permissiongroup->id) {
+            $permission->id_permission_group = $permissiongroup->id;
+            $permission->save();
+            $this->command->info("Permission users.admin moved to group {$permissiongroup->name}.");
+        }
 
-        $this->command->info('Permission users.admin created/ensured.');
+        $this->command->info('Permission users.admin created/ensured in group ' . $permissiongroup->name . '.');
 
         // Berikan permission ke role super admin (ID 1)
         $roleSuperAdmin = Role::find(1);
