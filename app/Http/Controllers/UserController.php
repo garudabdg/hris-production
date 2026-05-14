@@ -36,9 +36,9 @@ class UserController extends Controller
                 return $query->whereNotNull('users_karyawan.id_user');
             }, function ($query) use ($authUser) {
                 // Filter hanya users yang TIDAK punya relasi dengan users_karyawan
-                // Jika user adalah HRD, tidak tampilkan user admin
-                if ($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) {
-                    return $query->whereRaw('1 = 0'); // Hide all non-karyawan users from HRD
+                // Jika user tidak punya permission users.admin, tidak tampilkan user admin
+                if (!$authUser->can('users.admin')) {
+                    return $query->whereRaw('1 = 0'); // Hide all non-karyawan users
                 }
                 return $query->whereNull('users_karyawan.id_user');
             })
@@ -48,8 +48,8 @@ class UserController extends Controller
         
         $users->appends($request->all());
 
-        // HRD hanya bisa lihat role karyawan di filter
-        if ($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) {
+        // User tanpa permission users.admin hanya bisa lihat role karyawan di filter
+        if (!$authUser->can('users.admin')) {
             $roles = Role::orderBy('name')->where('name', 'karyawan')->get();
         } else {
             $roles = Role::orderBy('name')->get();
@@ -63,8 +63,8 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = auth()->user();
         
-        // HRD tidak bisa create user admin, hanya bisa create user karyawan
-        if ($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) {
+        // User tanpa permission users.admin tidak bisa create user admin
+        if (!$authUser->can('users.admin')) {
             abort(403, 'Anda tidak memiliki akses untuk membuat user admin.');
         }
         
@@ -82,9 +82,9 @@ class UserController extends Controller
     /** @var \App\Models\User $authUser */
     $authUser = auth()->user();
     
-    // HRD tidak bisa edit user yang bukan karyawan
+    // User tanpa permission users.admin tidak bisa edit user yang bukan karyawan
     $targetUserRole = $user->getRoleNames()->first();
-    if (($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) && $targetUserRole !== 'karyawan') {
+    if (!$authUser->can('users.admin') && $targetUserRole !== 'karyawan') {
         abort(403, 'Anda tidak memiliki akses untuk mengedit user admin.');
     }
     
@@ -170,9 +170,9 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = auth()->user();
         
-        // HRD tidak bisa update user yang bukan karyawan
+        // User tanpa permission users.admin tidak bisa update user yang bukan karyawan
         $targetUserRole = $user->getRoleNames()->first();
-        if (($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) && $targetUserRole !== 'karyawan') {
+        if (!$authUser->can('users.admin') && $targetUserRole !== 'karyawan') {
             abort(403, 'Anda tidak memiliki akses untuk mengedit user admin.');
         }
 
@@ -269,9 +269,9 @@ class UserController extends Controller
         
         $user = User::findOrFail($id);
         
-        // HRD tidak bisa delete user yang bukan karyawan
+        // User tanpa permission users.admin tidak bisa delete user yang bukan karyawan
         $targetUserRole = $user->getRoleNames()->first();
-        if (($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) && $targetUserRole !== 'karyawan') {
+        if (!$authUser->can('users.admin') && $targetUserRole !== 'karyawan') {
             abort(403, 'Anda tidak memiliki akses untuk menghapus user admin.');
         }
         

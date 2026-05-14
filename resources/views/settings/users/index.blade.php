@@ -9,24 +9,24 @@
     <div class="col-lg-10 col-sm-12 col-xs-12">
         <div class="card">
             <div class="card-header">
-                @if (!auth()->user()->hasRole('hrd') && !auth()->user()->hasRole('hr staff'))
+                @can('users.admin')
                     <a href="#" class="btn btn-primary" id="btncreateUser"><i class="fa fa-plus me-2"></i> Tambah
                         User</a>
-                @endif
+                @endcan
             </div>
             <div class="card-body">
                 <!-- Tabs untuk kategori Users -->
                 <ul class="nav nav-tabs mb-3" id="userTabs" role="tablist">
-                    @if (!auth()->user()->hasRole('hrd') && !auth()->user()->hasRole('hr staff'))
+                    @can('users.admin')
                         <li class="nav-item" role="presentation">
                             <button class="nav-link {{ Request('user_type') != 'karyawan' ? 'active' : '' }}" id="users-biasa-tab" data-bs-toggle="tab"
                                 data-bs-target="#users-biasa" type="button" role="tab" onclick="switchTab('biasa')">
                                 Users Admin
                             </button>
                         </li>
-                    @endif
+                    @endcan
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link {{ Request('user_type') == 'karyawan' || auth()->user()->hasRole('hrd') || auth()->user()->hasRole('hr staff') ? 'active' : '' }}" id="users-karyawan-tab" data-bs-toggle="tab"
+                        <button class="nav-link {{ Request('user_type') == 'karyawan' || !auth()->user()->can('users.admin') ? 'active' : '' }}" id="users-karyawan-tab" data-bs-toggle="tab"
                             data-bs-target="#users-karyawan" type="button" role="tab" onclick="switchTab('karyawan')">
                             Users Karyawan
                         </button>
@@ -175,7 +175,7 @@
                                                 <div class="col-md-2 text-end">
                                                     @php
                                                         $targetUserRole = $d->getRoleNames()->first();
-                                                        $canEdit = !((auth()->user()->hasRole('hrd') || auth()->user()->hasRole('hr staff')) && $targetUserRole !== 'karyawan');
+                                                        $canEdit = auth()->user()->can('users.admin') || $targetUserRole === 'karyawan';
                                                     @endphp
                                                     @if($canEdit)
                                                         <div class="d-flex justify-content-end gap-2">
