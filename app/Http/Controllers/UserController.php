@@ -18,6 +18,9 @@ class UserController extends Controller
     {
         $userType = $request->user_type ?? 'biasa';
         
+        /** @var \App\Models\User $authUser */
+        $authUser = auth()->user();
+        
         $users = User::with(['roles', 'cabangs', 'departemens'])
             ->when($request->name, function ($query, $name) {
                 return $query->where('name', 'like', '%' . $name . '%');
@@ -31,8 +34,12 @@ class UserController extends Controller
             ->when($userType == 'karyawan', function ($query) {
                 // Filter hanya users yang punya relasi dengan users_karyawan
                 return $query->whereNotNull('users_karyawan.id_user');
-            }, function ($query) {
+            }, function ($query) use ($authUser) {
                 // Filter hanya users yang TIDAK punya relasi dengan users_karyawan
+                // Jika user adalah HRD, tidak tampilkan user admin
+                if ($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) {
+                    return $query->whereRaw('1 = 0'); // Hide all non-karyawan users from HRD
+                }
                 return $query->whereNull('users_karyawan.id_user');
             })
             ->select('users.*', 'users_karyawan.nik')
@@ -41,12 +48,26 @@ class UserController extends Controller
         
         $users->appends($request->all());
 
-        $roles = Role::orderBy('name')->get();
+        // HRD hanya bisa lihat role karyawan di filter
+        if ($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) {
+            $roles = Role::orderBy('name')->where('name', 'karyawan')->get();
+        } else {
+            $roles = Role::orderBy('name')->get();
+        }
+        
         return view('settings.users.index', compact('users', 'roles'));
     }
 
     public function create()
     {
+        /** @var \App\Models\User $authUser */
+        $authUser = auth()->user();
+        
+        // HRD tidak bisa create user admin, hanya bisa create user karyawan
+        if ($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) {
+            abort(403, 'Anda tidak memiliki akses untuk membuat user admin.');
+        }
+        
         $roles = Role::orderBy('name')->where('name', '!=', 'karyawan')->get();
         $cabangs = Cabang::orderBy('kode_cabang')->get();
         $departemens = Departemen::orderBy('kode_dept')->get();
@@ -58,6 +79,15 @@ class UserController extends Controller
     $id = Crypt::decrypt($id);
     $user = User::with(['roles', 'cabangs', 'departemens'])->where('id', $id)->first();
 
+    /** @var \App\Models\User $authUser */
+    $authUser = auth()->user();
+    
+    // HRD tidak bisa edit user yang bukan karyawan
+    $targetUserRole = $user->getRoleNames()->first();
+    if (($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) && $targetUserRole !== 'karyawan') {
+        abort(403, 'Anda tidak memiliki akses untuk mengedit user admin.');
+    }
+    
     $roles = Role::orderBy('name')->where('name', '!=', 'karyawan')->get();
     $cabangs = Cabang::orderBy('kode_cabang')->get();
     $departemens = Departemen::orderBy('kode_dept')->get();
@@ -137,6 +167,14 @@ class UserController extends Controller
         $id = Crypt::decrypt($id);
         $user = User::findorFail($id);
 
+        /** @var \App\Models\User $authUser */
+        $authUser = auth()->user();
+        
+        // HRD tidak bisa update user yang bukan karyawan
+        $targetUserRole = $user->getRoleNames()->first();
+        if (($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) && $targetUserRole !== 'karyawan') {
+            abort(403, 'Anda tidak memiliki akses untuk mengedit user admin.');
+        }
 
         $request->validate([
             'name' => 'required',
@@ -225,6 +263,18 @@ class UserController extends Controller
     public function destroy($id)
     {
         $id = Crypt::decrypt($id);
+        
+        /** @var \App\Models\User $authUser */
+        $authUser = auth()->user();
+        
+        $user = User::findOrFail($id);
+        
+        // HRD tidak bisa delete user yang bukan karyawan
+        $targetUserRole = $user->getRoleNames()->first();
+        if (($authUser->hasRole('hrd') || $authUser->hasRole('hr staff')) && $targetUserRole !== 'karyawan') {
+            abort(403, 'Anda tidak memiliki akses untuk menghapus user admin.');
+        }
+        
         try {
             User::where('id', $id)->delete();
             $cek_user_karyawan = Userkaryawan::where('id_user', $id)->first();

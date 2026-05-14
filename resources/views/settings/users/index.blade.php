@@ -9,20 +9,24 @@
     <div class="col-lg-10 col-sm-12 col-xs-12">
         <div class="card">
             <div class="card-header">
-                <a href="#" class="btn btn-primary" id="btncreateUser"><i class="fa fa-plus me-2"></i> Tambah
-                    User</a>
+                @if (!auth()->user()->hasRole('hrd') && !auth()->user()->hasRole('hr staff'))
+                    <a href="#" class="btn btn-primary" id="btncreateUser"><i class="fa fa-plus me-2"></i> Tambah
+                        User</a>
+                @endif
             </div>
             <div class="card-body">
                 <!-- Tabs untuk kategori Users -->
                 <ul class="nav nav-tabs mb-3" id="userTabs" role="tablist">
+                    @if (!auth()->user()->hasRole('hrd') && !auth()->user()->hasRole('hr staff'))
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {{ Request('user_type') != 'karyawan' ? 'active' : '' }}" id="users-biasa-tab" data-bs-toggle="tab"
+                                data-bs-target="#users-biasa" type="button" role="tab" onclick="switchTab('biasa')">
+                                Users Admin
+                            </button>
+                        </li>
+                    @endif
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link {{ Request('user_type') != 'karyawan' ? 'active' : '' }}" id="users-biasa-tab" data-bs-toggle="tab"
-                            data-bs-target="#users-biasa" type="button" role="tab" onclick="switchTab('biasa')">
-                            Users Admin
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link {{ Request('user_type') == 'karyawan' ? 'active' : '' }}" id="users-karyawan-tab" data-bs-toggle="tab"
+                        <button class="nav-link {{ Request('user_type') == 'karyawan' || auth()->user()->hasRole('hrd') || auth()->user()->hasRole('hr staff') ? 'active' : '' }}" id="users-karyawan-tab" data-bs-toggle="tab"
                             data-bs-target="#users-karyawan" type="button" role="tab" onclick="switchTab('karyawan')">
                             Users Karyawan
                         </button>
@@ -169,20 +173,28 @@
 
                                                 <!-- Actions -->
                                                 <div class="col-md-2 text-end">
-                                                    <div class="d-flex justify-content-end gap-2">
-                                                        <a href="#" class="btn btn-sm btn-outline-success editUser"
-                                                            id="{{ Crypt::encrypt($d->id) }}" title="Edit">
-                                                            <i class="ti ti-edit"></i>
-                                                        </a>
-                                                        <form method="POST" name="deleteform" class="deleteform d-inline"
-                                                            action="{{ route('users.delete', Crypt::encrypt($d->id)) }}">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger delete-confirm" title="Delete">
-                                                                <i class="ti ti-trash"></i>
-                                                            </button>
-                                                        </form>
-                                                    </div>
+                                                    @php
+                                                        $targetUserRole = $d->getRoleNames()->first();
+                                                        $canEdit = !((auth()->user()->hasRole('hrd') || auth()->user()->hasRole('hr staff')) && $targetUserRole !== 'karyawan');
+                                                    @endphp
+                                                    @if($canEdit)
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            <a href="#" class="btn btn-sm btn-outline-success editUser"
+                                                                id="{{ Crypt::encrypt($d->id) }}" title="Edit">
+                                                                <i class="ti ti-edit"></i>
+                                                            </a>
+                                                            <form method="POST" name="deleteform" class="deleteform d-inline"
+                                                                action="{{ route('users.delete', Crypt::encrypt($d->id)) }}">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger delete-confirm" title="Delete">
+                                                                    <i class="ti ti-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    @else
+                                                        <span class="badge bg-secondary" style="font-size: 10px;">No Access</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -206,6 +218,15 @@
 {{-- <script src="{{ asset('assets/js/pages/roles/create.js') }}"></script> --}}
 <script>
     $(function() {
+        // Auto-redirect HRD ke tab karyawan
+        @if(auth()->user()->hasRole('hrd') || auth()->user()->hasRole('hr staff'))
+            const currentTab = '{{ Request("user_type", "biasa") }}';
+            if (currentTab !== 'karyawan') {
+                document.getElementById('user_type').value = 'karyawan';
+                document.getElementById('filterForm').submit();
+            }
+        @endif
+        
         $("#btncreateUser").click(function(e) {
             $('#mdlcreateUser').modal("show");
             $("#loadcreateUser").load('/users/create');
