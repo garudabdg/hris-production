@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Redirect;
 use App\Models\Approval;
 use App\Models\ApprovalLayer;
 use App\Services\ApprovalService;
+use App\Notifications\ApprovalStatusNotification;
 
 class IzindinasController extends Controller
 {
@@ -322,6 +323,20 @@ class IzindinasController extends Controller
                     Izindinas::where('kode_izin_dinas', $kode_izin_dinas)->update([
                         'status' => 1
                     ]);
+
+                    // Kirim notifikasi ke karyawan bahwa izin dinas disetujui
+                    $karyawanUser = User::whereHas('userkaryawan', function($q) use ($izindinas) {
+                        $q->where('nik', $izindinas->nik);
+                    })->first();
+                    
+                    if ($karyawanUser) {
+                        $karyawanUser->notify(new ApprovalStatusNotification(
+                            'IZIN_DINAS',
+                            $kode_izin_dinas,
+                            1, // status: approved
+                            $approvalAdmin->name
+                        ));
+                    }
                 }
 
             } else {
@@ -338,6 +353,20 @@ class IzindinasController extends Controller
                 Izindinas::where('kode_izin_dinas', $kode_izin_dinas)->update([
                     'status' => 2
                 ]);
+
+                // Kirim notifikasi ke karyawan bahwa izin dinas ditolak
+                $karyawanUser = User::whereHas('userkaryawan', function($q) use ($izindinas) {
+                    $q->where('nik', $izindinas->nik);
+                })->first();
+                
+                if ($karyawanUser) {
+                    $karyawanUser->notify(new ApprovalStatusNotification(
+                        'IZIN_DINAS',
+                        $kode_izin_dinas,
+                        2, // status: rejected
+                        $approvalAdmin->name
+                    ));
+                }
             }
             DB::commit();
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));

@@ -24,6 +24,7 @@ use Jenssegers\Agent\Agent;
 use App\Services\ApprovalService;
 use App\Models\Approval;
 use App\Models\ApprovalLayer;
+use App\Notifications\ApprovalStatusNotification;
 
 
 class IzinabsenController extends Controller
@@ -383,6 +384,20 @@ class IzinabsenController extends Controller
                     'status' => 1
                 ]);
 
+                // Kirim notifikasi ke karyawan bahwa izin absen disetujui
+                $karyawanUser = User::whereHas('userkaryawan', function($q) use ($nik) {
+                    $q->where('nik', $nik);
+                })->first();
+                
+                if ($karyawanUser) {
+                    $karyawanUser->notify(new ApprovalStatusNotification(
+                        'IZIN_ABSEN',
+                        $kode_izin,
+                        1, // status: approved
+                        $approvalAdmin->name
+                    ));
+                }
+
                 while (strtotime($dari) <= strtotime($sampai)) {
 
                     //Cek Jadwal Pada Setiap tanggal
@@ -439,6 +454,20 @@ class IzinabsenController extends Controller
                 Izinabsen::where('kode_izin', $kode_izin)->update([
                     'status' => 2
                 ]);
+
+                // Kirim notifikasi ke karyawan bahwa izin absen ditolak
+                $karyawanUser = User::whereHas('userkaryawan', function($q) use ($nik) {
+                    $q->where('nik', $nik);
+                })->first();
+                
+                if ($karyawanUser) {
+                    $karyawanUser->notify(new ApprovalStatusNotification(
+                        'IZIN_ABSEN',
+                        $kode_izin,
+                        2, // status: rejected
+                        $approvalAdmin->name
+                    ));
+                }
             }
             if (!empty($error)) {
                 DB::rollBack();

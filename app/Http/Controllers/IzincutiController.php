@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Redirect;
 use App\Models\Approval;
 use App\Models\ApprovalLayer;
 use App\Services\ApprovalService;
+use App\Notifications\ApprovalStatusNotification;
 
 class IzincutiController extends Controller
 {
@@ -512,6 +513,20 @@ class IzincutiController extends Controller
                         'status' => 1
                     ]);
 
+                    // Kirim notifikasi ke karyawan bahwa izin cuti disetujui
+                    $karyawanUser = User::whereHas('userkaryawan', function($q) use ($nik) {
+                        $q->where('nik', $nik);
+                    })->first();
+                    
+                    if ($karyawanUser) {
+                        $karyawanUser->notify(new ApprovalStatusNotification(
+                            'IZIN_CUTI',
+                            $kode_izin_cuti,
+                            1, // status: approved
+                            $approvalAdmin->name
+                        ));
+                    }
+
                     while (strtotime($dari) <= strtotime($sampai)) {
     
                         //Cek Jadwal Pada Setiap tanggal
@@ -573,6 +588,20 @@ class IzincutiController extends Controller
                 Izincuti::where('kode_izin_cuti', $kode_izin_cuti)->update([
                     'status' => 2
                 ]);
+
+                // Kirim notifikasi ke karyawan bahwa izin cuti ditolak
+                $karyawanUser = User::whereHas('userkaryawan', function($q) use ($nik) {
+                    $q->where('nik', $nik);
+                })->first();
+                
+                if ($karyawanUser) {
+                    $karyawanUser->notify(new ApprovalStatusNotification(
+                        'IZIN_CUTI',
+                        $kode_izin_cuti,
+                        2, // status: rejected
+                        $approvalAdmin->name
+                    ));
+                }
             }
             if (!empty($error)) {
                 DB::rollBack();
