@@ -236,8 +236,9 @@ class IzincutiController extends Controller
             } else if ($cek_izin_cuti) {
                 return Redirect::back()->with(messageError('Anda Sudah Mengajukan Izin Absen/Sakit/Cuti Absen Pada Rentang Tanggal Tersebut!'));
             }
+            // SECURITY FIX: Use parameter binding to prevent SQL injection
             $lastizincuti = Izincuti::select('kode_izin_cuti')
-                ->whereRaw('LEFT(kode_izin_cuti,6)="' . $format . '"')
+                ->whereRaw('LEFT(kode_izin_cuti, 6) = ?', [$format])
                 ->orderBy("kode_izin_cuti", "desc")
                 ->first();
             $last_kode_izin_cuti = $lastizincuti != null ? $lastizincuti->kode_izin_cuti : '';
@@ -250,9 +251,10 @@ class IzincutiController extends Controller
 
             if ($request->kode_cuti == "C01") {
                 $tahun_cuti = date('Y', strtotime($request->dari));
+                // SECURITY FIX: Use parameter binding
                 $cek_cuti_dipakai = Approveizincuti::join('presensi', 'presensi_izincuti_approve.id_presensi', '=', 'presensi.id')
                     ->where('presensi.nik', $nik)
-                    ->whereRaw("YEAR(presensi.tanggal) = $tahun_cuti")
+                    ->whereRaw("YEAR(presensi.tanggal) = ?", [$tahun_cuti])
                     ->count();
                 $sisa_cuti = $jml_hari_max - $cek_cuti_dipakai;
 
@@ -822,9 +824,10 @@ class IzincutiController extends Controller
         $cuti = Cuti::where('kode_cuti', $kode_cuti)->first();
         $jml_hari_max = $cuti->jumlah_hari;
         if ($cuti->kode_cuti == "C01") {
+            // SECURITY FIX: Use parameter binding
             $cek_cuti_dipakai = Approveizincuti::join('presensi', 'presensi_izincuti_approve.id_presensi', '=', 'presensi.id')
                 ->where('presensi.nik', $nik)
-                ->whereRaw("YEAR(presensi.tanggal) = $tahun_cuti")
+                ->whereRaw("YEAR(presensi.tanggal) = ?", [$tahun_cuti])
                 ->count();
             $sisa_cuti = $jml_hari_max - $cek_cuti_dipakai;
             $message = 'Sisa Cuti ' . $cuti->jenis_cuti . ' Anda Adalah ' . $sisa_cuti . ' Hari Lagi';

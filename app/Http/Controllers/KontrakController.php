@@ -594,8 +594,9 @@ class KontrakController extends Controller
     protected function generateKodeGaji(string $tanggal): string
     {
         $tahun_gaji = date('Y', strtotime($tanggal));
+        // SECURITY FIX: Use parameter binding
         $last_gaji = Gajipokok::orderBy('kode_gaji', 'desc')
-            ->whereRaw('YEAR(tanggal_berlaku) = ' . $tahun_gaji)
+            ->whereRaw('YEAR(tanggal_berlaku) = ?', [$tahun_gaji])
             ->first();
         $last_kode_gaji = $last_gaji != null ? $last_gaji->kode_gaji : '';
         return buatkode($last_kode_gaji, "G" . substr($tahun_gaji, 2, 2), 4);

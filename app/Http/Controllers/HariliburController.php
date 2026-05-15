@@ -264,14 +264,13 @@ class HariliburController extends Controller
             $query->where('nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
         }
         //left join ke detail hari libur berdasarkan kode libur
-        $query->leftJoin(
-            DB::raw("(
-                SELECT nik FROM hari_libur_detail
-                WHERE kode_libur = '$kode_libur'
-            ) harilibur"),
-            function ($join) {
-                $join->on('karyawan.nik', '=', 'harilibur.nik');
-            }
+        // SECURITY FIX: Use parameter binding to prevent SQL injection
+        $query->leftJoinSub(
+            Detailharilibur::select('nik')->where('kode_libur', $kode_libur),
+            'harilibur',
+            'karyawan.nik',
+            '=',
+            'harilibur.nik'
         );
         $query->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
         $query->orderBy('nama_karyawan');
@@ -311,14 +310,13 @@ class HariliburController extends Controller
             $query->where('nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
         }
         //left join ke detail hari libur berdasarkan kode libur
-        $query->leftJoin(
-            DB::raw("(
-            SELECT nik FROM hari_libur_detail
-            WHERE kode_libur = '$kode_libur'
-        ) harilibur"),
-            function ($join) {
-                $join->on('karyawan.nik', '=', 'harilibur.nik');
-            }
+        // SECURITY FIX: Use parameter binding to prevent SQL injection
+        $query->leftJoinSub(
+            Detailharilibur::select('nik')->where('kode_libur', $kode_libur),
+            'harilibur',
+            'karyawan.nik',
+            '=',
+            'harilibur.nik'
         );
         $query->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
         $query->orderBy('nama_karyawan');

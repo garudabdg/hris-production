@@ -132,8 +132,9 @@ class TunjanganController extends Controller
 
         //Kode Tunjangan = T250001;
         $tahun_gaji = date('Y', strtotime($request->tanggal_berlaku));
+        // SECURITY FIX: Use parameter binding
         $last_tunjangan = Tunjangan::orderBy('kode_tunjangan', 'desc')
-            ->whereRaw('YEAR(tanggal_berlaku) = ' . $tahun_gaji)
+            ->whereRaw('YEAR(tanggal_berlaku) = ?', [$tahun_gaji])
             ->first();
         $last_kode_tunjangan = $last_tunjangan != null ? $last_tunjangan->kode_tunjangan : '';
         $kode_tunjangan = buatkode($last_kode_tunjangan, "T" . substr($tahun_gaji, 2, 2), 4);
