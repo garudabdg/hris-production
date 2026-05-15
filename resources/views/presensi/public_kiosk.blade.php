@@ -697,7 +697,7 @@
 
             const detections = await faceapi.detectAllFaces(
                 video,
-                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 }) // Standardized
             );
 
             // Update indicator

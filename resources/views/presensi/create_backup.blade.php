@@ -2028,7 +2028,7 @@
                                                         detections = await faceapi.detectSingleFace(
                                                             img, new faceapi.TinyFaceDetectorOptions({
                                                                 inputSize: 160,
-                                                                scoreThreshold: 0.5
+                                                                scoreThreshold: 0.3 // Standardized
                                                             })
                                                         ).withFaceLandmarks().withFaceDescriptor();
                                                     } else {
@@ -2169,9 +2169,9 @@
                         await ensureModelsLoaded();
 
                         const labeledFaceDescriptors = await getLabeledFaceDescriptions();
-                        // Threshold 0.5 untuk keseimbangan (tengah-tengah)
+                        // Threshold 0.55 untuk keseimbangan optimal (balanced between security and tolerance)
                         // Distance < threshold = dikenali, > threshold = unknown
-                        const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.5);
+                        const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.55);
 
                         const video = document.querySelector('.webcam-capture video');
 
@@ -2295,7 +2295,7 @@
                                     // OPTIMASI: Gunakan inputSize 160 untuk processing lebih cepat
                                     const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
                                             inputSize: 160, // Lebih kecil = lebih cepat
-                                            scoreThreshold: 0.4 // Threshold optimal untuk akurasi vs kecepatan
+                                            scoreThreshold: 0.3 // Standardized: sensitif & cepat detect
                                         }))
                                         .withFaceLandmarks()
                                         .withFaceDescriptor();
