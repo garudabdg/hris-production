@@ -22,6 +22,7 @@ class Asset extends Model
         'status',
         'tanggal_perolehan',
         'nilai_perolehan',
+        'jumlah_stok',
         'deskripsi',
         'foto',
         'lokasi',
@@ -41,6 +42,11 @@ class Asset extends Model
     public function cabang()
     {
         return $this->belongsTo(Cabang::class, 'kode_cabang', 'kode_cabang');
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(AssetTransaction::class, 'kode_asset', 'kode_asset');
     }
 
     public function getKondisiBadgeAttribute(): string

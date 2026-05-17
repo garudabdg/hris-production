@@ -58,6 +58,7 @@ use App\Http\Controllers\RecruitmentController;
 use App\Http\Controllers\RecruitmentVacancyController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetPinjamController;
+use App\Http\Controllers\AssetTransactionController;
 use App\Http\Controllers\ItTicketController;
 
 
@@ -755,6 +756,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}/cancelapprove', 'cancelapprove')->name('cancelapprove');
         Route::get('/{id}/kembali', 'kembali')->name('kembali');
         Route::post('/{id}/storekembali', 'storekembali')->name('storekembali');
+        Route::delete('/{id}', 'destroy')->name('destroy');
+    });
+
+    // Asset Transaksi (Barang In / Out)
+    Route::prefix('asset-transaksi')->name('asset-transaksi.')->controller(AssetTransactionController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}/show', 'show')->name('show');
         Route::delete('/{id}', 'destroy')->name('destroy');
     });
 });
