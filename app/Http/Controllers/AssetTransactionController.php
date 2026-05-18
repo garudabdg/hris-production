@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\AssetCategory;
 use App\Models\AssetTransaction;
 use App\Models\Cabang;
 use Illuminate\Http\Request;
@@ -110,8 +111,9 @@ class AssetTransactionController extends Controller
         }
         $assets = $qAsset->orderBy('nama_asset')->get();
         $cabang = $user->getCabang();
+        $categories = AssetCategory::orderBy('nama_kategori')->get();
 
-        return view('asset-transaksi.create', compact('assets', 'cabang'));
+        return view('asset-transaksi.create', compact('assets', 'cabang', 'categories'));
     }
 
     /**
@@ -123,7 +125,12 @@ class AssetTransactionController extends Controller
         abort_unless($user->isSuperAdmin() || $user->can('asset.transaksi.create'), 403);
 
         $request->validate([
-            'kode_asset'          => 'required|exists:assets,kode_asset',
+            'kode_asset'          => 'required_unless:kategori_transaksi,pembelian|nullable|exists:assets,kode_asset',
+            'nama_asset_baru'     => 'required_if:kategori_transaksi,pembelian|nullable|string|max:255',
+            'category_id_baru'    => 'nullable|exists:asset_categories,id',
+            'merk_baru'           => 'nullable|string|max:100',
+            'no_seri_baru'        => 'nullable|string|max:100',
+            'nilai_perolehan_baru'=> 'nullable|numeric|min:0',
             'tipe'                => 'required|in:in,out',
             'kategori_transaksi'  => 'required|string|max:50',
             'jumlah'              => 'required|integer|min:1',
@@ -134,9 +141,32 @@ class AssetTransactionController extends Controller
             'foto_bukti'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $asset = Asset::where('kode_asset', $request->kode_asset)->firstOrFail();
+        // Jika pembelian → buat asset baru terlebih dahulu
+        if ($request->kategori_transaksi === 'pembelian') {
+            // Generate kode_asset baru
+            $lastAsset = Asset::orderByDesc('id')->first();
+            $kodeAsset = buatkode($lastAsset?->kode_asset ?? '', 'AST', 5);
 
-        // Validasi stok cukup untuk barang keluar
+            $asset = Asset::create([
+                'kode_asset'       => $kodeAsset,
+                'nama_asset'       => $request->nama_asset_baru,
+                'category_id'      => $request->category_id_baru ?: null,
+                'kode_cabang'      => $request->kode_cabang ?: null,
+                'merk'             => $request->merk_baru ?: null,
+                'no_seri'          => $request->no_seri_baru ?: null,
+                'nilai_perolehan'  => $request->nilai_perolehan_baru ?: null,
+                'tanggal_perolehan'=> $request->tanggal_transaksi,
+                'kondisi'          => 'baik',
+                'status'           => 'tersedia',
+                'jumlah_stok'      => 0, // akan di-increment setelah transaksi
+            ]);
+
+            $request->merge(['kode_asset' => $kodeAsset]);
+        } else {
+            $asset = Asset::where('kode_asset', $request->kode_asset)->firstOrFail();
+        }
+
+        // Validasi stok cukup untuk barang keluar (pembelian selalu 'in', skip)
         if ($request->tipe === 'out' && $asset->jumlah_stok < $request->jumlah) {
             return Redirect::back()
                 ->withInput()

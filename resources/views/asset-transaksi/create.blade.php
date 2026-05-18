@@ -33,10 +33,13 @@
             @error('kategori_transaksi') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        {{-- Aset --}}
-        <div class="col-md-6">
+        {{-- Placeholder col agar layout 2 kolom tetap rapi --}}
+        <div class="col-md-6" id="colPlaceholder"></div>
+
+        {{-- SECTION: Pilih Aset yang sudah ada (non-pembelian) --}}
+        <div id="sectionPilihAset" class="col-12" style="display:none;">
             <label class="form-label">Aset <span class="text-danger">*</span></label>
-            <select name="kode_asset" class="form-select @error('kode_asset') is-invalid @enderror">
+            <select name="kode_asset" id="selectAset" class="form-select @error('kode_asset') is-invalid @enderror">
                 <option value="">-- Pilih Aset --</option>
                 @foreach ($assets as $a)
                     <option value="{{ $a->kode_asset }}" {{ old('kode_asset') == $a->kode_asset ? 'selected' : '' }}
@@ -46,6 +49,46 @@
                 @endforeach
             </select>
             @error('kode_asset') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        {{-- SECTION: Input Aset Baru (pembelian) --}}
+        <div id="sectionAsetBaru" class="col-12" style="display:none;">
+            <div class="alert alert-info py-2 mb-3">
+                <i class="ti ti-shopping-cart me-1"></i>
+                <strong>Pembelian Aset Baru</strong> — Isi detail barang yang dibeli. Aset akan otomatis terdaftar di sistem.
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nama Aset / Barang <span class="text-danger">*</span></label>
+                    <input type="text" name="nama_asset_baru" class="form-control @error('nama_asset_baru') is-invalid @enderror"
+                        value="{{ old('nama_asset_baru') }}" placeholder="Contoh: Laptop Dell Inspiron 15">
+                    @error('nama_asset_baru') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Kategori Aset</label>
+                    <select name="category_id_baru" class="form-select">
+                        <option value="">-- Pilih Kategori --</option>
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ old('category_id_baru') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->nama_kategori }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Merk / Brand</label>
+                    <input type="text" name="merk_baru" class="form-control" value="{{ old('merk_baru') }}" placeholder="Contoh: Dell, HP, IKEA">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">No. Seri / Kode Unit</label>
+                    <input type="text" name="no_seri_baru" class="form-control" value="{{ old('no_seri_baru') }}" placeholder="Opsional">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nilai Perolehan (Rp)</label>
+                    <input type="number" name="nilai_perolehan_baru" class="form-control"
+                        value="{{ old('nilai_perolehan_baru') }}" placeholder="Harga beli total" min="0" step="1000">
+                </div>
+            </div>
         </div>
 
         {{-- Jumlah --}}
@@ -112,20 +155,42 @@
 <script>
 $(function() {
     const kategoriIn = [
-        { value: 'pembelian', label: 'Pembelian' },
-        { value: 'donasi_masuk', label: 'Donasi / Hibah' },
-        { value: 'retur', label: 'Retur / Pengembalian' },
+        { value: 'pembelian',      label: '🛒 Pembelian (Aset Baru)' },
+        { value: 'donasi_masuk',   label: 'Donasi / Hibah' },
+        { value: 'retur',          label: 'Retur / Pengembalian' },
         { value: 'transfer_masuk', label: 'Transfer Masuk' },
     ];
     const kategoriOut = [
-        { value: 'pengeluaran', label: 'Pengeluaran / Pemakaian' },
-        { value: 'rusak', label: 'Rusak / Disposal' },
-        { value: 'donasi_keluar', label: 'Donasi Keluar' },
-        { value: 'transfer_keluar', label: 'Transfer Keluar' },
+        { value: 'pengeluaran',    label: 'Pengeluaran / Pemakaian' },
+        { value: 'rusak',          label: 'Rusak / Disposal' },
+        { value: 'donasi_keluar',  label: 'Donasi Keluar' },
+        { value: 'transfer_keluar',label: 'Transfer Keluar' },
     ];
 
+    function getTipe() {
+        return $('input[name="tipe"]:checked').val();
+    }
+
+    function toggleAsetSection() {
+        const tipe = getTipe();
+        const kategori = $('#kategoriTransaksi').val();
+        const isPembelian = (tipe === 'in' && kategori === 'pembelian');
+
+        if (isPembelian) {
+            $('#sectionPilihAset').hide();
+            $('#sectionAsetBaru').show();
+            $('#colPlaceholder').hide();
+            $('#selectAset').prop('disabled', true).val('');
+        } else {
+            $('#sectionPilihAset').show();
+            $('#sectionAsetBaru').hide();
+            $('#colPlaceholder').show();
+            $('#selectAset').prop('disabled', false);
+        }
+    }
+
     function updateKategori() {
-        const tipe = $('input[name="tipe"]:checked').val();
+        const tipe = getTipe();
         const options = tipe === 'out' ? kategoriOut : kategoriIn;
         const $sel = $('#kategoriTransaksi');
         const oldVal = '{{ old("kategori_transaksi") }}';
@@ -134,17 +199,16 @@ $(function() {
             const selected = oldVal === item.value ? 'selected' : '';
             $sel.append(`<option value="${item.value}" ${selected}>${item.label}</option>`);
         });
+        toggleAsetSection();
     }
 
     $('input[name="tipe"]').on('change', updateKategori);
+    $('#kategoriTransaksi').on('change', toggleAsetSection);
+
     updateKategori();
 
-    // Reinitialize flatpickr for dynamically loaded content
     if (typeof flatpickr !== 'undefined') {
-        flatpickr('.flatpickr-date', {
-            dateFormat: 'Y-m-d',
-            allowInput: true,
-        });
+        flatpickr('.flatpickr-date', { dateFormat: 'Y-m-d', allowInput: true });
     }
 });
 </script>
