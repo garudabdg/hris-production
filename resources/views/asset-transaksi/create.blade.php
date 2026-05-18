@@ -39,16 +39,17 @@
         {{-- SECTION: Pilih Aset yang sudah ada (non-pembelian) --}}
         <div id="sectionPilihAset" class="col-12" style="display:none;">
             <label class="form-label">Aset <span class="text-danger">*</span></label>
-            <select name="kode_asset" id="selectAset" class="form-select @error('kode_asset') is-invalid @enderror">
-                <option value="">-- Pilih Aset --</option>
+            <select name="kode_asset" id="selectAset" class="form-select select2Aset @error('kode_asset') is-invalid @enderror">
+                <option value="">-- Cari / Pilih Aset --</option>
                 @foreach ($assets as $a)
-                    <option value="{{ $a->kode_asset }}" {{ old('kode_asset') == $a->kode_asset ? 'selected' : '' }}
+                    <option value="{{ $a->kode_asset }}"
+                        {{ old('kode_asset') == $a->kode_asset ? 'selected' : '' }}
                         data-stok="{{ $a->jumlah_stok }}">
-                        {{ $a->nama_asset }} ({{ $a->kode_asset }}) — Stok: {{ $a->jumlah_stok }}
+                        {{ $a->nama_asset }} — {{ $a->kode_asset }} (Stok: {{ $a->jumlah_stok }})
                     </option>
                 @endforeach
             </select>
-            @error('kode_asset') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('kode_asset') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
         </div>
 
         {{-- SECTION: Input Aset Baru (pembelian) --}}
@@ -167,6 +168,19 @@ $(function() {
         { value: 'transfer_keluar',label: 'Transfer Keluar' },
     ];
 
+    // Init Select2 pada dropdown aset (dalam modal)
+    function initSelect2Aset() {
+        const $sel = $('#selectAset');
+        if ($sel.hasClass('select2-hidden-accessible')) {
+            $sel.select2('destroy');
+        }
+        $sel.wrap('<div class="position-relative"></div>').select2({
+            placeholder: 'Ketik nama aset atau kode...',
+            allowClear: true,
+            dropdownParent: $sel.parent(),
+        });
+    }
+
     function getTipe() {
         return $('input[name="tipe"]:checked').val();
     }
@@ -180,7 +194,7 @@ $(function() {
             $('#sectionPilihAset').hide();
             $('#sectionAsetBaru').show();
             $('#colPlaceholder').hide();
-            $('#selectAset').prop('disabled', true).val('');
+            $('#selectAset').prop('disabled', true).val(null).trigger('change');
         } else {
             $('#sectionPilihAset').show();
             $('#sectionAsetBaru').hide();
@@ -206,6 +220,7 @@ $(function() {
     $('#kategoriTransaksi').on('change', toggleAsetSection);
 
     updateKategori();
+    initSelect2Aset();
 
     if (typeof flatpickr !== 'undefined') {
         flatpickr('.flatpickr-date', { dateFormat: 'Y-m-d', allowInput: true });
