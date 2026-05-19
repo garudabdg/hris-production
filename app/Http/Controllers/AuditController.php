@@ -14,9 +14,28 @@ class AuditController extends Controller
      */
     public function index(Request $request)
     {
+        /** @var \App\Models\User $authUser */
+        $authUser = auth()->user();
+
         $query = AuditLog::with('user')
             ->select('audit_logs.*')
-            ->orderBy('created_at', 'DESC');
+            ->orderBy('audit_logs.created_at', 'DESC');
+
+        // Scope berdasarkan cabang yang diizinkan ke auth user (non super admin)
+        if (!$authUser->isSuperAdmin()) {
+            $allowedCabangs = $authUser->getCabangCodes();
+            if (!empty($allowedCabangs)) {
+                // Tampilkan log dari user yang berada di cabang yang sama
+                $allowedUserIds = \App\Models\User::whereHas('userkaryawan.karyawan', function ($q) use ($allowedCabangs) {
+                    $q->whereIn('kode_cabang', $allowedCabangs);
+                })->pluck('id')->toArray();
+
+                // Tambah auth user sendiri (agar log aksinya sendiri juga muncul)
+                $allowedUserIds[] = $authUser->id;
+
+                $query->whereIn('audit_logs.user_id', array_unique($allowedUserIds));
+            }
+        }
 
         // Filter by user
         if ($request->filled('user_id')) {
@@ -54,8 +73,15 @@ class AuditController extends Controller
         $audit_logs = $query->paginate(20);
         $audit_logs->appends($request->all());
 
-        // Get all users for filter dropdown
-        $users = User::select('id', 'name')->orderBy('name')->get();
+        // Get users for filter dropdown — scope ke cabang yang diizinkan
+        if ($authUser->isSuperAdmin()) {
+            $users = User::select('id', 'name')->orderBy('name')->get();
+        } else {
+            $allowedCabangs = $authUser->getCabangCodes();
+            $users = User::whereHas('userkaryawan.karyawan', function ($q) use ($allowedCabangs) {
+                $q->whereIn('kode_cabang', $allowedCabangs);
+            })->select('id', 'name')->orderBy('name')->get();
+        }
 
         // Get distinct actions
         $actions = AuditLog::select('action')
@@ -70,12 +96,22 @@ class AuditController extends Controller
             ->orderBy('module')
             ->pluck('module');
 
-        // Get statistics
+        // Get statistics — scope ke cabang yang sama
+        $statsQuery = AuditLog::query();
+        if (!$authUser->isSuperAdmin()) {
+            $allowedCabangs = $authUser->getCabangCodes();
+            $scopedUserIds = User::whereHas('userkaryawan.karyawan', function ($q) use ($allowedCabangs) {
+                $q->whereIn('kode_cabang', $allowedCabangs);
+            })->pluck('id')->toArray();
+            $scopedUserIds[] = $authUser->id;
+            $statsQuery->whereIn('user_id', array_unique($scopedUserIds));
+        }
+
         $stats = [
-            'total_logs' => AuditLog::count(),
-            'today_logs' => AuditLog::whereDate('created_at', today())->count(),
-            'total_users' => AuditLog::distinct('user_id')->count('user_id'),
-            'total_logins_today' => AuditLog::where('action', 'login')->whereDate('created_at', today())->count(),
+            'total_logs'          => (clone $statsQuery)->count(),
+            'today_logs'          => (clone $statsQuery)->whereDate('created_at', today())->count(),
+            'total_users'         => (clone $statsQuery)->distinct('user_id')->count('user_id'),
+            'total_logins_today'  => (clone $statsQuery)->where('action', 'login')->whereDate('created_at', today())->count(),
         ];
 
         return view('audit.index', compact('audit_logs', 'users', 'actions', 'modules', 'stats'));
@@ -107,8 +143,20 @@ class AuditController extends Controller
      */
     public function export(Request $request)
     {
+        /** @var \App\Models\User $authUser */
+        $authUser = auth()->user();
+
         $query = AuditLog::with('user')->orderBy('created_at', 'DESC');
 
+        // Scope berdasarkan cabang
+        if (!$authUser->isSuperAdmin()) {
+            $allowedCabangs = $authUser->getCabangCodes();
+            $allowedUserIds = User::whereHas('userkaryawan.karyawan', function ($q) use ($allowedCabangs) {
+                $q->whereIn('kode_cabang', $allowedCabangs);
+            })->pluck('id')->toArray();
+            $allowedUserIds[] = $authUser->id;
+            $query->whereIn('user_id', array_unique($allowedUserIds));
+        }
         // Apply same filters as index
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
