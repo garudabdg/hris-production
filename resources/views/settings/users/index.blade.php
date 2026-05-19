@@ -66,13 +66,37 @@
                                         <button class="btn btn-primary w-100">Cari</button>
                                     </div>
                                 @else
-                                    <div class="col-lg-10 col-sm-12 col-md-12">
+                                    <div class="col-lg-4 col-sm-12 col-md-12">
                                         <div class="form-group">
                                             <div class="input-group">
                                                 <span class="input-group-text"><i class="ti ti-search"></i></span>
                                                 <input type="text" class="form-control" name="name" value="{{ Request('name') }}"
                                                     placeholder="Search Name">
                                             </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-sm-12 col-md-12">
+                                        <div class="form-group">
+                                            <select name="kode_cabang" class="form-select">
+                                                <option value="">Semua Cabang</option>
+                                                @foreach ($cabangList as $cb)
+                                                    <option value="{{ $cb->kode_cabang }}" @selected(Request('kode_cabang') == $cb->kode_cabang)>
+                                                        {{ textUpperCase($cb->nama_cabang) }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-sm-12 col-md-12">
+                                        <div class="form-group">
+                                            <select name="kode_dept" class="form-select">
+                                                <option value="">Semua Departemen</option>
+                                                @foreach ($departemenList as $dept)
+                                                    <option value="{{ $dept->kode_dept }}" @selected(Request('kode_dept') == $dept->kode_dept)>
+                                                        {{ $dept->nama_dept }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="col-lg-2 col-sm-12 col-md-12">
@@ -159,8 +183,22 @@
                                                     @else
                                                         <span class="text-muted fst-italic" style="font-size: 11px;">Akses Karyawan</span>
                                                         @php
-                                                            $uk = \App\Models\Userkaryawan::where('id_user', $d->id)->first();
+                                                            $uk = \App\Models\Userkaryawan::with('karyawan.cabang', 'karyawan.departemen')->where('id_user', $d->id)->first();
                                                         @endphp
+                                                        @if($uk && $uk->karyawan)
+                                                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                                                @if($uk->karyawan->cabang)
+                                                                    <span class="badge bg-label-info" style="font-size: 10px;">
+                                                                        <i class="ti ti-building me-1"></i>{{ $uk->karyawan->cabang->nama_cabang }}
+                                                                    </span>
+                                                                @endif
+                                                                @if($uk->karyawan->departemen)
+                                                                    <span class="badge bg-label-success" style="font-size: 10px;">
+                                                                        <i class="ti ti-layout-grid me-1"></i>{{ $uk->karyawan->departemen->nama_dept }}
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                        @endif
                                                         @if($uk && $uk->approval_admin_id)
                                                             <div class="mt-1">
                                                                 <span class="badge bg-warning" style="font-size: 10px;" title="Approval Admin">

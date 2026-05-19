@@ -25,7 +25,11 @@ class UserController extends Controller
         if (!$authUser->can('users.admin')) {
             $userType = 'karyawan';
         }
-        
+
+        // Ambil cabang & departemen yang boleh dilihat oleh auth user
+        $allowedCabangs    = $authUser->getCabangCodes();
+        $allowedDepartemens = $authUser->getDepartemenCodes();
+
         $users = User::with(['roles', 'cabangs', 'departemens'])
             ->when($request->name, function ($query, $name) {
                 return $query->where('name', 'like', '%' . $name . '%');
@@ -36,14 +40,41 @@ class UserController extends Controller
                 });
             })
             ->leftjoin('users_karyawan', 'users.id', '=', 'users_karyawan.id_user')
-            ->when($userType == 'karyawan', function ($query) {
+            ->when($userType == 'karyawan', function ($query) use ($authUser, $allowedCabangs, $allowedDepartemens, $request) {
                 // Filter hanya users yang punya relasi dengan users_karyawan
-                return $query->whereNotNull('users_karyawan.id_user');
+                $query->whereNotNull('users_karyawan.id_user');
+
+                // Scope berdasarkan cabang & departemen yang diizinkan ke auth user
+                if (!$authUser->isSuperAdmin()) {
+                    if (!empty($allowedCabangs)) {
+                        $query->whereHas('userkaryawan.karyawan', function ($q) use ($allowedCabangs) {
+                            $q->whereIn('kode_cabang', $allowedCabangs);
+                        });
+                    }
+                    if (!empty($allowedDepartemens)) {
+                        $query->whereHas('userkaryawan.karyawan', function ($q) use ($allowedDepartemens) {
+                            $q->whereIn('kode_dept', $allowedDepartemens);
+                        });
+                    }
+                }
+
+                // Filter cabang dari request
+                if ($request->filled('kode_cabang')) {
+                    $query->whereHas('userkaryawan.karyawan', function ($q) use ($request) {
+                        $q->where('kode_cabang', $request->kode_cabang);
+                    });
+                }
+
+                // Filter departemen dari request
+                if ($request->filled('kode_dept')) {
+                    $query->whereHas('userkaryawan.karyawan', function ($q) use ($request) {
+                        $q->where('kode_dept', $request->kode_dept);
+                    });
+                }
             }, function ($query) use ($authUser) {
                 // Filter hanya users yang TIDAK punya relasi dengan users_karyawan
-                // Jika user tidak punya permission users.admin, tidak tampilkan user admin
                 if (!$authUser->can('users.admin')) {
-                    return $query->whereRaw('1 = 0'); // Hide all non-karyawan users
+                    return $query->whereRaw('1 = 0');
                 }
                 return $query->whereNull('users_karyawan.id_user');
             })
@@ -59,8 +90,12 @@ class UserController extends Controller
         } else {
             $roles = Role::orderBy('name')->get();
         }
+
+        // Cabang & departemen untuk filter dropdown (sesuai akses auth user)
+        $cabangList     = $authUser->getCabang();
+        $departemenList = $authUser->getDepartemen();
         
-        return view('settings.users.index', compact('users', 'roles'));
+        return view('settings.users.index', compact('users', 'roles', 'cabangList', 'departemenList', 'userType'));
     }
 
     public function create()
