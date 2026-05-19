@@ -546,14 +546,14 @@
              </li>
          @endcanany
          @can('audit.index')
-             @if (!auth()->user()->hasRole(['super admin']))
+             @cannot('users.index')
              <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
                  <a href="{{ route('audit.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-file-text"></i>
                      <div>Audit Log</div>
                  </a>
              </li>
-             @endif
+             @endcannot
          @endcan
          @can('recruitment.index')
              <li class="menu-item {{ request()->is(['recruitment', 'recruitment/vacancy*']) ? 'open' : '' }}">
