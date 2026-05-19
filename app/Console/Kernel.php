@@ -16,6 +16,12 @@ class Kernel extends ConsoleKernel
         $schedule->command('queue:work --queue=default --sleep=3 --tries=3 --stop-when-empty')
             ->everyMinute()
             ->withoutOverlapping();
+
+        // Kirim ucapan ulang tahun otomatis setiap hari pukul 07:00
+        $schedule->command('birthday:kirim-ucapan')
+            ->dailyAt('07:00')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/birthday-wa.log'));
     }
 
     /**
