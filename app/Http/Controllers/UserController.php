@@ -20,6 +20,11 @@ class UserController extends Controller
         
         /** @var \App\Models\User $authUser */
         $authUser = auth()->user();
+
+        // Jika tidak punya users.admin, paksa ke tab karyawan
+        if (!$authUser->can('users.admin')) {
+            $userType = 'karyawan';
+        }
         
         $users = User::with(['roles', 'cabangs', 'departemens'])
             ->when($request->name, function ($query, $name) {

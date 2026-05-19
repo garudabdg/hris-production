@@ -218,14 +218,14 @@
 {{-- <script src="{{ asset('assets/js/pages/roles/create.js') }}"></script> --}}
 <script>
     $(function() {
-        // Auto-redirect HRD ke tab karyawan
-        @if(auth()->user()->hasRole('hrd') || auth()->user()->hasRole('hr staff'))
+        // Auto-redirect ke tab karyawan jika tidak punya users.admin
+        @cannot('users.admin')
             const currentTab = '{{ Request("user_type", "biasa") }}';
             if (currentTab !== 'karyawan') {
                 document.getElementById('user_type').value = 'karyawan';
                 document.getElementById('filterForm').submit();
             }
-        @endif
+        @endcannot
         
         $("#btncreateUser").click(function(e) {
             $('#mdlcreateUser').modal("show");
