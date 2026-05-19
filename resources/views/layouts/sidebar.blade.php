@@ -485,7 +485,7 @@
              </li>
          @endcan
 
-         @can('users.index')
+         @canany(['users.index', 'roles.index', 'permissions.index', 'permissiongroups.index', 'audit.index', 'bersihkanfoto.index', 'resetdata.index'])
              <li
                  class="menu-item {{ request()->is(['roles', 'roles/*', 'permissiongroups', 'permissiongroups/*', 'permissions', 'permissions/*', 'users', 'users/*', 'audit', 'audit/*', 'bersihkanfoto', 'bersihkanfoto/*', 'resetdata', 'resetdata/*']) ? 'open' : '' }} ">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
@@ -493,26 +493,34 @@
                      <div>Utilities</div>
                  </a>
                  <ul class="menu-sub">
+                     @can('users.index')
                      <li class="menu-item {{ request()->is(['users', 'users/*']) ? 'active' : '' }}">
                          <a href="{{ route('users.index') }}" class="menu-link">
                              <div>User</div>
                          </a>
                      </li>
+                     @endcan
+                     @can('roles.index')
                      <li class="menu-item {{ request()->is(['roles', 'roles/*']) ? 'active' : '' }}">
                          <a href="{{ route('roles.index') }}" class="menu-link">
                              <div>Role</div>
                          </a>
                      </li>
-                     <li class="menu-item {{ request()->is(['permissions', 'permissions/*']) ? 'active' : '' }}"">
+                     @endcan
+                     @can('permissions.index')
+                     <li class="menu-item {{ request()->is(['permissions', 'permissions/*']) ? 'active' : '' }}">
                          <a href="{{ route('permissions.index') }}" class="menu-link">
                              <div>Permission</div>
                          </a>
                      </li>
-                     <li class="menu-item  {{ request()->is(['permissiongroups', 'permissiongroups/*']) ? 'active' : '' }}">
+                     @endcan
+                     @can('permissiongroups.index')
+                     <li class="menu-item {{ request()->is(['permissiongroups', 'permissiongroups/*']) ? 'active' : '' }}">
                          <a href="{{ route('permissiongroups.index') }}" class="menu-link">
                              <div>Group Permission</div>
                          </a>
                      </li>
+                     @endcan
                      @can('audit.index')
                      <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
                          <a href="{{ route('audit.index') }}" class="menu-link">
@@ -521,20 +529,22 @@
                      </li>
                      @endcan
                      @can('bersihkanfoto.index')
-                         <li class="menu-item {{ request()->is(['bersihkanfoto', 'bersihkanfoto/*']) ? 'active' : '' }}">
-                             <a href="{{ route('bersihkanfoto.index') }}" class="menu-link">
-                                 <div>Bersihkan Foto</div>
-                             </a>
-                         </li>
+                     <li class="menu-item {{ request()->is(['bersihkanfoto', 'bersihkanfoto/*']) ? 'active' : '' }}">
+                         <a href="{{ route('bersihkanfoto.index') }}" class="menu-link">
+                             <div>Bersihkan Foto</div>
+                         </a>
+                     </li>
                      @endcan
+                     @can('resetdata.index')
                      <li class="menu-item {{ request()->is(['resetdata', 'resetdata/*']) ? 'active' : '' }}">
                          <a href="{{ route('resetdata.index') }}" class="menu-link">
                              <div>Reset Data</div>
                          </a>
                      </li>
+                     @endcan
                  </ul>
              </li>
-         @endcan
+         @endcanany
          @can('audit.index')
              @if (!auth()->user()->hasRole(['super admin']))
              <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
