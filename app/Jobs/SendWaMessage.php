@@ -26,13 +26,15 @@ class SendWaMessage implements ShouldQueue
     protected string $message;
     protected bool $birthday;
     protected bool $direct = false; // true = kirim langsung ke nomor, bypass tujuan notifikasi
+    protected string $kategori;
 
-    public function __construct(string $phoneNumber, string $message, bool $birthday = false, bool $direct = false)
+    public function __construct(string $phoneNumber, string $message, bool $birthday = false, bool $direct = false, string $kategori = 'lainnya')
     {
         $this->phoneNumber = $phoneNumber;
         $this->message = $message;
         $this->birthday = $birthday;
         $this->direct = $direct;
+        $this->kategori = $birthday ? 'birthday' : $kategori;
     }
 
     public function handle(): void
@@ -105,6 +107,7 @@ class SendWaMessage implements ShouldQueue
                     'pengirim'      => 'local',
                     'penerima'      => $penerima,
                     'pesan'         => $this->message,
+                    'kategori'      => $this->kategori,
                     'status'        => 'success',
                     'message_id'    => null,
                     'error_message' => null,
@@ -114,6 +117,7 @@ class SendWaMessage implements ShouldQueue
                     'pengirim'      => 'local',
                     'penerima'      => $penerima,
                     'pesan'         => $this->message,
+                    'kategori'      => $this->kategori,
                     'status'        => 'failed',
                     'message_id'    => null,
                     'error_message' => $body['msg'] ?? $response->body(),
@@ -168,6 +172,7 @@ class SendWaMessage implements ShouldQueue
                     'pengirim'      => 'fonnte',
                     'penerima'      => $penerima,
                     'pesan'         => $this->message,
+                    'kategori'      => $this->kategori,
                     'status'        => 'failed',
                     'message_id'    => null,
                     'error_message' => $err ?: ('HTTP ' . $httpCode . ': ' . $response),
@@ -179,6 +184,7 @@ class SendWaMessage implements ShouldQueue
                 'pengirim'      => 'fonnte',
                 'penerima'      => $penerima,
                 'pesan'         => $this->message,
+                'kategori'      => $this->kategori,
                 'status'        => 'success',
                 'message_id'    => json_decode($response, true)['id'] ?? null,
                 'error_message' => null,
@@ -232,6 +238,7 @@ class SendWaMessage implements ShouldQueue
                 'pengirim'      => $sender->number,
                 'penerima'      => $penerima,
                 'pesan'         => $this->message,
+                'kategori'      => $this->kategori,
                 'status'        => 'success',
                 'message_id'    => $resData['message_id'] ?? null,
                 'error_message' => null,
@@ -242,6 +249,7 @@ class SendWaMessage implements ShouldQueue
                 'pengirim'      => $sender->number,
                 'penerima'      => $penerima,
                 'pesan'         => $this->message,
+                'kategori'      => $this->kategori,
                 'status'        => 'failed',
                 'message_id'    => null,
                 'error_message' => $resData['message'] ?? ('HTTP ' . $response->status()),

@@ -359,7 +359,7 @@ class DashboardController extends Controller
                 }
 
                 // Dispatch job untuk mengirim WhatsApp
-                SendWaMessage::dispatch($phoneNumber, $message, true);
+                SendWaMessage::dispatch($phoneNumber, $message, true, false, 'birthday');
                 $count++;
             }
 

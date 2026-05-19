@@ -626,7 +626,7 @@ class KaryawanController extends Controller
                     . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
                     . "Harap segera login dan ganti email, password Anda.\n"
                     . "Terima kasih.";
-                SendWaMessage::dispatch($karyawan->no_hp, $waMessage, false, true);
+                SendWaMessage::dispatch($karyawan->no_hp, $waMessage, false, true, 'presensi');
             }
 
             return Redirect::route('karyawan.index')->with(messageSuccess('User Berhasil Dibuat'));

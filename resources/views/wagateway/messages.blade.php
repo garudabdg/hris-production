@@ -8,7 +8,7 @@
 
 @section('content')
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <div class="card text-center border-0 shadow-sm h-100">
             <div class="card-body py-3">
                 <div class="text-muted small mb-1">Total Pesan</div>
@@ -16,7 +16,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <div class="card text-center border-0 shadow-sm h-100">
             <div class="card-body py-3">
                 <div class="text-muted small mb-1">Berhasil</div>
@@ -24,7 +24,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <div class="card text-center border-0 shadow-sm h-100">
             <div class="card-body py-3">
                 <div class="text-muted small mb-1">Gagal</div>
@@ -32,13 +32,23 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <div class="card text-center border-0 shadow-sm h-100">
             <div class="card-body py-3">
                 <div class="text-muted small mb-1">Hari Ini</div>
                 <div class="fs-3 fw-bold text-primary">{{ number_format($stats['today']) }}</div>
             </div>
         </div>
+    </div>
+    <div class="col-6 col-md">
+        <a href="{{ route('wagateway.messages', ['kategori' => 'birthday']) }}" class="text-decoration-none">
+            <div class="card text-center border-0 shadow-sm h-100 {{ request('kategori') === 'birthday' ? 'border border-warning' : '' }}">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">🎂 Ulang Tahun</div>
+                    <div class="fs-3 fw-bold text-warning">{{ number_format($stats['birthday']) }}</div>
+                </div>
+            </div>
+        </a>
     </div>
 </div>
 
@@ -69,6 +79,16 @@
                         <option value="">Semua</option>
                         <option value="success" @selected(request('status') === 'success')>✓ Berhasil</option>
                         <option value="failed" @selected(request('status') === 'failed')>✗ Gagal</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1">Kategori</label>
+                    <select name="kategori" class="form-select form-select-sm">
+                        <option value="">Semua</option>
+                        <option value="birthday"    @selected(request('kategori') === 'birthday')>🎂 Ulang Tahun</option>
+                        <option value="presensi"    @selected(request('kategori') === 'presensi')>📋 Presensi</option>
+                        <option value="recruitment" @selected(request('kategori') === 'recruitment')>💼 Recruitment</option>
+                        <option value="lainnya"     @selected(request('kategori') === 'lainnya')>📌 Lainnya</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
@@ -104,6 +124,7 @@
                     <tr>
                         <th class="ps-3" width="50">No</th>
                         <th>Penerima</th>
+                        <th width="120">Kategori</th>
                         <th>Pesan</th>
                         <th width="110">Status</th>
                         <th width="140">Waktu</th>
@@ -126,6 +147,20 @@
                                     @endif
                                 </div>
                             </div>
+                        </td>
+                        <td>
+                            @php
+                                $kategoriMap = [
+                                    'birthday'    => ['label' => '🎂 Ulang Tahun', 'class' => 'bg-warning-subtle text-warning border-warning-subtle'],
+                                    'presensi'    => ['label' => '📋 Presensi',    'class' => 'bg-info-subtle text-info border-info-subtle'],
+                                    'recruitment' => ['label' => '💼 Recruitment', 'class' => 'bg-primary-subtle text-primary border-primary-subtle'],
+                                    'lainnya'     => ['label' => '📌 Lainnya',     'class' => 'bg-secondary-subtle text-secondary border-secondary-subtle'],
+                                ];
+                                $kat = $kategoriMap[$msg->kategori] ?? $kategoriMap['lainnya'];
+                            @endphp
+                            <span class="badge border px-2 py-1 {{ $kat['class'] }}" style="font-size:11px">
+                                {{ $kat['label'] }}
+                            </span>
                         </td>
                         <td>
                             <div class="text-truncate" style="max-width:320px" title="{{ $msg->pesan }}">

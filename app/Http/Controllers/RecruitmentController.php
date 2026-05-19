@@ -451,7 +451,7 @@ class RecruitmentController extends Controller
         if ($recruitment->no_hp && $setting && $setting->notifikasi_wa) {
             try {
                 $waMessage = $this->buildWaStatusMessage($recruitment);
-                SendWaMessage::dispatch($recruitment->no_hp, $waMessage, false, true); // direct=true → kirim ke nomor pelamar langsung
+                    SendWaMessage::dispatch($recruitment->no_hp, $waMessage, false, true, 'recruitment'); // direct=true → kirim ke nomor pelamar langsung
                 $notifInfo[] = 'WhatsApp';
             } catch (\Exception $e) {
                 \Log::warning('Gagal dispatch WA recruitment: ' . $e->getMessage());

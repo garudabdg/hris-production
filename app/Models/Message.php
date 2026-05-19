@@ -13,6 +13,7 @@ class Message extends Model
         'pengirim',
         'penerima',
         'pesan',
+        'kategori',
         'status',
         'message_id',
         'error_message'

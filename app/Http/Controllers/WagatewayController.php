@@ -610,6 +610,10 @@ class WagatewayController extends Controller
         if ($request->filled('status') && in_array($request->status, ['success', 'failed'])) {
             $query->where('status', $request->status);
         }
+        // Filter kategori
+        if ($request->filled('kategori')) {
+            $query->where('kategori', $request->kategori);
+        }
         // Filter tanggal
         if ($request->filled('dari')) {
             $query->whereDate('created_at', '>=', $request->dari);
@@ -631,10 +635,11 @@ class WagatewayController extends Controller
 
         // Statistik
         $stats = [
-            'total'   => Message::count(),
-            'success' => Message::where('status', 'success')->count(),
-            'failed'  => Message::where('status', 'failed')->count(),
-            'today'   => Message::whereDate('created_at', today())->count(),
+            'total'     => Message::count(),
+            'success'   => Message::where('status', 'success')->count(),
+            'failed'    => Message::where('status', 'failed')->count(),
+            'today'     => Message::whereDate('created_at', today())->count(),
+            'birthday'  => Message::where('kategori', 'birthday')->count(),
         ];
 
         return view('wagateway.messages', compact('messages', 'stats'));

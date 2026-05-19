@@ -69,7 +69,7 @@ class KirimUcapanBirthday extends Command
             if ($this->option('dry-run')) {
                 $this->line("  [DRY-RUN] {$karyawan->nama_karyawan} → {$phoneNumber}");
             } else {
-                SendWaMessage::dispatch($phoneNumber, $message, true);
+                SendWaMessage::dispatch($phoneNumber, $message, true, false, 'birthday');
                 $this->line("  ✓ Dispatched: {$karyawan->nama_karyawan} → {$phoneNumber}");
             }
         }
