@@ -107,6 +107,18 @@ Route::post('/recruitment/form', [RecruitmentController::class, 'store'])->name(
 Route::get('/recruitment/success', [RecruitmentController::class, 'success'])->name('recruitment.success');
 Route::get('/recruitment/konfirmasi/{token}/{jawaban}', [RecruitmentController::class, 'konfirmasiInterview'])->name('recruitment.konfirmasi');
 
+// Download APK - public, no auth required
+Route::get('/download/app', function () {
+    $file = public_path('assets/apps-mobile/app-release.apk');
+    if (!file_exists($file)) {
+        abort(404, 'File APK tidak ditemukan.');
+    }
+    return response()->download($file, 'HRIS-Didimax.apk', [
+        'Content-Type'        => 'application/vnd.android.package-archive',
+        'Content-Disposition' => 'attachment; filename="HRIS-Didimax.apk"',
+    ]);
+})->name('download.apk');
+
 // API Routes for Dynamic Form Population (Authenticated)
 Route::middleware('auth')->group(function () {
 });

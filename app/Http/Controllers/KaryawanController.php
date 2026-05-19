@@ -616,7 +616,7 @@ class KaryawanController extends Controller
             if (!empty($karyawan->no_hp)) {
                 $appName = optional(Pengaturanumum::first())->nama_perusahaan ?? 'HRIS';
                 $loginUrl = url('/');
-                $apkUrl = 'https://hris.didimax.online/assets/apps-mobile/app-release.apk';
+                $apkUrl = route('download.apk');
                 $waMessage = "Halo *{$karyawan->nama_karyawan}*,\n\n"
                     . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
                     . "🔐 *Informasi Login:*\n"
