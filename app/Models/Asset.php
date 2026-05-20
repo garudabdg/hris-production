@@ -27,12 +27,59 @@ class Asset extends Model
         'foto',
         'lokasi',
         'catatan',
+        'confidentiality',
+        'availability',
+        'integrity',
+        'asset_valuation',
     ];
 
     protected $casts = [
         'tanggal_perolehan' => 'date',
         'nilai_perolehan'   => 'decimal:2',
+        'confidentiality'   => 'integer',
+        'availability'      => 'integer',
+        'integrity'         => 'integer',
+        'asset_valuation'   => 'integer',
     ];
+
+    /**
+     * Label teks untuk nilai C/A/I: 1=Low, 2=Medium, 3=High
+     */
+    public static function valuationLabel(?int $value): string
+    {
+        return match($value) {
+            1 => 'Low',
+            2 => 'Medium',
+            3 => 'High',
+            default => '-',
+        };
+    }
+
+    /**
+     * Label total asset valuation berdasarkan skor:
+     * 3-4 = Low, 5-6 = Medium, 7-9 = High
+     */
+    public static function valuationTotalLabel(?int $score): string
+    {
+        if ($score === null) return '-';
+        if ($score <= 4) return 'Low';
+        if ($score <= 6) return 'Medium';
+        return 'High';
+    }
+
+    public function getAssetValuationBadgeAttribute(): string
+    {
+        $score = $this->asset_valuation;
+        if ($score === null) return '<span class="badge bg-label-secondary">-</span>';
+        $label = self::valuationTotalLabel($score);
+        $class = match($label) {
+            'Low'    => 'bg-label-info',
+            'Medium' => 'bg-label-warning',
+            'High'   => 'bg-label-danger',
+            default  => 'bg-label-secondary',
+        };
+        return "<span class=\"badge {$class}\">{$label} ({$score})</span>";
+    }
 
     public function category()
     {

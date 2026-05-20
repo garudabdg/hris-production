@@ -169,6 +169,7 @@
                     <th>Merk / No. Seri</th>
                     <th>Kondisi</th>
                     <th>Status</th>
+                    <th>Valuation</th>
                     <th>Harga Pembelian</th>
                     <th class="text-center">Aksi</th>
                 </tr>
@@ -211,6 +212,7 @@
                         </td>
                         <td>{!! $a->kondisi_badge !!}</td>
                         <td>{!! $a->status_badge !!}</td>
+                        <td>{!! $a->asset_valuation_badge ?? '<span class="text-muted small">-</span>' !!}</td>
                         <td>{{ $a->nilai_perolehan ? 'Rp ' . number_format($a->nilai_perolehan, 0, ',', '.') : '-' }}</td>
                         <td class="text-center">
                             <div class="d-flex gap-1 justify-content-center">

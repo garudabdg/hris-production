@@ -127,6 +127,56 @@
                             <div class="text-muted small mt-1">Format: JPG, PNG, WEBP. Maksimal 2MB.</div>
                             @error('foto') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+
+                        {{-- ── Asset Valuation ─────────────────────────────── --}}
+                        <div class="col-12">
+                            <hr class="my-2">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <i class="ti ti-shield-check text-primary fs-5"></i>
+                                <h6 class="mb-0 fw-bold">Asset Valuation</h6>
+                                <span class="text-muted small">(Confidentiality + Availability + Integrity)</span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-semibold">Confidentiality</label>
+                                    <select name="confidentiality" id="val_c" class="form-select @error('confidentiality') is-invalid @enderror" onchange="calcValuation()">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="1" @selected(old('confidentiality', $asset->confidentiality) == '1')>1 - Low</option>
+                                        <option value="2" @selected(old('confidentiality', $asset->confidentiality) == '2')>2 - Medium</option>
+                                        <option value="3" @selected(old('confidentiality', $asset->confidentiality) == '3')>3 - High</option>
+                                    </select>
+                                    @error('confidentiality') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-semibold">Availability</label>
+                                    <select name="availability" id="val_a" class="form-select @error('availability') is-invalid @enderror" onchange="calcValuation()">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="1" @selected(old('availability', $asset->availability) == '1')>1 - Low</option>
+                                        <option value="2" @selected(old('availability', $asset->availability) == '2')>2 - Medium</option>
+                                        <option value="3" @selected(old('availability', $asset->availability) == '3')>3 - High</option>
+                                    </select>
+                                    @error('availability') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-semibold">Integrity</label>
+                                    <select name="integrity" id="val_i" class="form-select @error('integrity') is-invalid @enderror" onchange="calcValuation()">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="1" @selected(old('integrity', $asset->integrity) == '1')>1 - Low</option>
+                                        <option value="2" @selected(old('integrity', $asset->integrity) == '2')>2 - Medium</option>
+                                        <option value="3" @selected(old('integrity', $asset->integrity) == '3')>3 - High</option>
+                                    </select>
+                                    @error('integrity') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-12">
+                                    <div id="valuation_result" class="d-none alert py-2 px-3 mb-0">
+                                        <strong>Asset Valuation:</strong>
+                                        <span id="valuation_text"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{-- ── End Asset Valuation ─────────────────────────── --}}
+
                     </div>
 
                     <div class="d-flex gap-2 mt-4">
@@ -139,3 +189,30 @@
     </div>
 </div>
 @endsection
+
+@push('myscript')
+<script>
+function calcValuation() {
+    const c = parseInt(document.getElementById('val_c').value) || 0;
+    const a = parseInt(document.getElementById('val_a').value) || 0;
+    const i = parseInt(document.getElementById('val_i').value) || 0;
+    const resultEl = document.getElementById('valuation_result');
+    const textEl   = document.getElementById('valuation_text');
+
+    if (c && a && i) {
+        const score = c + a + i;
+        let label, cls;
+        if (score <= 4)      { label = 'Low';    cls = 'alert-info'; }
+        else if (score <= 6) { label = 'Medium'; cls = 'alert-warning'; }
+        else                 { label = 'High';   cls = 'alert-danger'; }
+
+        resultEl.className = 'alert py-2 px-3 mb-0 ' + cls;
+        textEl.innerHTML = `<strong>${score} — ${label}</strong> &nbsp;<span class="text-muted small">(C:${c} + A:${a} + I:${i})</span>`;
+        resultEl.classList.remove('d-none');
+    } else {
+        resultEl.classList.add('d-none');
+    }
+}
+document.addEventListener('DOMContentLoaded', calcValuation);
+</script>
+@endpush

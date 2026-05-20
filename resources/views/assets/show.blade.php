@@ -80,6 +80,30 @@
                             <p class="mb-0 fst-italic text-muted">{{ $asset->catatan }}</p>
                         </div>
                     @endif
+                    @if ($asset->asset_valuation)
+                        <div class="col-12">
+                            <hr class="my-2">
+                            <p class="text-muted small mb-2 fw-semibold"><i class="ti ti-shield-check me-1"></i>Asset Valuation</p>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <p class="text-muted small mb-1">Confidentiality</p>
+                                    <p class="mb-0">{{ \App\Models\Asset::valuationLabel($asset->confidentiality) }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="text-muted small mb-1">Availability</p>
+                                    <p class="mb-0">{{ \App\Models\Asset::valuationLabel($asset->availability) }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="text-muted small mb-1">Integrity</p>
+                                    <p class="mb-0">{{ \App\Models\Asset::valuationLabel($asset->integrity) }}</p>
+                                </div>
+                                <div class="col-12">
+                                    <p class="text-muted small mb-1">Score Total</p>
+                                    <p class="mb-0">{!! $asset->asset_valuation_badge !!}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                     <div class="col-md-6">
                         <p class="text-muted small mb-1">Ditambahkan</p>
                         <p class="mb-0">{{ $asset->created_at->format('d-m-Y H:i') }}</p>

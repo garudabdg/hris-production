@@ -121,7 +121,16 @@ class AssetController extends Controller
             'deskripsi'        => 'nullable|string',
             'catatan'          => 'nullable|string',
             'foto'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'confidentiality'  => 'nullable|integer|in:1,2,3',
+            'availability'     => 'nullable|integer|in:1,2,3',
+            'integrity'        => 'nullable|integer|in:1,2,3',
         ]);
+
+        // Hitung asset_valuation otomatis
+        $c = $request->integer('confidentiality', 0);
+        $a = $request->integer('availability', 0);
+        $i = $request->integer('integrity', 0);
+        $valuationScore = ($c && $a && $i) ? ($c + $a + $i) : null;
 
         // Validasi akses cabang jika bukan super admin
         if (!$user->isSuperAdmin() && $request->filled('kode_cabang')) {
@@ -132,6 +141,7 @@ class AssetController extends Controller
         }
 
         $data = $request->except('foto');
+        $data['asset_valuation'] = $valuationScore;
 
         if ($request->hasFile('foto')) {
             $file = $request->file('foto');
@@ -183,7 +193,16 @@ class AssetController extends Controller
             'deskripsi'        => 'nullable|string',
             'catatan'          => 'nullable|string',
             'foto'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'confidentiality'  => 'nullable|integer|in:1,2,3',
+            'availability'     => 'nullable|integer|in:1,2,3',
+            'integrity'        => 'nullable|integer|in:1,2,3',
         ]);
+
+        // Hitung asset_valuation otomatis
+        $c = $request->integer('confidentiality', 0);
+        $a = $request->integer('availability', 0);
+        $i = $request->integer('integrity', 0);
+        $valuationScore = ($c && $a && $i) ? ($c + $a + $i) : null;
 
         // Validasi akses cabang baru jika bukan super admin
         $user = auth()->user();
@@ -195,6 +214,7 @@ class AssetController extends Controller
         }
 
         $data = $request->except('foto');
+        $data['asset_valuation'] = $valuationScore;
 
         if ($request->hasFile('foto')) {
             if ($asset->foto && Storage::disk('public')->exists('assets/' . $asset->foto)) {
