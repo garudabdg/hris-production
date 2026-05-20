@@ -41,6 +41,53 @@ class PublicPresensiController extends Controller
         ]);
     }
 
+    public function checkNik(Request $request)
+    {
+        $nik = $request->nik;
+        $karyawan = Karyawan::leftJoin('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
+            ->leftJoin('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
+            ->select('karyawan.*', 'jabatan.nama_jabatan', 'departemen.nama_dept')
+            ->where('karyawan.nik', $nik)
+            ->first();
+
+        if (!$karyawan) {
+            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan'], 200);
+        }
+
+        if ($karyawan->status_aktif_karyawan != '1') {
+            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak aktif'], 200);
+        }
+
+        $generalsetting = Pengaturanumum::where('id', 1)->first();
+        $cabang = Cabang::where('kode_cabang', $karyawan->kode_cabang)->first();
+        $timezone_cabang = $cabang->timezone ?? $generalsetting->timezone ?? config('app.timezone');
+        $carbon_now = Carbon::now($timezone_cabang);
+        $tanggal_sekarang = $carbon_now->format('Y-m-d');
+
+        $presensi_hariini = Presensi::where('nik', $karyawan->nik)
+            ->where('tanggal', $tanggal_sekarang)
+            ->first();
+
+        $type = ($presensi_hariini && $presensi_hariini->jam_in != null) ? 'out' : 'in';
+        $jam_kerja = $this->getJamKerjaKaryawan($karyawan);
+
+        $foto = null;
+        if (!empty($karyawan->foto) && Storage::disk('public')->exists('karyawan/' . $karyawan->foto)) {
+            $foto = url('/storage/karyawan/' . $karyawan->foto);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'nama' => $karyawan->nama_karyawan,
+            'nik' => $karyawan->nik,
+            'jabatan' => $karyawan->nama_jabatan ?? '-',
+            'departemen' => $karyawan->nama_dept ?? '-',
+            'foto' => $foto,
+            'jam_kerja' => $jam_kerja ? $jam_kerja->nama_jam_kerja . ' (' . $jam_kerja->jam_masuk . ' - ' . $jam_kerja->jam_pulang . ')' : 'Tidak ada jadwal',
+            'type' => $type
+        ]);
+    }
+
     public function checkRfid(Request $request)
     {
         $rfid_uid = $request->rfid_uid;
@@ -96,7 +143,13 @@ class PublicPresensiController extends Controller
     {
         $generalsetting = Pengaturanumum::where('id', 1)->first();
         $rfid_uid = $request->rfid_uid;
-        $karyawan = Karyawan::where('rfid_uid', $rfid_uid)->first();
+
+        // Support face recognition mode (nik direct) alongside RFID mode
+        if ($rfid_uid) {
+            $karyawan = Karyawan::where('rfid_uid', $rfid_uid)->first();
+        } else {
+            $karyawan = Karyawan::where('nik', $request->nik)->first();
+        }
 
         if (!$karyawan) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan'], 200);
