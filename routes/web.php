@@ -97,7 +97,6 @@ Route::controller(FacerecognitionpresensiController::class)->group(function () {
 Route::controller(App\Http\Controllers\PublicPresensiController::class)->group(function () {
     Route::get('/public/presensi', 'index')->name('public.presensi.index');
     Route::post('/public/presensi/check-rfid', 'checkRfid')->name('public.presensi.check-rfid');
-    Route::post('/public/presensi/check-nik', 'checkNik')->name('public.presensi.check-nik');
     Route::post('/public/presensi/store', 'store')->name('public.presensi.store');
 });
 

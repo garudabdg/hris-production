@@ -555,17 +555,11 @@
 
         {{-- Instruction --}}
         <div class="instruction-card" id="instruction-card">
-            <div class="rfid-icon-wrapper" id="instruction-icon-wrapper">
-                <ion-icon name="sync-outline" id="instruction-icon" style="animation: spin 1.5s linear infinite;"></ion-icon>
+            <div class="rfid-icon-wrapper">
+                <ion-icon name="scan-outline"></ion-icon>
             </div>
-            <h3 id="instruction-title">Memuat Sistem...</h3>
-            <p id="instruction-desc">Sedang memuat model pengenalan wajah, harap tunggu sebentar...</p>
-            <div id="face-load-info" style="width:100%;max-width:300px;text-align:center;">
-                <div style="background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden;">
-                    <div id="face-load-bar" style="height:100%;width:0%;background:var(--primary);border-radius:4px;transition:width 0.4s ease;"></div>
-                </div>
-                <small class="text-muted mt-2 d-block" id="face-load-status">Inisialisasi...</small>
-            </div>
+            <h3>Tap Kartu RFID</h3>
+            <p>Tempelkan kartu identitas Anda pada alat reader untuk melakukan presensi secara otomatis</p>
         </div>
 
         {{-- Employee Info (hidden by default) --}}
@@ -612,11 +606,7 @@
 
         <div class="kiosk-footer">
             <span><span class="status-dot"></span> Sistem Online</span>
-            <span id="fr-status-label" style="font-size:0.75rem; color:#94a3b8;">
-                <ion-icon name="scan-circle-outline" style="vertical-align:middle;"></ion-icon>
-                Face Recognition
-            </span>
-            <span>v2.1</span>
+            <span>v2.0</span>
         </div>
     </div>
 </div>
@@ -657,365 +647,118 @@
 (function() {
     'use strict';
 
-    // ── Config ──────────────────────────────────────────────────────────────
-    const MODEL_URL     = '{{ asset("models") }}';
-    const CSRF_TOKEN    = '{{ csrf_token() }}';
-    const CHECK_NIK_URL = '{{ route("public.presensi.check-nik") }}';
-    const CHECK_RFID_URL= '{{ route("public.presensi.check-rfid") }}';
-    const STORE_URL     = '{{ route("public.presensi.store") }}';
-    const GETALLWAJAH_URL = '/facerecognition/getallwajah';
-
-    // Face recognition threshold – lower = stricter (0.45 recommended)
-    const MATCH_THRESHOLD    = 0.45;
-    // How many consecutive frames must match before triggering presensi
-    const CONFIRM_FRAMES     = 2;
-    // Interval between recognition checks (ms)
-    const RECOG_INTERVAL_MS  = 1200;
-    // Cooldown after a successful presensi (ms) – prevents double-fire
-    const COOLDOWN_MS        = 8000;
-
-    // ── State ────────────────────────────────────────────────────────────────
-    let faceMatcher     = null;
-    let modelsReady     = false;
-    let isProcessing    = false;
-    let lastMatchNik    = null;
-    let matchFrameCount = 0;
-    let lastSuccessTime = 0;
-
-    // ── Clock ────────────────────────────────────────────────────────────────
+    // ---- Clock ----
     function updateClock() {
         const now = new Date();
-        const h = String(now.getHours()).padStart(2,'0');
-        const m = String(now.getMinutes()).padStart(2,'0');
-        const s = String(now.getSeconds()).padStart(2,'0');
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
         document.getElementById('clock-time').textContent = `${h}:${m}:${s}`;
-        const opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+
+        const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
         document.getElementById('clock-date').textContent = now.toLocaleDateString('id-ID', opts);
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // ── Webcam ───────────────────────────────────────────────────────────────
-    Webcam.set({ width:640, height:480, image_format:'jpeg', jpeg_quality:90 });
+    // ---- Webcam ----
+    Webcam.set({ width: 640, height: 480, image_format: 'jpeg', jpeg_quality: 90 });
     Webcam.attach('.webcam-capture');
 
-    // ── UI Helpers ───────────────────────────────────────────────────────────
-    const audioSuccess = document.getElementById('audio-success');
-    const audioError   = document.getElementById('audio-error');
+    // ---- Face Detection ----
+    let faceDetected = false;
+    const MODEL_URL = '{{ asset("models") }}';
 
-    function setLoadProgress(pct, label) {
-        document.getElementById('face-load-bar').style.width = pct + '%';
-        document.getElementById('face-load-status').textContent = label;
-    }
-
-    function setInstructionReady() {
-        const wrapper = document.getElementById('instruction-icon-wrapper');
-        wrapper.innerHTML = '<ion-icon name="scan-circle-outline" style="font-size:3rem;color:var(--primary);animation:pulseRing 2.5s infinite ease-in-out;"></ion-icon>';
-        document.getElementById('instruction-title').textContent = 'Arahkan Wajah ke Kamera';
-        document.getElementById('instruction-desc').textContent = 'Sistem akan mengenali wajah Anda secara otomatis dan mencatat kehadiran.';
-        document.getElementById('face-load-info').style.display = 'none';
-    }
-
-    function setInstructionFallback() {
-        const wrapper = document.getElementById('instruction-icon-wrapper');
-        wrapper.innerHTML = '<ion-icon name="card-outline" style="font-size:3rem;color:var(--primary);"></ion-icon>';
-        document.getElementById('instruction-title').textContent = 'Tap Kartu RFID';
-        document.getElementById('instruction-desc').textContent = 'Data wajah belum tersedia. Gunakan kartu RFID untuk presensi.';
-        document.getElementById('face-load-info').style.display = 'none';
-    }
-
-    function showLoadingOverlay(show) {
-        const el = document.getElementById('loading-overlay');
-        if (show) el.classList.add('active');
-        else el.classList.remove('active');
-    }
-
-    function showToast(type, msg) {
-        if (type === 'success') {
-            document.getElementById('toast-msg').textContent = msg;
-            $('#toast-success').fadeIn(300);
-            setTimeout(() => $('#toast-success').fadeOut(300), 4500);
-        } else {
-            document.getElementById('toast-err-msg').textContent = msg;
-            $('#toast-error').fadeIn(300);
-            setTimeout(() => $('#toast-error').fadeOut(300), 3500);
-        }
-    }
-
-    function showError(msg) {
-        showLoadingOverlay(false);
-        audioError.currentTime = 0; audioError.play().catch(()=>{});
-        if ($('#employee-card').is(':visible')) {
-            $('#employee-card').addClass('error');
-            $('#emp-status').removeClass('masuk pulang').addClass('error')
-                .html('<ion-icon name="close-circle-outline"></ion-icon> GAGAL');
-        }
-        showToast('error', msg);
-        setTimeout(resetKiosk, 3000);
-    }
-
-    function resetKiosk() {
-        showLoadingOverlay(false);
-        $('#employee-card').removeClass('error').fadeOut(200, function() {
-            $('#instruction-card').fadeIn(300);
-            ['emp-name','emp-nik','emp-jabatan','emp-dept','emp-jadwal'].forEach(id => document.getElementById(id).textContent = '-');
-            document.getElementById('emp-avatar').innerHTML = '<ion-icon name="person"></ion-icon>';
-            $('#emp-status').removeClass('error pulang').addClass('masuk')
-                .html('<ion-icon name="log-in-outline"></ion-icon> ABSEN MASUK');
-        });
-        rfidBuffer  = '';
-        isProcessing = false;
-        matchFrameCount = 0;
-        lastMatchNik    = null;
-    }
-
-    function showEmployeeCard(res) {
-        $('#emp-name').text(res.nama);
-        $('#emp-nik').text(res.nik);
-        $('#emp-jabatan').text(res.jabatan);
-        $('#emp-dept').text(res.departemen);
-        $('#emp-jadwal').text(res.jam_kerja);
-
-        if (res.foto) {
-            $('#emp-avatar').html('<img src="' + res.foto + '" alt="Foto">');
-        } else {
-            $('#emp-avatar').html('<ion-icon name="person"></ion-icon>');
-        }
-
-        const badge = $('#emp-status');
-        if (res.type === 'in') {
-            badge.removeClass('pulang error').addClass('masuk')
-                 .html('<ion-icon name="log-in-outline"></ion-icon> ABSEN MASUK');
-        } else {
-            badge.removeClass('masuk error').addClass('pulang')
-                 .html('<ion-icon name="log-out-outline"></ion-icon> ABSEN PULANG');
-        }
-
-        $('#instruction-card').fadeOut(200, () => $('#employee-card').fadeIn(300));
-    }
-
-    // ── Load face-api Models ─────────────────────────────────────────────────
-    async function loadModels() {
-        setLoadProgress(5, 'Memuat model SSD MobileNet...');
+    async function initFaceDetection() {
         try {
-            await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-            setLoadProgress(35, 'Memuat model landmark wajah...');
-            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-            setLoadProgress(65, 'Memuat model pengenalan wajah...');
-            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-            setLoadProgress(85, 'Mengambil data wajah karyawan...');
-            return true;
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            console.log('Face detection model loaded');
+            startFaceDetection();
         } catch (err) {
-            console.error('Model load failed:', err);
-            return false;
+            console.warn('Face detection model failed to load:', err);
+            // Fallback: allow without face detection
+            faceDetected = true;
+            $('#face-status').addClass('detected');
+            $('#face-label').text('N/A');
         }
     }
 
-    // ── Build FaceMatcher from all employee face images ──────────────────────
-    async function buildFaceMatcher() {
-        let employees;
-        try {
-            const res = await fetch(GETALLWAJAH_URL + '?t=' + Date.now());
-            employees = await res.json();
-        } catch (err) {
-            console.error('Failed to fetch face data:', err);
-            return null;
-        }
-
-        if (!Array.isArray(employees) || employees.length === 0) return null;
-
-        const labeled = [];
-        let processed = 0;
-        const total = employees.filter(e => e.wajah_data && e.wajah_data.length > 0).length;
-
-        for (const emp of employees) {
-            if (!emp.wajah_data || emp.wajah_data.length === 0) continue;
-
-            const descriptors = [];
-            const folderName = emp.nik + '-' + emp.nama_karyawan.trim().split(/\s+/)[0].toLowerCase();
-            const folderEnc  = encodeURIComponent(folderName);
-
-            for (const face of emp.wajah_data) {
-                const imgUrl = `/storage/uploads/facerecognition/${folderEnc}/${encodeURIComponent(face.wajah)}`;
-                try {
-                    const img = await faceapi.fetchImage(imgUrl);
-                    const det = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
-                        .withFaceLandmarks()
-                        .withFaceDescriptor();
-                    if (det) descriptors.push(det.descriptor);
-                } catch (e) {
-                    // skip unprocessable image
-                }
-            }
-
-            if (descriptors.length > 0) {
-                labeled.push(new faceapi.LabeledFaceDescriptors(emp.nik, descriptors));
-            }
-
-            processed++;
-            const pct = 85 + Math.round((processed / total) * 14);
-            setLoadProgress(pct, `Memproses wajah: ${processed}/${total} karyawan...`);
-        }
-
-        if (labeled.length === 0) return null;
-        return new faceapi.FaceMatcher(labeled, MATCH_THRESHOLD);
-    }
-
-    // ── Recognition Loop ─────────────────────────────────────────────────────
-    function startRecognitionLoop() {
+    function startFaceDetection() {
         const video = document.querySelector('.webcam-capture video');
-        if (!video) { setTimeout(startRecognitionLoop, 600); return; }
+        if (!video) {
+            setTimeout(startFaceDetection, 500);
+            return;
+        }
 
         const canvas = document.getElementById('face-canvas');
 
         setInterval(async () => {
-            if (isProcessing || !video || video.readyState < 2 || !faceMatcher) return;
+            if (!video || video.readyState < 2) return;
 
-            try {
-                const options = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
-                const detections = await faceapi.detectAllFaces(video, options)
-                    .withFaceLandmarks()
-                    .withFaceDescriptors();
+            const detections = await faceapi.detectAllFaces(
+                video,
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+            );
 
-                // Draw bounding boxes
-                const displaySize = { width: video.videoWidth, height: video.videoHeight };
-                faceapi.matchDimensions(canvas, displaySize);
-                const resized = faceapi.resizeResults(detections, displaySize);
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                let bestMatch = null;
-                let bestDistance = 1;
-
-                resized.forEach(det => {
-                    const match = faceMatcher.findBestMatch(det.descriptor);
-                    const distance = match.distance;
-                    const isKnown = match.label !== 'unknown';
-
-                    // Draw box
-                    const box = det.detection.box;
-                    ctx.strokeStyle = isKnown ? '#22c55e' : '#ef4444';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-                    if (isKnown) {
-                        ctx.fillStyle = 'rgba(34,197,94,0.8)';
-                        ctx.fillRect(box.x, box.y - 22, box.width, 22);
-                        ctx.fillStyle = '#fff';
-                        ctx.font = '12px monospace';
-                        ctx.fillText(match.label + ' (' + (100 - Math.round(distance * 100)) + '%)', box.x + 4, box.y - 6);
-                    }
-
-                    if (isKnown && distance < bestDistance) {
-                        bestDistance = distance;
-                        bestMatch = match.label; // NIK
-                    }
-                });
-
-                // Update face indicator
-                if (detections.length > 0) {
-                    document.getElementById('face-status').classList.add('detected');
-                    document.getElementById('face-label').textContent = bestMatch ? 'WAJAH DIKENALI' : 'WAJAH TERDETEKSI';
-                    document.getElementById('camera-frame').classList.add('face-ok');
-                } else {
-                    document.getElementById('face-status').classList.remove('detected');
-                    document.getElementById('face-label').textContent = 'NO FACE';
-                    document.getElementById('camera-frame').classList.remove('face-ok');
-                    matchFrameCount = 0;
-                    lastMatchNik = null;
-                }
-
-                // Confirm match across consecutive frames
-                if (bestMatch) {
-                    if (bestMatch === lastMatchNik) {
-                        matchFrameCount++;
-                    } else {
-                        lastMatchNik    = bestMatch;
-                        matchFrameCount = 1;
-                    }
-
-                    if (matchFrameCount >= CONFIRM_FRAMES) {
-                        const now = Date.now();
-                        if (now - lastSuccessTime < COOLDOWN_MS) return; // still in cooldown
-                        triggerFacePresensi(bestMatch);
-                    }
-                } else {
-                    lastMatchNik    = null;
-                    matchFrameCount = 0;
-                }
-
-            } catch (err) {
-                // silent fail in detection loop
+            // Update indicator
+            if (detections.length > 0) {
+                faceDetected = true;
+                $('#face-status').addClass('detected');
+                $('#face-label').text('WAJAH TERDETEKSI');
+                $('#camera-frame').addClass('face-ok');
+            } else {
+                faceDetected = false;
+                $('#face-status').removeClass('detected');
+                $('#face-label').text('NO FACE');
+                $('#camera-frame').removeClass('face-ok');
             }
-        }, RECOG_INTERVAL_MS);
-    }
 
-    // ── Trigger presensi via Face Recognition ───────────────────────────────
-    function triggerFacePresensi(nik) {
-        if (isProcessing) return;
-        isProcessing = true;
-        matchFrameCount = 0;
-
-        // 1. Check employee info by NIK
-        $.ajax({
-            type: 'POST',
-            url: CHECK_NIK_URL,
-            data: { _token: CSRF_TOKEN, nik: nik },
-            success: function(res) {
-                if (res.status === 'success') {
-                    showEmployeeCard(res);
-                    showLoadingOverlay(true);
-                    // 2. Short delay then snap + store
-                    setTimeout(() => takeFaceSnapshot(nik), 1200);
-                } else {
-                    showError(res.message);
-                }
-            },
-            error: function() { showError('Gagal terhubung ke server'); }
-        });
-    }
-
-    function takeFaceSnapshot(nik) {
-        Webcam.snap(function(dataUri) {
-            $.ajax({
-                type: 'POST',
-                url: STORE_URL,
-                data: { _token: CSRF_TOKEN, nik: nik, image: dataUri },
-                success: function(res) {
-                    showLoadingOverlay(false);
-                    if (res.status === 'success') {
-                        lastSuccessTime = Date.now();
-                        audioSuccess.currentTime = 0; audioSuccess.play().catch(()=>{});
-                        showToast('success', res.message);
-                        setTimeout(resetKiosk, 4500);
-                    } else {
-                        showError(res.message);
-                    }
-                },
-                error: function() { showError('Gagal menyimpan data presensi'); }
+            // Draw bounding box
+            const displaySize = { width: video.videoWidth, height: video.videoHeight };
+            faceapi.matchDimensions(canvas, displaySize);
+            const resized = faceapi.resizeResults(detections, displaySize);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            resized.forEach(det => {
+                const box = det.box;
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
             });
-        });
+        }, 500); // Check every 500ms
     }
 
-    // ── RFID Fallback ────────────────────────────────────────────────────────
-    let rfidBuffer  = '';
-    let rfidTimeout = null;
+    // Start face detection after webcam is ready
+    setTimeout(initFaceDetection, 2000);
 
-    document.addEventListener('click', () => document.getElementById('rfid-input').focus());
-    setInterval(() => {
-        if (document.activeElement !== document.getElementById('rfid-input'))
-            document.getElementById('rfid-input').focus();
-    }, 1500);
+    // ---- Audio ----
+    const audioSuccess = document.getElementById('audio-success');
+    const audioError   = document.getElementById('audio-error');
+
+    // ---- RFID Input ----
+    const rfidInput = document.getElementById('rfid-input');
+    document.addEventListener('click', () => rfidInput.focus());
+    setInterval(() => { if (document.activeElement !== rfidInput) rfidInput.focus(); }, 1500);
+
+    let isProcessing = false;
+
+    // Global keydown listener — catches RFID scanner output
+    let rfidBuffer = '';
+    let rfidTimeout = null;
 
     window.addEventListener('keydown', function(e) {
         if (isProcessing) return;
+
         if (e.key === 'Enter') {
             clearTimeout(rfidTimeout);
-            if (rfidBuffer.length > 3) processRfid(rfidBuffer);
+            if (rfidBuffer.length > 3) {
+                processRfid(rfidBuffer);
+            }
             rfidBuffer = '';
-            document.getElementById('rfid-input').value = '';
+            rfidInput.value = '';
             return;
         }
+
         if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
             rfidBuffer += e.key;
             clearTimeout(rfidTimeout);
@@ -1023,80 +766,166 @@
         }
     });
 
+    // ---- Process RFID ----
     function processRfid(uid) {
         if (isProcessing) return;
         isProcessing = true;
+
         showLoadingOverlay(true);
-        $('#instruction-card').fadeOut(200, () => $('#employee-card').fadeIn(300));
+        $('#instruction-card').fadeOut(200, function() {
+            $('#employee-card').fadeIn(300);
+        });
 
         $.ajax({
             type: 'POST',
-            url: CHECK_RFID_URL,
-            data: { _token: CSRF_TOKEN, rfid_uid: uid },
+            url: '{{ route("public.presensi.check-rfid") }}',
+            data: { _token: '{{ csrf_token() }}', rfid_uid: uid },
             success: function(res) {
                 if (res.status === 'success') {
-                    showEmployeeCard(res);
-                    setTimeout(() => takeRfidSnapshot(uid), 1200);
+                    $('#emp-name').text(res.nama);
+                    $('#emp-nik').text(res.nik);
+                    $('#emp-jabatan').text(res.jabatan);
+                    $('#emp-dept').text(res.departemen);
+                    $('#emp-jadwal').text(res.jam_kerja);
+
+                    // Set foto
+                    if (res.foto) {
+                        $('#emp-avatar').html('<img src="' + res.foto + '" alt="Foto">');
+                    } else {
+                        $('#emp-avatar').html('<ion-icon name="person"></ion-icon>');
+                    }
+
+                    const badge = $('#emp-status');
+                    if (res.type === 'in') {
+                        badge.removeClass('pulang').addClass('masuk')
+                             .html('<ion-icon name="log-in-outline"></ion-icon> ABSEN MASUK');
+                    } else {
+                        badge.removeClass('masuk').addClass('pulang')
+                             .html('<ion-icon name="log-out-outline"></ion-icon> ABSEN PULANG');
+                    }
+
+                    waitForFaceAndSnap(uid);
                 } else {
                     showError(res.message);
                 }
             },
-            error: function() { showError('Gagal terhubung ke server'); }
+            error: function() {
+                showError('Gagal terhubung ke server');
+            }
         });
     }
 
-    function takeRfidSnapshot(uid) {
+    // ---- Wait for Face then Snapshot ----
+    function waitForFaceAndSnap(uid) {
+        if (faceDetected) {
+            // Face already detected, snap immediately
+            showLoadingOverlay(true);
+            takeSnapshot(uid);
+            return;
+        }
+
+        // Show message asking to face the camera
+        showToast('error', 'Silakan arahkan wajah Anda ke kamera...');
+
+        let attempts = 0;
+        const maxAttempts = 16; // 16 x 500ms = 8 seconds max
+        const faceCheck = setInterval(() => {
+            attempts++;
+            if (faceDetected) {
+                clearInterval(faceCheck);
+                $('#toast-error').fadeOut(200);
+                showLoadingOverlay(true);
+                takeSnapshot(uid);
+            } else if (attempts >= maxAttempts) {
+                clearInterval(faceCheck);
+                showError('Wajah tidak terdeteksi. Silakan arahkan wajah ke kamera dan coba lagi.');
+            }
+        }, 500);
+    }
+
+    // ---- Snapshot & Store ----
+    function takeSnapshot(uid) {
         Webcam.snap(function(dataUri) {
             $.ajax({
                 type: 'POST',
-                url: STORE_URL,
-                data: { _token: CSRF_TOKEN, rfid_uid: uid, image: dataUri },
+                url: '{{ route("public.presensi.store") }}',
+                data: { _token: '{{ csrf_token() }}', rfid_uid: uid, image: dataUri },
                 success: function(res) {
                     showLoadingOverlay(false);
                     if (res.status === 'success') {
-                        audioSuccess.currentTime = 0; audioSuccess.play().catch(()=>{});
+                        audioSuccess.currentTime = 0;
+                        audioSuccess.play();
                         showToast('success', res.message);
                         setTimeout(resetKiosk, 4000);
                     } else {
                         showError(res.message);
                     }
                 },
-                error: function() { showError('Gagal menyimpan data presensi'); }
+                error: function() {
+                    showError('Gagal menyimpan data presensi');
+                }
             });
         });
     }
 
-    // ── Boot Sequence ────────────────────────────────────────────────────────
-    async function boot() {
-        // Wait for webcam to be ready
-        await new Promise(r => setTimeout(r, 2000));
+    // ---- Error Handler ----
+    function showError(msg) {
+        showLoadingOverlay(false);
+        audioError.currentTime = 0;
+        audioError.play();
 
-        const modelOk = await loadModels();
-        if (!modelOk) {
-            setLoadProgress(100, 'Gagal memuat model');
-            setInstructionFallback();
-            return;
+        // If employee card is visible, turn it red
+        if ($('#employee-card').is(':visible')) {
+            $('#employee-card').addClass('error');
+            const badge = $('#emp-status');
+            badge.removeClass('masuk pulang').addClass('error')
+                 .html('<ion-icon name="close-circle-outline"></ion-icon> GAGAL');
         }
 
-        const matcher = await buildFaceMatcher();
-        setLoadProgress(100, 'Siap!');
+        showToast('error', msg);
+        setTimeout(resetKiosk, 3000);
+    }
 
-        if (!matcher) {
-            console.warn('No face data found – RFID fallback only');
-            setInstructionFallback();
-            document.getElementById('fr-status-label').innerHTML =
-                '<ion-icon name="card-outline" style="vertical-align:middle;"></ion-icon> Mode RFID';
+    // ---- Toast ----
+    function showToast(type, msg) {
+        if (type === 'success') {
+            $('#toast-msg').text(msg);
+            $('#toast-success').fadeIn(300);
+            setTimeout(() => $('#toast-success').fadeOut(300), 4000);
         } else {
-            faceMatcher = matcher;
-            modelsReady = true;
-            setInstructionReady();
-            document.getElementById('fr-status-label').innerHTML =
-                '<ion-icon name="scan-circle-outline" style="vertical-align:middle;"></ion-icon> Face Recognition Aktif';
-            startRecognitionLoop();
+            $('#toast-err-msg').text(msg);
+            $('#toast-error').fadeIn(300);
+            setTimeout(() => $('#toast-error').fadeOut(300), 3000);
         }
     }
 
-    boot();
+    // ---- Reset ----
+    function resetKiosk() {
+        showLoadingOverlay(false);
+        $('#employee-card').removeClass('error').fadeOut(200, function() {
+            $('#instruction-card').fadeIn(300);
+            $('#emp-name').text('-');
+            $('#emp-nik').text('-');
+            $('#emp-jabatan').text('-');
+            $('#emp-dept').text('-');
+            $('#emp-jadwal').text('-');
+            $('#emp-avatar').html('<ion-icon name="person"></ion-icon>');
+            $('#emp-status').removeClass('error pulang').addClass('masuk')
+                .html('<ion-icon name="log-in-outline"></ion-icon> ABSEN MASUK');
+        });
+        rfidBuffer = '';
+        rfidInput.value = '';
+        isProcessing = false;
+    }
+
+    // ---- Loading Overlay ----
+    function showLoadingOverlay(show) {
+        if (show) {
+            $('#loading-overlay').addClass('active');
+        } else {
+            $('#loading-overlay').removeClass('active');
+        }
+    }
 })();
 </script>
 @endpush

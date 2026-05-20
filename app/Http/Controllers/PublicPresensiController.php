@@ -41,53 +41,6 @@ class PublicPresensiController extends Controller
         ]);
     }
 
-    public function checkNik(Request $request)
-    {
-        $nik = $request->nik;
-        $karyawan = Karyawan::leftJoin('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
-            ->leftJoin('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
-            ->select('karyawan.*', 'jabatan.nama_jabatan', 'departemen.nama_dept')
-            ->where('karyawan.nik', $nik)
-            ->first();
-
-        if (!$karyawan) {
-            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan'], 200);
-        }
-
-        if ($karyawan->status_aktif_karyawan != '1') {
-            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak aktif'], 200);
-        }
-
-        $generalsetting = Pengaturanumum::where('id', 1)->first();
-        $cabang = Cabang::where('kode_cabang', $karyawan->kode_cabang)->first();
-        $timezone_cabang = $cabang->timezone ?? $generalsetting->timezone ?? config('app.timezone');
-        $carbon_now = Carbon::now($timezone_cabang);
-        $tanggal_sekarang = $carbon_now->format('Y-m-d');
-
-        $presensi_hariini = Presensi::where('nik', $karyawan->nik)
-            ->where('tanggal', $tanggal_sekarang)
-            ->first();
-
-        $type = ($presensi_hariini && $presensi_hariini->jam_in != null) ? 'out' : 'in';
-        $jam_kerja = $this->getJamKerjaKaryawan($karyawan);
-
-        $foto = null;
-        if (!empty($karyawan->foto) && Storage::disk('public')->exists('karyawan/' . $karyawan->foto)) {
-            $foto = url('/storage/karyawan/' . $karyawan->foto);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'nama' => $karyawan->nama_karyawan,
-            'nik' => $karyawan->nik,
-            'jabatan' => $karyawan->nama_jabatan ?? '-',
-            'departemen' => $karyawan->nama_dept ?? '-',
-            'foto' => $foto,
-            'jam_kerja' => $jam_kerja ? $jam_kerja->nama_jam_kerja . ' (' . $jam_kerja->jam_masuk . ' - ' . $jam_kerja->jam_pulang . ')' : 'Tidak ada jadwal',
-            'type' => $type
-        ]);
-    }
-
     public function checkRfid(Request $request)
     {
         $rfid_uid = $request->rfid_uid;
@@ -143,13 +96,7 @@ class PublicPresensiController extends Controller
     {
         $generalsetting = Pengaturanumum::where('id', 1)->first();
         $rfid_uid = $request->rfid_uid;
-
-        // Support face recognition mode (nik direct) alongside RFID mode
-        if ($rfid_uid) {
-            $karyawan = Karyawan::where('rfid_uid', $rfid_uid)->first();
-        } else {
-            $karyawan = Karyawan::where('nik', $request->nik)->first();
-        }
+        $karyawan = Karyawan::where('rfid_uid', $rfid_uid)->first();
 
         if (!$karyawan) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan'], 200);
@@ -291,21 +238,20 @@ class PublicPresensiController extends Controller
                     Storage::put($file, $image_base64);
 
                     // Notifikasi WA (try-catch agar error WA tidak menggagalkan absen)
-                    // DISABLED: Notifikasi WA untuk absen dinonaktifkan
-                    // if ($generalsetting->notifikasi_wa == 1) {
-                    //     try {
-                    //         $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Masuk pada " . $jam_presensi;
-                    //         if ($generalsetting->tujuan_notifikasi_wa == 0) {
-                    //             if ($karyawan->no_hp != "") {
-                    //                 dispatch(new SendWaMessage($karyawan->no_hp, $message));
-                    //             }
-                    //         } else {
-                    //             dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
-                    //         }
-                    //     } catch (\Exception $waEx) {
-                    //         Log::error('Gagal kirim WA (kiosk masuk)', ['nik' => $karyawan->nik, 'error' => $waEx->getMessage()]);
-                    //     }
-                    // }
+                    if ($generalsetting->notifikasi_wa == 1) {
+                        try {
+                            $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Masuk pada " . $jam_presensi;
+                            if ($generalsetting->tujuan_notifikasi_wa == 0) {
+                                if ($karyawan->no_hp != "") {
+                                    dispatch(new SendWaMessage($karyawan->no_hp, $message));
+                                }
+                            } else {
+                                dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
+                            }
+                        } catch (\Exception $waEx) {
+                            Log::error('Gagal kirim WA (kiosk masuk)', ['nik' => $karyawan->nik, 'error' => $waEx->getMessage()]);
+                        }
+                    }
 
                     return response()->json(['status' => 'success', 'message' => 'Berhasil Absen Masuk', 'type' => 'masuk']);
                 } catch (\Exception $e) {
@@ -343,21 +289,20 @@ class PublicPresensiController extends Controller
                     Storage::put($file, $image_base64);
 
                     // Notifikasi WA
-                    // DISABLED: Notifikasi WA untuk absen dinonaktifkan
-                    // if ($generalsetting->notifikasi_wa == 1) {
-                    //     try {
-                    //         $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Pulang pada " . $jam_presensi . " Hati Hati di Jalan";
-                    //         if ($generalsetting->tujuan_notifikasi_wa == 0) {
-                    //             if ($karyawan->no_hp != "") {
-                    //                 dispatch(new SendWaMessage($karyawan->no_hp, $message));
-                    //             }
-                    //         } else {
-                    //             dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
-                    //         }
-                    //     } catch (\Exception $waEx) {
-                    //         Log::error('Gagal kirim WA (kiosk pulang)', ['nik' => $karyawan->nik, 'error' => $waEx->getMessage()]);
-                    //     }
-                    // }
+                    if ($generalsetting->notifikasi_wa == 1) {
+                        try {
+                            $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Pulang pada " . $jam_presensi . " Hati Hati di Jalan";
+                            if ($generalsetting->tujuan_notifikasi_wa == 0) {
+                                if ($karyawan->no_hp != "") {
+                                    dispatch(new SendWaMessage($karyawan->no_hp, $message));
+                                }
+                            } else {
+                                dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
+                            }
+                        } catch (\Exception $waEx) {
+                            Log::error('Gagal kirim WA (kiosk pulang)', ['nik' => $karyawan->nik, 'error' => $waEx->getMessage()]);
+                        }
+                    }
 
                     return response()->json(['status' => 'success', 'message' => 'Berhasil Absen Pulang', 'type' => 'pulang']);
                 } catch (\Exception $e) {
