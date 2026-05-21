@@ -177,6 +177,31 @@ class RecruitmentController extends Controller
             'cv.max'                 => 'Ukuran CV maksimal 5MB.',
         ]);
 
+        // Cek duplikat: email atau no_hp yang masih dalam proses aktif
+        $activeStatuses = ['pending', 'review', 'interview', 'offering'];
+
+        if ($request->filled('email')) {
+            $duplikatEmail = Recruitment::where('email', $request->email)
+                ->whereIn('status', $activeStatuses)
+                ->first();
+
+            if ($duplikatEmail) {
+                return back()->withInput()->withErrors([
+                    'email' => 'Email ini sudah terdaftar dan masih dalam proses seleksi (kode: ' . $duplikatEmail->kode_recruitment . '). Silakan tunggu hasil seleksi sebelum melamar kembali.',
+                ]);
+            }
+        }
+
+        $duplikatHp = Recruitment::where('no_hp', $request->no_hp)
+            ->whereIn('status', $activeStatuses)
+            ->first();
+
+        if ($duplikatHp) {
+            return back()->withInput()->withErrors([
+                'no_hp' => 'Nomor HP ini sudah terdaftar dan masih dalam proses seleksi (kode: ' . $duplikatHp->kode_recruitment . '). Silakan tunggu hasil seleksi sebelum melamar kembali.',
+            ]);
+        }
+
         // Upload foto
         $fotoPath = null;
         if ($request->hasFile('foto')) {
