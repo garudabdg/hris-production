@@ -59,6 +59,7 @@ use App\Http\Controllers\RecruitmentVacancyController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetPinjamController;
 use App\Http\Controllers\AssetTransactionController;
+use App\Http\Controllers\AssetPerawatanController;
 use App\Http\Controllers\ItTicketController;
 
 
@@ -778,6 +779,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/', 'store')->name('store');
         Route::get('/{id}/show', 'show')->name('show');
         Route::delete('/{id}', 'destroy')->name('destroy');
+    });
+
+    // Asset Perawatan (Checklist)
+    Route::prefix('asset-perawatan')->name('asset-perawatan.')->controller(AssetPerawatanController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::get('/checklist-items', 'getChecklistItems')->name('checklist-items');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{assetPerawatan}', 'show')->name('show');
+        Route::delete('/{assetPerawatan}', 'destroy')->name('destroy');
     });
 });
 

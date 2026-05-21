@@ -16,6 +16,12 @@
                     <small class="text-muted"><code>{{ $asset->kode_asset }}</code></small>
                 </div>
                 <div class="d-flex gap-2">
+                    @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.perawatan.create'))
+                    <a href="{{ route('asset-perawatan.create', ['kode_asset' => $asset->kode_asset]) }}"
+                        class="btn btn-sm btn-outline-info">
+                        <i class="ti ti-checklist me-1"></i> Perawatan
+                    </a>
+                    @endif
                     <a href="{{ route('assets.edit', $asset->id) }}" class="btn btn-sm btn-primary">
                         <i class="ti ti-pencil me-1"></i> Edit
                     </a>
@@ -117,4 +123,52 @@
         </div>
     </div>
 </div>
+
+{{-- Riwayat Perawatan --}}
+@if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.perawatan.index'))
+@php $perawatanList = $asset->perawatan()->with('items','user')->orderByDesc('tanggal_perawatan')->limit(5)->get(); @endphp
+@if ($perawatanList->isNotEmpty())
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h6 class="mb-0"><i class="ti ti-checklist me-2"></i>Riwayat Perawatan</h6>
+                <a href="{{ route('asset-perawatan.index', ['kode_asset' => $asset->kode_asset]) }}"
+                    class="btn btn-outline-primary btn-sm">Lihat Semua</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kode</th>
+                            <th>Tanggal</th>
+                            <th>Petugas</th>
+                            <th>Item</th>
+                            <th>Hasil</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($perawatanList as $p)
+                        <tr>
+                            <td><code>{{ $p->kode_perawatan }}</code></td>
+                            <td>{{ $p->tanggal_perawatan?->format('d/m/Y') }}</td>
+                            <td>{{ $p->petugas ?? $p->user?->name ?? '-' }}</td>
+                            <td><span class="badge bg-label-secondary">{{ $p->items->count() }} item</span></td>
+                            <td>{!! $p->hasil_badge !!}</td>
+                            <td>
+                                <a href="{{ route('asset-perawatan.show', $p->id) }}"
+                                    class="btn btn-xs btn-outline-primary btn-sm"><i class="ti ti-eye"></i></a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+@endif
+
 @endsection

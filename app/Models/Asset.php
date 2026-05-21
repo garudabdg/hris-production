@@ -96,6 +96,11 @@ class Asset extends Model
         return $this->hasMany(AssetTransaction::class, 'kode_asset', 'kode_asset');
     }
 
+    public function perawatan()
+    {
+        return $this->hasMany(\App\Models\AssetPerawatan::class, 'kode_asset', 'kode_asset');
+    }
+
     public function getKondisiBadgeAttribute(): string
     {
         return match($this->kondisi) {

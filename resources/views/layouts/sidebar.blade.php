@@ -449,7 +449,7 @@
          @endcan
 
          @can('asset.index')
-             <li class="menu-item {{ request()->is(['manajemen-aset', 'manajemen-aset/*', 'asset-pinjam', 'asset-pinjam/*', 'asset-transaksi', 'asset-transaksi/*']) ? 'open' : '' }}">
+             <li class="menu-item {{ request()->is(['manajemen-aset', 'manajemen-aset/*', 'asset-pinjam', 'asset-pinjam/*', 'asset-transaksi', 'asset-transaksi/*', 'asset-perawatan', 'asset-perawatan/*']) ? 'open' : '' }}">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-package"></i>
                      <div>Manajemen Aset</div>
@@ -471,6 +471,13 @@
                      <li class="menu-item {{ request()->is(['asset-transaksi', 'asset-transaksi/*']) ? 'active' : '' }}">
                          <a href="{{ route('asset-transaksi.index') }}" class="menu-link">
                              <div>Transaksi Barang</div>
+                         </a>
+                     </li>
+                     @endcan
+                     @can('asset.perawatan.index')
+                     <li class="menu-item {{ request()->is(['asset-perawatan', 'asset-perawatan/*']) ? 'active' : '' }}">
+                         <a href="{{ route('asset-perawatan.index') }}" class="menu-link">
+                             <div>Checklist Perawatan</div>
                          </a>
                      </li>
                      @endcan
