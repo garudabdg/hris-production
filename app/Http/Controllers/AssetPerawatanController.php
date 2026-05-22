@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\AssetCategory;
 use App\Models\AssetPerawatan;
 use App\Models\AssetPerawatanItem;
 use Illuminate\Http\Request;
@@ -96,6 +97,7 @@ class AssetPerawatanController extends Controller
         abort_unless($user->isSuperAdmin() || $user->can('asset.perawatan.create'), 403);
 
         $assets = $this->scopedAssetQuery()->orderBy('nama_asset')->get();
+        $categories = AssetCategory::orderBy('nama_kategori')->get();
 
         $selectedAsset     = null;
         $checklistItems    = [];
@@ -110,7 +112,7 @@ class AssetPerawatanController extends Controller
             }
         }
 
-        return view('asset-perawatan.create', compact('assets', 'selectedAsset', 'checklistItems'));
+        return view('asset-perawatan.create', compact('assets', 'selectedAsset', 'checklistItems', 'categories'));
     }
 
     public function getChecklistItems(Request $request)

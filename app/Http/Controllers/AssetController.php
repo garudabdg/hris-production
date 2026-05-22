@@ -8,6 +8,7 @@ use App\Imports\AssetImport;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\Cabang;
+use App\Models\Karyawan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -22,7 +23,7 @@ class AssetController extends Controller
     private function scopedQuery()
     {
         $user  = auth()->user();
-        $query = Asset::with(['category', 'cabang']);
+        $query = Asset::with(['category', 'cabang', 'pic']);
 
         if (!$user->isSuperAdmin()) {
             $userCabangs = $user->getCabangCodes();
@@ -98,7 +99,17 @@ class AssetController extends Controller
         abort_unless($user->isSuperAdmin() || $user->can('asset.create'), 403);
         $categories = AssetCategory::orderBy('nama_kategori')->get();
         $cabang     = $user->getCabang();
-        return view('assets.create', compact('categories', 'cabang'));
+
+        $qKaryawan = Karyawan::query()->where('status_aktif_karyawan', 1);
+        if (!$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            if (!empty($userCabangs)) {
+                $qKaryawan->whereIn('kode_cabang', $userCabangs);
+            }
+        }
+        $karyawan = $qKaryawan->orderBy('nama_karyawan')->get(['nik', 'nama_karyawan']);
+
+        return view('assets.create', compact('categories', 'cabang', 'karyawan'));
     }
 
     public function store(Request $request)
@@ -111,12 +122,14 @@ class AssetController extends Controller
             'nama_asset'       => 'required|string|max:255',
             'category_id'      => 'nullable|exists:asset_categories,id',
             'kode_cabang'      => 'nullable|exists:cabang,kode_cabang',
+            'nik'              => 'nullable|exists:karyawan,nik',
             'merk'             => 'nullable|string|max:100',
             'no_seri'          => 'nullable|string|max:100',
             'kondisi'          => 'required|in:baik,rusak,dalam_perbaikan',
             'status'           => 'required|in:tersedia,dipinjam,tidak_aktif',
             'tanggal_perolehan'=> 'nullable|date',
             'nilai_perolehan'  => 'nullable|numeric|min:0',
+            'jumlah_stok'      => 'nullable|integer|min:0',
             'lokasi'           => 'nullable|string|max:255',
             'deskripsi'        => 'nullable|string',
             'catatan'          => 'nullable|string',
@@ -157,10 +170,26 @@ class AssetController extends Controller
 
     public function show(Asset $asset)
     {
-        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.index'), 403);
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show'), 403);
         $this->authorizeAsset($asset);
-        $asset->load(['category', 'cabang']);
-        return view('assets.show', compact('asset'));
+        $asset->load(['category', 'cabang', 'pic']);
+
+        $activePinjam = null;
+        if ($asset->status === 'dipinjam') {
+            $activePinjam = \App\Models\AssetPinjam::with('karyawan')
+                ->where('kode_asset', $asset->kode_asset)
+                ->where('status', 1) // 1 = Sedang Dipinjam
+                ->first();
+        }
+
+        $pinjamList = \App\Models\AssetPinjam::with('karyawan')
+            ->where('kode_asset', $asset->kode_asset)
+            ->orderByDesc('tanggal_pinjam')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
+
+        return view('assets.show', compact('asset', 'activePinjam', 'pinjamList'));
     }
 
     public function edit(Asset $asset)
@@ -170,7 +199,17 @@ class AssetController extends Controller
         $user       = auth()->user();
         $categories = AssetCategory::orderBy('nama_kategori')->get();
         $cabang     = $user->getCabang();
-        return view('assets.edit', compact('asset', 'categories', 'cabang'));
+
+        $qKaryawan = Karyawan::query()->where('status_aktif_karyawan', 1);
+        if (!$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            if (!empty($userCabangs)) {
+                $qKaryawan->whereIn('kode_cabang', $userCabangs);
+            }
+        }
+        $karyawan = $qKaryawan->orderBy('nama_karyawan')->get(['nik', 'nama_karyawan']);
+
+        return view('assets.edit', compact('asset', 'categories', 'cabang', 'karyawan'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -183,12 +222,14 @@ class AssetController extends Controller
             'nama_asset'       => 'required|string|max:255',
             'category_id'      => 'nullable|exists:asset_categories,id',
             'kode_cabang'      => 'nullable|exists:cabang,kode_cabang',
+            'nik'              => 'nullable|exists:karyawan,nik',
             'merk'             => 'nullable|string|max:100',
             'no_seri'          => 'nullable|string|max:100',
             'kondisi'          => 'required|in:baik,rusak,dalam_perbaikan',
             'status'           => 'required|in:tersedia,dipinjam,tidak_aktif',
             'tanggal_perolehan'=> 'nullable|date',
             'nilai_perolehan'  => 'nullable|numeric|min:0',
+            'jumlah_stok'      => 'nullable|integer|min:0',
             'lokasi'           => 'nullable|string|max:255',
             'deskripsi'        => 'nullable|string',
             'catatan'          => 'nullable|string',
@@ -231,6 +272,45 @@ class AssetController extends Controller
         return redirect()->route('assets.index')->with('success', 'Asset berhasil diperbarui.');
     }
 
+    public function generateCode(Request $request)
+    {
+        $user = auth()->user();
+        abort_unless($user->isSuperAdmin() || $user->can('asset.create') || $user->can('asset.edit'), 403);
+
+        $categoryId = $request->get('category_id');
+        if (!$categoryId) {
+            return response()->json(['code' => '']);
+        }
+
+        $category = AssetCategory::find($categoryId);
+        if (!$category) {
+            return response()->json(['code' => '']);
+        }
+
+        // Clean category name: keep only letters and numbers
+        $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', $category->nama_kategori);
+        // Get the first 3 characters and convert to uppercase
+        $catCode = strtoupper(substr($cleanName, 0, 3));
+        
+        // If the cleaned category name is empty, fallback to GEN (General)
+        if (strlen($catCode) === 0) {
+            $catCode = 'GEN';
+        }
+
+        $prefix = 'AST-' . $catCode . '-';
+
+        // Query the latest asset code with this prefix
+        $lastAsset = Asset::where('kode_asset', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(kode_asset) DESC')
+            ->orderBy('kode_asset', 'desc')
+            ->first();
+
+        // Increment or start at 0001
+        $newCode = buatkode($lastAsset ? $lastAsset->kode_asset : '', $prefix, 4);
+
+        return response()->json(['code' => $newCode]);
+    }
+
     public function destroy(Asset $asset)
     {
         abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.delete'), 403);
@@ -253,14 +333,14 @@ class AssetController extends Controller
 
     public function kategoriIndex()
     {
-        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori'), 403);
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.index'), 403);
         $categories = AssetCategory::withCount('assets')->orderBy('nama_kategori')->paginate(20);
         return view('assets.kategori.index', compact('categories'));
     }
 
     public function kategoriStore(Request $request)
     {
-        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori'), 403);
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.create'), 403);
         $request->validate([
             'nama_kategori'   => 'required|string|max:100|unique:asset_categories,nama_kategori',
             'deskripsi'       => 'nullable|string',
@@ -278,7 +358,7 @@ class AssetController extends Controller
 
     public function kategoriUpdate(Request $request, AssetCategory $category)
     {
-        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori'), 403);
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.edit'), 403);
         $request->validate([
             'nama_kategori'   => 'required|string|max:100|unique:asset_categories,nama_kategori,' . $category->id,
             'deskripsi'       => 'nullable|string',
@@ -317,7 +397,7 @@ class AssetController extends Controller
 
     public function kategoriDestroy(AssetCategory $category)
     {
-        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori'), 403);
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.delete'), 403);
         if ($category->assets()->count() > 0) {
             return redirect()->route('assets.kategori.index')->with('error', 'Kategori tidak bisa dihapus karena masih digunakan.');
         }

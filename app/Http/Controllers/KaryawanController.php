@@ -17,6 +17,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use App\Models\Userkaryawan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -737,7 +738,7 @@ class KaryawanController extends Controller
         $kode_dept   = array_filter((array) $request->kode_dept);
 
         // Batasi akses berdasarkan cabang user login
-        $allowedCabang = Auth::user()->getCabangCodes();
+        $allowedCabang = auth()->user()->getCabangCodes();
 
         $query = Karyawan::query();
 

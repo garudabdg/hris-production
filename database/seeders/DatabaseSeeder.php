@@ -60,6 +60,7 @@ class DatabaseSeeder extends Seeder
             KunjunganPermissionSeeder::class,
             Laporanpermissionseeder::class,
             LaporanCutiPermissionSeeder::class,
+            LaporanLemburPermissionSeeder::class,
             Lemburpermissionseeder::class,
             PelanggaranPermissionSeeder::class,
             Pengaturanumumpermissionseeder::class,
@@ -75,6 +76,8 @@ class DatabaseSeeder extends Seeder
             KpiPermissionSeeder::class,
             AjuanJadwalPermissionSeeder::class,
             LaporanJadwalPermissionSeeder::class,
+            AssetPermissionSeeder::class,
+            AssetPerawatanPermissionSeeder::class,
             
             // Specific Assignments
             givePermissionizindinastokaryawanseeder::class,

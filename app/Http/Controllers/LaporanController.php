@@ -1171,4 +1171,94 @@ class LaporanController extends Controller
 
         return view('laporan.jadwal_cetak', $data);
     }
+
+    public function lembur()
+    {
+        // Auto-seed permission if it doesn't exist
+        $permission = \Spatie\Permission\Models\Permission::where('name', 'laporan.lembur')->first();
+        if (!$permission) {
+            $permissiongroup = \App\Models\Permission_group::firstOrCreate(['name' => 'Laporan']);
+            $permission = \Spatie\Permission\Models\Permission::firstOrCreate(
+                ['name' => 'laporan.lembur'], 
+                ['id_permission_group' => $permissiongroup->id]
+            );
+            $role = \Spatie\Permission\Models\Role::findById(1);
+            if ($role && !$role->hasPermissionTo($permission)) {
+                $role->givePermissionTo($permission);
+            }
+        }
+
+        $data['cabang'] = Auth::user()->getCabang();
+        $data['departemen'] = Auth::user()->getDepartemen();
+        return view('laporan.lembur', $data);
+    }
+
+    public function cetaklembur(Request $request)
+    {
+        $generalsetting = Pengaturanumum::where('id', 1)->first();
+        $periode_dari = $request->dari;
+        $periode_sampai = $request->sampai;
+        $status = $request->status;
+
+        $q_lembur = \App\Models\Lembur::query()
+            ->join('karyawan', 'lembur.nik', '=', 'karyawan.nik')
+            ->leftJoin('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
+            ->leftJoin('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
+            ->leftJoin('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
+            ->select(
+                'lembur.*',
+                'karyawan.nama_karyawan',
+                'karyawan.nik_show',
+                'jabatan.nama_jabatan',
+                'departemen.nama_dept',
+                'cabang.nama_cabang'
+            )
+            ->whereBetween('lembur.tanggal', [$periode_dari, $periode_sampai]);
+
+        $user = auth()->user();
+        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+            
+            if (!empty($userCabangs)) {
+                $q_lembur->whereIn('karyawan.kode_cabang', $userCabangs);
+            } else {
+                $q_lembur->whereRaw('1 = 0');
+            }
+            
+            if (!empty($userDepartemens)) {
+                $q_lembur->whereIn('karyawan.kode_dept', $userDepartemens);
+            } else {
+                $q_lembur->whereRaw('1 = 0');
+            }
+        }
+
+        if (!empty($request->kode_cabang)) {
+            $q_lembur->whereIn('karyawan.kode_cabang', (array)$request->kode_cabang);
+        }
+        if (!empty($request->kode_dept)) {
+            $q_lembur->whereIn('karyawan.kode_dept', (array)$request->kode_dept);
+        }
+        if (!empty($request->nik)) {
+            $q_lembur->whereIn('karyawan.nik', (array)$request->nik);
+        }
+        if ($status !== null && $status !== '') {
+            $q_lembur->where('lembur.status', $status);
+        }
+
+        $lembur_data = $q_lembur->orderBy('lembur.tanggal', 'asc')
+            ->orderBy('karyawan.nama_karyawan', 'asc')
+            ->get();
+
+        $data['lembur'] = $lembur_data;
+        $data['periode_dari'] = $periode_dari;
+        $data['periode_sampai'] = $periode_sampai;
+        $data['generalsetting'] = $generalsetting;
+
+        if ($request->has('exportButton')) {
+            return Excel::download(new \App\Exports\LemburExport($data), 'Laporan Lembur ' . $periode_dari . ' - ' . $periode_sampai . '.xlsx');
+        }
+
+        return view('laporan.lembur_cetak', $data);
+    }
 }

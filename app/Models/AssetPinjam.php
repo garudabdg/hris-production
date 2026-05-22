@@ -36,7 +36,7 @@ class AssetPinjam extends Model
 
     public function approvals()
     {
-        return $this->morphMany(Approval::class, 'approvable');
+        return $this->morphMany(Approval::class, 'approvable', 'approvable_type', 'approvable_id', 'kode_pinjam');
     }
 
     /**

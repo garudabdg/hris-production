@@ -191,6 +191,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/roles/{id}/delete', 'destroy')->name('roles.delete');
         Route::get('/roles/{id}/createrolepermission', 'createrolepermission')->name('roles.createrolepermission');
         Route::post('/roles/{id}/storerolepermission', 'storerolepermission')->name('roles.storerolepermission');
+        Route::get('/roles/asset-permissions', 'assetPermissions')->name('roles.asset-permissions');
+        Route::put('/roles/{roleId}/update-asset-permissions', 'updateAssetPermission')->name('roles.update-asset-permissions');
     });
 
 
@@ -602,6 +604,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/laporan/cetakcuti', 'cetakcuti')->name('laporan.cetakcuti')->can('laporan.cuti');
         Route::get('/laporan/jadwal', 'jadwal')->name('laporan.jadwal')->can('laporan.jadwal');
         Route::post('/laporan/cetakjadwal', 'cetakjadwal')->name('laporan.cetakjadwal')->can('laporan.jadwal');
+        Route::get('/laporan/lembur', 'lembur')->name('laporan.lembur')->can('laporan.lembur');
+        Route::post('/laporan/cetaklembur', 'cetaklembur')->name('laporan.cetaklembur')->can('laporan.lembur');
     });
 
     Route::controller(FacerecognitionController::class)->group(function () {
@@ -748,6 +752,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/kategori', 'kategoriStore')->name('kategori.store');
         Route::put('/kategori/{category}', 'kategoriUpdate')->name('kategori.update');
         Route::delete('/kategori/{category}', 'kategoriDestroy')->name('kategori.destroy');
+        Route::get('/generate-code', 'generateCode')->name('generate-code');
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');

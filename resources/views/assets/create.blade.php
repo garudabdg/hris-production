@@ -20,7 +20,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Kode Aset <span class="text-danger">*</span></label>
-                            <input type="text" name="kode_asset" class="form-control @error('kode_asset') is-invalid @enderror"
+                            <input type="text" name="kode_asset" id="kode_asset" class="form-control @error('kode_asset') is-invalid @enderror"
                                 value="{{ old('kode_asset') }}" placeholder="Cth: AST-001">
                             @error('kode_asset') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
@@ -32,7 +32,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Kategori</label>
-                            <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+                            <select name="category_id" id="category_id" class="form-select @error('category_id') is-invalid @enderror">
                                 <option value="">-- Pilih Kategori --</option>
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
@@ -53,6 +53,18 @@
                                 @endforeach
                             </select>
                             @error('kode_cabang') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pemilik / Penanggung Jawab</label>
+                            <select name="nik" id="nik" class="form-select select2Karyawan @error('nik') is-invalid @enderror">
+                                <option value="">-- Pilih Karyawan --</option>
+                                @foreach ($karyawan as $k)
+                                    <option value="{{ $k->nik }}" {{ old('nik') == $k->nik ? 'selected' : '' }}>
+                                        {{ $k->nama_karyawan }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('nik') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Merk</label>
@@ -95,6 +107,12 @@
                             <input type="number" name="nilai_perolehan" class="form-control @error('nilai_perolehan') is-invalid @enderror"
                                 value="{{ old('nilai_perolehan') }}" placeholder="0">
                             @error('nilai_perolehan') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Jumlah Stok</label>
+                            <input type="number" name="jumlah_stok" class="form-control @error('jumlah_stok') is-invalid @enderror"
+                                value="{{ old('jumlah_stok', 1) }}" placeholder="1">
+                            @error('jumlah_stok') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Lokasi</label>
@@ -185,6 +203,42 @@
 
 @push('myscript')
 <script>
+$(function() {
+    const select2Karyawan = $('.select2Karyawan');
+    if (select2Karyawan.length) {
+        select2Karyawan.each(function() {
+            var $this = $(this);
+            $this.wrap('<div class="position-relative"></div>').select2({
+                placeholder: '-- Pilih Karyawan --',
+                allowClear: true,
+                dropdownParent: $this.parent()
+            });
+        });
+    }
+
+    $('#category_id').on('change', function() {
+        const categoryId = $(this).val();
+        if (categoryId) {
+            $.ajax({
+                url: "{{ route('assets.generate-code') }}",
+                type: "GET",
+                data: { category_id: categoryId },
+                dataType: "json",
+                success: function(response) {
+                    if (response && response.code) {
+                        $('#kode_asset').val(response.code);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Gagal mengambil kode aset otomatis:', xhr);
+                }
+            });
+        } else {
+            $('#kode_asset').val('');
+        }
+    });
+});
+
 function calcValuation() {
     const c = parseInt(document.getElementById('val_c').value) || 0;
     const a = parseInt(document.getElementById('val_a').value) || 0;

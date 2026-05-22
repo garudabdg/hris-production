@@ -93,20 +93,26 @@
             <small class="text-muted">Kelola seluruh aset perusahaan</small>
         </div>
         <div class="d-flex gap-2">
+            @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.index'))
             <a href="{{ route('assets.kategori.index') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="ti ti-tags me-1"></i> Kategori
             </a>
+            @endif
+            @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.export'))
             <a href="{{ route('assets.export', request()->all()) }}" class="btn btn-outline-success btn-sm">
                 <i class="ti ti-file-spreadsheet me-1"></i> Export Excel
             </a>
+            @endif
             @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.import'))
             <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport">
                 <i class="ti ti-upload me-1"></i> Import
             </button>
             @endif
+            @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.create'))
             <a href="{{ route('assets.create') }}" class="btn btn-primary btn-sm">
                 <i class="ti ti-plus me-1"></i> Tambah Aset
             </a>
+            @endif
         </div>
     </div>
     <div class="card-body border-bottom pb-3">
@@ -169,6 +175,7 @@
                     <th>Merk / No. Seri</th>
                     <th>Kondisi</th>
                     <th>Status</th>
+                    <th>Stok</th>
                     <th>Valuation</th>
                     <th>Harga Pembelian</th>
                     <th class="text-center">Aksi</th>
@@ -205,27 +212,39 @@
                             </div>
                         </td>
                         <td>{{ $a->category->nama_kategori ?? '-' }}</td>
-                        <td>{{ optional($a->cabang)->nama_cabang ?? '-' }}</td>
+                        <td>
+                            {{ optional($a->cabang)->nama_cabang ?? '-' }}
+                            @if ($a->pic)
+                                <br><small class="text-muted" title="Pemilik / Penanggung Jawab"><i class="ti ti-user me-1" style="font-size:11px;"></i>{{ $a->pic->nama_karyawan }}</small>
+                            @endif
+                        </td>
                         <td>
                             <span>{{ $a->merk ?? '-' }}</span>
                             @if ($a->no_seri) <br><small class="text-muted">{{ $a->no_seri }}</small> @endif
                         </td>
                         <td>{!! $a->kondisi_badge !!}</td>
                         <td>{!! $a->status_badge !!}</td>
+                        <td>{{ $a->jumlah_stok ?? '-' }}</td>
                         <td>{!! $a->asset_valuation_badge ?? '<span class="text-muted small">-</span>' !!}</td>
                         <td>{{ $a->nilai_perolehan ? 'Rp ' . number_format($a->nilai_perolehan, 0, ',', '.') : '-' }}</td>
                         <td class="text-center">
                             <div class="d-flex gap-1 justify-content-center">
-                                <a href="{{ route('assets.show', $a->id) }}" class="btn btn-sm btn-outline-info" title="Detail">
-                                    <i class="ti ti-eye"></i>
-                                </a>
-                                <a href="{{ route('assets.edit', $a->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                    <i class="ti ti-pencil"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
-                                    data-id="{{ $a->id }}" data-nama="{{ $a->nama_asset }}" title="Hapus">
-                                    <i class="ti ti-trash"></i>
-                                </button>
+                                @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show'))
+                                    <a href="{{ route('assets.show', $a->id) }}" class="btn btn-sm btn-outline-info" title="Detail">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                @endif
+                                @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.edit'))
+                                    <a href="{{ route('assets.edit', $a->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="ti ti-pencil"></i>
+                                    </a>
+                                @endif
+                                @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.delete'))
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
+                                        data-id="{{ $a->id }}" data-nama="{{ $a->nama_asset }}" title="Hapus">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                @endif
                             </div>
                         </td>
                     </tr>

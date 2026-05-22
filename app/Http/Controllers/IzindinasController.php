@@ -48,7 +48,7 @@ class IzindinasController extends Controller
             }
         }
 
-        $qizin->select('presensi_izindinas.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'karyawan.kode_dept');
+        $qizin->select('presensi_izindinas.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'karyawan.foto', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'karyawan.kode_dept');
         if (!empty($request->dari) && !empty($request->sampai)) {
             $qizin->whereBetween('presensi_izindinas.tanggal', [$request->dari, $request->sampai]);
         }

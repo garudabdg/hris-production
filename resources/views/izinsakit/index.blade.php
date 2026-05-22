@@ -84,7 +84,7 @@
                                                 @php
                                                     $path = Storage::url('karyawan/'.$d->foto);
                                                 @endphp
-                                                @if (!empty($d->foto) && Storage::disk('public')->exists('karyawan/' . $d->foto))
+                                                @if (!empty($d->foto) && Storage::disk('public')->exists('/karyawan/' . $d->foto))
                                                     <img src="{{ $path }}" alt="Avatar"
                                                         class="rounded-circle"
                                                         style="width: 40px; height: 40px; object-fit: cover;">

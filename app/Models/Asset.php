@@ -16,6 +16,7 @@ class Asset extends Model
         'nama_asset',
         'category_id',
         'kode_cabang',
+        'nik',
         'merk',
         'no_seri',
         'kondisi',
@@ -91,6 +92,11 @@ class Asset extends Model
         return $this->belongsTo(Cabang::class, 'kode_cabang', 'kode_cabang');
     }
 
+    public function pic()
+    {
+        return $this->belongsTo(Karyawan::class, 'nik', 'nik');
+    }
+
     public function transactions()
     {
         return $this->hasMany(AssetTransaction::class, 'kode_asset', 'kode_asset');
@@ -99,6 +105,11 @@ class Asset extends Model
     public function perawatan()
     {
         return $this->hasMany(\App\Models\AssetPerawatan::class, 'kode_asset', 'kode_asset');
+    }
+
+    public function peminjaman()
+    {
+        return $this->hasMany(AssetPinjam::class, 'kode_asset', 'kode_asset');
     }
 
     public function getKondisiBadgeAttribute(): string

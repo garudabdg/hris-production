@@ -406,7 +406,7 @@
                 </ul>
             </li>
         @endif
-         @if (auth()->user()->hasAnyPermission(['laporan.presensi', 'laporan.cuti', 'laporan.jadwal']))
+         @if (auth()->user()->hasAnyPermission(['laporan.presensi', 'laporan.cuti', 'laporan.jadwal', 'laporan.lembur']))
              <li class="menu-item {{ request()->is(['laporan', 'laporan/*']) ? 'open' : '' }} ">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-adjustments-alt"></i>
@@ -434,6 +434,13 @@
                               </a>
                           </li>
                       @endcan
+                      @can('laporan.lembur')
+                          <li class="menu-item {{ request()->is(['laporan/lembur']) ? 'active' : '' }}">
+                              <a href="{{ route('laporan.lembur') }}" class="menu-link">
+                                  <div>Laporan Lembur</div>
+                              </a>
+                          </li>
+                      @endcan
                  </ul>
              </li>
          @endif
@@ -448,18 +455,20 @@
              </li>
          @endcan
 
-         @can('asset.index')
+         @if (auth()->user()->hasAnyPermission(['asset.index', 'asset.pinjam.index', 'asset.transaksi.index', 'asset.perawatan.index', 'asset.kategori.index']))
              <li class="menu-item {{ request()->is(['manajemen-aset', 'manajemen-aset/*', 'asset-pinjam', 'asset-pinjam/*', 'asset-transaksi', 'asset-transaksi/*', 'asset-perawatan', 'asset-perawatan/*']) ? 'open' : '' }}">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-package"></i>
                      <div>Manajemen Aset</div>
                  </a>
                  <ul class="menu-sub">
+                     @can('asset.index')
                      <li class="menu-item {{ request()->is(['manajemen-aset']) || (request()->is(['manajemen-aset/*']) && !request()->is(['manajemen-aset/kategori*'])) ? 'active' : '' }}">
                          <a href="{{ route('assets.index') }}" class="menu-link">
                              <div>Daftar Aset</div>
                          </a>
                      </li>
+                     @endcan
                      @can('asset.pinjam.index')
                      <li class="menu-item {{ request()->is(['asset-pinjam', 'asset-pinjam/*']) ? 'active' : '' }}">
                          <a href="{{ route('asset-pinjam.index') }}" class="menu-link">
@@ -481,7 +490,7 @@
                          </a>
                      </li>
                      @endcan
-                     @can('asset.kategori')
+                     @can('asset.kategori.index')
                      <li class="menu-item {{ request()->is(['manajemen-aset/kategori', 'manajemen-aset/kategori/*']) ? 'active' : '' }}">
                          <a href="{{ route('assets.kategori.index') }}" class="menu-link">
                              <div>Kategori Aset</div>
@@ -490,7 +499,7 @@
                      @endcan
                  </ul>
              </li>
-         @endcan
+         @endif
 
          @canany(['users.index', 'roles.index', 'permissions.index', 'permissiongroups.index', 'audit.index', 'bersihkanfoto.index', 'resetdata.index'])
              <li

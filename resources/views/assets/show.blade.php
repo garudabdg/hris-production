@@ -22,9 +22,11 @@
                         <i class="ti ti-checklist me-1"></i> Perawatan
                     </a>
                     @endif
+                    @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.edit'))
                     <a href="{{ route('assets.edit', $asset->id) }}" class="btn btn-sm btn-primary">
                         <i class="ti ti-pencil me-1"></i> Edit
                     </a>
+                    @endif
                     <a href="{{ route('assets.index') }}" class="btn btn-sm btn-outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Kembali
                     </a>
@@ -45,6 +47,10 @@
                     <div class="col-md-6">
                         <p class="text-muted small mb-1">Cabang</p>
                         <p class="fw-semibold mb-0">{{ optional($asset->cabang)->nama_cabang ?? '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted small mb-1">Pemilik / Penanggung Jawab</p>
+                        <p class="fw-semibold mb-0">{{ $asset->pic->nama_karyawan ?? '-' }}</p>
                     </div>
                     <div class="col-md-6">
                         <p class="text-muted small mb-1">Merk</p>
@@ -69,6 +75,10 @@
                     <div class="col-md-6">
                         <p class="text-muted small mb-1">Harga Pembelian</p>
                         <p class="fw-semibold mb-0">{{ $asset->nilai_perolehan ? 'Rp ' . number_format($asset->nilai_perolehan, 0, ',', '.') : '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted small mb-1">Jumlah Stok</p>
+                        <p class="fw-semibold mb-0">{{ $asset->jumlah_stok ?? '-' }}</p>
                     </div>
                     <div class="col-md-6">
                         <p class="text-muted small mb-1">Lokasi</p>
@@ -118,11 +128,75 @@
                         <p class="text-muted small mb-1">Diperbarui</p>
                         <p class="mb-0">{{ $asset->updated_at->format('d-m-Y H:i') }}</p>
                     </div>
+                    @if ($activePinjam)
+                        <div class="col-12 mt-3">
+                            <div class="alert bg-label-primary border border-primary d-flex align-items-center gap-3 p-3 mb-0">
+                                <i class="ti ti-package-export fs-3"></i>
+                                <div>
+                                    <h6 class="alert-heading fw-bold mb-1">Informasi Peminjaman Aktif</h6>
+                                    <span style="font-size: 13px;">
+                                        Aset ini sedang dipinjam oleh <strong>{{ $activePinjam->karyawan?->nama_karyawan }}</strong> (NIK: {{ $activePinjam->nik }}).
+                                        <br>
+                                        Tanggal Pinjam: <strong>{{ $activePinjam->tanggal_pinjam?->format('d M Y') }}</strong> · Rencana Kembali: <strong>{{ $activePinjam->tanggal_kembali_rencana?->format('d M Y') }}</strong>.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{{-- Riwayat Peminjaman --}}
+@if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.pinjam.index'))
+@if ($pinjamList->isNotEmpty())
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h6 class="mb-0"><i class="ti ti-package-export me-2"></i>Riwayat Peminjaman</h6>
+                <a href="{{ route('asset-pinjam.index', ['kode_asset' => $asset->kode_asset]) }}"
+                    class="btn btn-outline-primary btn-sm">Lihat Semua</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size:13px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kode Pinjam</th>
+                            <th>Peminjam</th>
+                            <th>Tgl Pinjam</th>
+                            <th>Tgl Kembali (Rencana / Aktual)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($pinjamList as $pj)
+                        <tr>
+                            <td><code>{{ $pj->kode_pinjam }}</code></td>
+                            <td>
+                                <strong>{{ $pj->karyawan?->nama_karyawan ?? '-' }}</strong><br>
+                                <small class="text-muted">{{ $pj->nik }}</small>
+                            </td>
+                            <td>{{ $pj->tanggal_pinjam?->format('d/m/Y') }}</td>
+                            <td>
+                                {{ $pj->tanggal_kembali_rencana?->format('d/m/Y') }}
+                                @if ($pj->tanggal_kembali_aktual)
+                                    / <span class="text-success">{{ $pj->tanggal_kembali_aktual?->format('d/m/Y') }}</span>
+                                @endif
+                            </td>
+                            <td>{!! $pj->status_badge !!}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+@endif
 
 {{-- Riwayat Perawatan --}}
 @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.perawatan.index'))

@@ -31,6 +31,17 @@
                     {{-- Info Umum --}}
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
+                            <label class="form-label fw-semibold">Kategori Aset</label>
+                            <select id="kategori_filter" class="form-select">
+                                <option value="">-- Semua Kategori --</option>
+                                @foreach ($categories as $cat)
+                                    <option value="{{ $cat->id }}">
+                                        {{ $cat->nama_kategori }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Aset <span class="text-danger">*</span></label>
                             <select name="kode_asset" id="kode_asset"
                                 class="form-select @error('kode_asset') is-invalid @enderror" required>
@@ -38,6 +49,7 @@
                                 @foreach ($assets as $a)
                                     <option value="{{ $a->kode_asset }}"
                                         data-nama="{{ $a->nama_asset }}"
+                                        data-kategori-id="{{ $a->category_id ?? '' }}"
                                         data-kategori="{{ $a->category?->nama_kategori ?? '' }}"
                                         {{ (old('kode_asset', $selectedAsset?->kode_asset) == $a->kode_asset) ? 'selected' : '' }}>
                                         {{ $a->nama_asset }} — {{ $a->kode_asset }}
@@ -49,7 +61,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Tanggal Perawatan <span class="text-danger">*</span></label>
                             <input type="date" name="tanggal_perawatan" id="tanggal_perawatan"
                                 class="form-control @error('tanggal_perawatan') is-invalid @enderror"
@@ -58,7 +70,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Petugas</label>
                             <input type="text" name="petugas" id="petugas"
                                 class="form-control @error('petugas') is-invalid @enderror"
@@ -180,6 +192,7 @@
 @push('myscript')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const categoryFilter   = document.getElementById('kategori_filter');
     const assetSelect      = document.getElementById('kode_asset');
     const checklistSection = document.getElementById('checklistSection');
     const checklistBody    = document.getElementById('checklistBody');
@@ -188,7 +201,57 @@ document.addEventListener('DOMContentLoaded', function () {
     const kategoriNama     = document.getElementById('kategoriNama');
     const totalItems       = document.getElementById('totalItems');
     const btnSimpan        = document.getElementById('btnSimpan');
-        const btnTambahItem    = document.getElementById('btnTambahItem');
+    const btnTambahItem    = document.getElementById('btnTambahItem');
+
+    // Store a master copy of all asset options (except the placeholder/first option)
+    const originalOptions = Array.from(assetSelect.options).slice(1);
+
+    function filterAssets() {
+        const categoryId = categoryFilter.value;
+        const currentSelectedVal = assetSelect.value;
+
+        // Clear all options except the placeholder
+        assetSelect.innerHTML = '<option value="">-- Pilih Aset --</option>';
+
+        // Filter options
+        const filteredOptions = originalOptions.filter(option => {
+            if (!categoryId) return true;
+            return option.getAttribute('data-kategori-id') == categoryId;
+        });
+
+        // Append filtered options back
+        filteredOptions.forEach(option => {
+            assetSelect.appendChild(option.cloneNode(true));
+        });
+
+        // Re-select the previous value if it is still in the filtered list
+        if (currentSelectedVal) {
+            const hasVal = Array.from(assetSelect.options).some(opt => opt.value === currentSelectedVal);
+            if (hasVal) {
+                assetSelect.value = currentSelectedVal;
+            } else {
+                assetSelect.value = '';
+                assetSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+
+    categoryFilter.addEventListener('change', function () {
+        filterAssets();
+        assetSelect.dispatchEvent(new Event('change'));
+    });
+
+    // If an asset is already selected on page load, select its category in the filter
+    if (assetSelect.value) {
+        const selectedOption = assetSelect.options[assetSelect.selectedIndex];
+        if (selectedOption) {
+            const categoryId = selectedOption.getAttribute('data-kategori-id');
+            if (categoryId) {
+                categoryFilter.value = categoryId;
+                filterAssets();
+            }
+        }
+    }
 
     assetSelect.addEventListener('change', function () {
         const kodeAsset = this.value;
@@ -223,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 kategoriInfo.style.display = '';
                 totalItems.textContent = data.items.length + ' item';
 
-                    renderRows(data.items);
+                renderRows(data.items);
                 checklistSection.classList.remove('d-none');
                 noAssetMsg.classList.add('d-none');
                 btnSimpan.disabled = false;

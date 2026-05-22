@@ -28,6 +28,16 @@ class AssetPermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'asset.transaksi.create'], ['id_permission_group' => $permissiongroup->id]);
         Permission::firstOrCreate(['name' => 'asset.transaksi.delete'], ['id_permission_group' => $permissiongroup->id]);
 
+        // Export & Import
+        Permission::firstOrCreate(['name' => 'asset.export'],           ['id_permission_group' => $permissiongroup->id]);
+        Permission::firstOrCreate(['name' => 'asset.import'],           ['id_permission_group' => $permissiongroup->id]);
+
+        // Peminjaman Aset
+        Permission::firstOrCreate(['name' => 'asset.pinjam.index'],     ['id_permission_group' => $permissiongroup->id]);
+        Permission::firstOrCreate(['name' => 'asset.pinjam.create'],    ['id_permission_group' => $permissiongroup->id]);
+        Permission::firstOrCreate(['name' => 'asset.pinjam.approve'],   ['id_permission_group' => $permissiongroup->id]);
+        Permission::firstOrCreate(['name' => 'asset.pinjam.delete'],    ['id_permission_group' => $permissiongroup->id]);
+
         // Berikan semua permission asset ke Super Admin
         $superAdmin = Role::where('name', 'super admin')->first();
         if ($superAdmin) {

@@ -4,7 +4,7 @@
         <div class="row g-3">
             <div class="col-md-12">
                 <label class="form-label fw-semibold">Aset yang Dipinjam <span class="text-danger">*</span></label>
-                <select name="kode_asset" class="form-select @error('kode_asset') is-invalid @enderror" required>
+                <select name="kode_asset" id="kode_asset" class="form-select select2Asset @error('kode_asset') is-invalid @enderror" required>
                     <option value="">-- Pilih Aset --</option>
                     @foreach ($assets as $a)
                         <option value="{{ $a->kode_asset }}" {{ old('kode_asset') == $a->kode_asset ? 'selected' : '' }}>
@@ -17,7 +17,7 @@
 
             <div class="col-md-12">
                 <label class="form-label fw-semibold">Peminjam (Karyawan) <span class="text-danger">*</span></label>
-                <select name="nik" class="form-select @error('nik') is-invalid @enderror" required>
+                <select name="nik" id="nik" class="form-select select2Karyawan @error('nik') is-invalid @enderror" required>
                     <option value="">-- Pilih Karyawan --</option>
                     @foreach ($karyawan_list as $k)
                         <option value="{{ $k->nik }}" {{ old('nik') == $k->nik ? 'selected' : '' }}>
@@ -71,15 +71,41 @@
 </form>
 
 <script>
-    document.querySelector('[name="foto_kondisi_pinjam"]').addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('fotoPreview').src = e.target.result;
-                document.getElementById('previewWrapper').classList.remove('d-none');
-            };
-            reader.readAsDataURL(file);
+    $(function() {
+        const select2Asset = $('.select2Asset');
+        if (select2Asset.length) {
+            select2Asset.each(function() {
+                var $this = $(this);
+                $this.wrap('<div class="position-relative"></div>').select2({
+                    placeholder: '-- Pilih Aset --',
+                    allowClear: true,
+                    dropdownParent: $this.parent()
+                });
+            });
         }
+
+        const select2Karyawan = $('.select2Karyawan');
+        if (select2Karyawan.length) {
+            select2Karyawan.each(function() {
+                var $this = $(this);
+                $this.wrap('<div class="position-relative"></div>').select2({
+                    placeholder: '-- Pilih Karyawan --',
+                    allowClear: true,
+                    dropdownParent: $this.parent()
+                });
+            });
+        }
+
+        document.querySelector('[name="foto_kondisi_pinjam"]').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('fotoPreview').src = e.target.result;
+                    document.getElementById('previewWrapper').classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     });
 </script>

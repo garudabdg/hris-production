@@ -132,4 +132,75 @@ class RoleController extends Controller
             return Redirect::back()->with(['error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * Show asset permissions management page
+     */
+    public function assetPermissions()
+    {
+        $roles = Role::all();
+        $assetPermissions = Permission::where('name', 'like', 'asset%')
+            ->orderBy('name')
+            ->get();
+
+        // Group permissions by category
+        $groupedPermissions = [];
+        foreach ($assetPermissions as $perm) {
+            $parts = explode('.', $perm->name);
+            $category = $parts[1] ?? 'main';
+            
+            // Group CRUD and utility actions for general assets under 'main' (Aset Umum)
+            if (in_array($category, ['index', 'create', 'edit', 'show', 'delete', 'export', 'import'])) {
+                $category = 'main';
+            }
+            
+            if (!isset($groupedPermissions[$category])) {
+                $groupedPermissions[$category] = [];
+            }
+            $groupedPermissions[$category][] = $perm;
+        }
+
+        // Get role permissions
+        $rolePermissions = [];
+        foreach ($roles as $role) {
+            $rolePermissions[$role->id] = $role->permissions()
+                ->where('name', 'like', 'asset%')
+                ->pluck('name')
+                ->toArray();
+        }
+
+        return view('settings.roles.asset_permissions', compact('roles', 'groupedPermissions', 'rolePermissions'));
+    }
+
+    /**
+     * Update asset permissions for a role
+     */
+    public function updateAssetPermission($roleId, Request $request)
+    {
+        try {
+            $roleId = Crypt::decrypt($roleId);
+            $role = Role::findById($roleId);
+            $permissions = $request->input('permissions', []);
+
+            // Get all asset permissions
+            $allAssetPermissions = Permission::where('name', 'like', 'asset%')->pluck('name')->toArray();
+
+            // Revoke all asset permissions first
+            $role->revokePermissionTo($allAssetPermissions);
+
+            // Give only selected permissions
+            if (!empty($permissions)) {
+                foreach ($permissions as $permission) {
+                    if (Permission::where('name', $permission)->exists()) {
+                        $role->givePermissionTo($permission);
+                    }
+                }
+            }
+
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            return Redirect::back()->with(['success' => 'Izin akses aset untuk ' . $role->name . ' berhasil diperbarui']);
+        } catch (\Exception $e) {
+            return Redirect::back()->with(['error' => 'Gagal memperbarui izin akses: ' . $e->getMessage()]);
+        }
+    }
 }

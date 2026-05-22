@@ -19,8 +19,13 @@
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Kode Aset <span class="text-danger">*</span></label>
-                            <input type="text" name="kode_asset" class="form-control @error('kode_asset') is-invalid @enderror"
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">Kode Aset <span class="text-danger">*</span></label>
+                                <button type="button" id="btn-generate-code" class="btn btn-xs btn-outline-info py-0 px-1" style="font-size: 0.75rem;">
+                                    <i class="ti ti-refresh me-1"></i> Generate Baru
+                                </button>
+                            </div>
+                            <input type="text" name="kode_asset" id="kode_asset" class="form-control @error('kode_asset') is-invalid @enderror"
                                 value="{{ old('kode_asset', $asset->kode_asset) }}">
                             @error('kode_asset') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
@@ -32,7 +37,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Kategori</label>
-                            <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+                            <select name="category_id" id="category_id" class="form-select @error('category_id') is-invalid @enderror">
                                 <option value="">-- Pilih Kategori --</option>
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}" {{ old('category_id', $asset->category_id) == $cat->id ? 'selected' : '' }}>
@@ -53,6 +58,18 @@
                                 @endforeach
                             </select>
                             @error('kode_cabang') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pemilik / Penanggung Jawab</label>
+                            <select name="nik" id="nik" class="form-select select2Karyawan @error('nik') is-invalid @enderror">
+                                <option value="">-- Pilih Karyawan --</option>
+                                @foreach ($karyawan as $k)
+                                    <option value="{{ $k->nik }}" {{ old('nik', $asset->nik) == $k->nik ? 'selected' : '' }}>
+                                        {{ $k->nama_karyawan }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('nik') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Merk</label>
@@ -95,6 +112,12 @@
                             <input type="number" name="nilai_perolehan" class="form-control @error('nilai_perolehan') is-invalid @enderror"
                                 value="{{ old('nilai_perolehan', $asset->nilai_perolehan) }}">
                             @error('nilai_perolehan') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Jumlah Stok</label>
+                            <input type="number" name="jumlah_stok" class="form-control @error('jumlah_stok') is-invalid @enderror"
+                                value="{{ old('jumlah_stok', $asset->jumlah_stok) }}" placeholder="1">
+                            @error('jumlah_stok') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Lokasi</label>
@@ -192,6 +215,48 @@
 
 @push('myscript')
 <script>
+$(function() {
+    const select2Karyawan = $('.select2Karyawan');
+    if (select2Karyawan.length) {
+        select2Karyawan.each(function() {
+            var $this = $(this);
+            $this.wrap('<div class="position-relative"></div>').select2({
+                placeholder: '-- Pilih Karyawan --',
+                allowClear: true,
+                dropdownParent: $this.parent()
+            });
+        });
+    }
+
+    $('#btn-generate-code').on('click', function() {
+        const categoryId = $('#category_id').val();
+        if (!categoryId) {
+            alert('Silakan pilih kategori terlebih dahulu.');
+            return;
+        }
+
+        if (confirm('Apakah Anda yakin ingin me-regenerasi kode aset? Kode lama akan diganti.')) {
+            $.ajax({
+                url: "{{ route('assets.generate-code') }}",
+                type: "GET",
+                data: { category_id: categoryId },
+                dataType: "json",
+                success: function(response) {
+                    if (response && response.code) {
+                        $('#kode_asset').val(response.code);
+                    } else {
+                        alert('Gagal menghasilkan kode aset baru.');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Gagal mengambil kode aset otomatis:', xhr);
+                    alert('Gagal mengambil kode aset otomatis.');
+                }
+            });
+        }
+    });
+});
+
 function calcValuation() {
     const c = parseInt(document.getElementById('val_c').value) || 0;
     const a = parseInt(document.getElementById('val_a').value) || 0;
