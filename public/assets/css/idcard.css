@@ -1,0 +1,339 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    /* Force blue theme if dynamic variable isn't blue enough */
+    --card-primary: #2563eb; 
+    --card-primary-light: #60a5fa;
+    --card-primary-dark: #1e3a8a;
+    --card-accent: #f59e0b; /* Golden accent */
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --shadow-rgb: 37, 99, 235; /* RGB for #2563eb */
+}
+
+.idcard-page-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    min-height: calc(100vh - 60px);
+    gap: 24px;
+}
+
+/* ── CARD ── */
+.idcard-wrapper {
+    font-family: 'Outfit', sans-serif;
+    width: 340px; /* Slightly narrower for mobile elegance */
+    background: #ffffff;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(var(--shadow-rgb), 0.15), 0 1px 3px rgba(0,0,0,0.05);
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transform-style: preserve-3d;
+}
+
+/* Subtle holographic texture overlay */
+.idcard-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(125deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.1) 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ── HEADER STRIP ── */
+.card-header-strip {
+    background: linear-gradient(135deg, var(--card-primary) 0%, var(--card-primary-dark) 100%);
+    padding: 28px 24px 60px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative glass waves */
+.card-header-strip::before {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    top: -150px; right: -50px;
+}
+.card-header-strip::after {
+    content: '';
+    position: absolute;
+    width: 150px; height: 150px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    bottom: -50px; left: -20px;
+    backdrop-filter: blur(5px);
+}
+
+.header-logo {
+    height: 42px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    z-index: 2;
+}
+.header-logo-placeholder {
+    height: 42px; width: 42px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 18px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    z-index: 2;
+}
+.header-company {
+    flex: 1;
+    min-width: 0;
+    z-index: 2;
+}
+.header-company-name {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.header-tag {
+    margin-top: 4px;
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.header-badge {
+    background: linear-gradient(135deg, var(--card-accent) 0%, #d97706 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 6px 12px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+    z-index: 2;
+}
+
+/* ── AVATAR (overlap header) ── */
+.avatar-overlap {
+    display: flex;
+    justify-content: center;
+    margin-top: -55px;
+    position: relative;
+    z-index: 3;
+}
+.avatar-outer {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1), inset 0 -2px 5px rgba(0,0,0,0.05);
+}
+.avatar-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: #fff;
+    padding: 2px;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+}
+.avatar-inner img {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* ── NAME & JABATAN ── */
+.card-identity {
+    text-align: center;
+    padding: 16px 24px 0;
+    position: relative;
+    z-index: 2;
+}
+.emp-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+}
+.emp-jabatan {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(var(--shadow-rgb), 0.08);
+    color: var(--card-primary);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* ── DIVIDER ── */
+.card-divider {
+    margin: 20px 24px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(var(--shadow-rgb),0.15), transparent);
+}
+
+/* ── INFO ROWS ── */
+.card-info-list {
+    padding: 0 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s;
+}
+.info-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, rgba(var(--shadow-rgb),0.1) 0%, rgba(var(--shadow-rgb),0.05) 100%);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--card-primary);
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.info-text { display: flex; flex-direction: column; min-width: 0; }
+.info-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+}
+.info-value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+    padding-bottom: 2px;
+}
+
+/* ── BARCODE ── */
+.card-barcode {
+    padding: 10px 24px 24px;
+    text-align: center;
+    position: relative;
+}
+
+/* Subtle watermark behind barcode */
+.card-barcode::before {
+    content: 'VALID';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 40px;
+    font-weight: 900;
+    color: rgba(var(--shadow-rgb), 0.03);
+    pointer-events: none;
+    z-index: 0;
+    letter-spacing: 10px;
+}
+
+.barcode-inner {
+    display: inline-block;
+    background: #ffffff;
+    border: 2px dashed rgba(var(--shadow-rgb), 0.2);
+    border-radius: 16px;
+    padding: 14px 20px 8px;
+    position: relative;
+    z-index: 1;
+}
+.barcode-nik {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #475569;
+    font-weight: 800;
+}
+
+/* ── BOTTOM ACCENT ── */
+.card-accent-bar {
+    height: 8px;
+    background: linear-gradient(90deg, var(--card-primary), var(--card-accent), var(--card-primary));
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
+}
+
+@keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+/* ── DOWNLOAD BUTTON ── */
+.btn-download {
+    width: 100%;
+    max-width: 340px;
+    background: linear-gradient(135deg, var(--card-primary) 0%, var(--card-primary-dark) 100%);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(var(--shadow-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+.btn-download::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: all 0.6s;
+}
+.btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(var(--shadow-rgb), 0.4);
+}
+.btn-download:hover::after {
+    left: 100%;
+}
+.btn-download:active { 
+    transform: scale(0.97) translateY(0); 
+    box-shadow: 0 5px 15px rgba(var(--shadow-rgb), 0.3); 
+}
