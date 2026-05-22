@@ -335,6 +335,8 @@
             Webcam.set({
                 width: isMobile ? 480 : 640,
                 height: isMobile ? 360 : 480,
+                dest_width: isMobile ? 480 : 640,
+                dest_height: isMobile ? 360 : 480,
                 image_format: 'jpeg',
                 jpeg_quality: 80,
                 constraints: {

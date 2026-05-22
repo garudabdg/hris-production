@@ -148,7 +148,7 @@
                             @php
                                 $karyawan = \App\Models\Karyawan::where('nik', $t->pemohon->username ?? null)->first();
                                 $dept = $karyawan ? optional($karyawan->departemen)->nama_dept : null;
-                                $subDept = $karyawan ? $karyawan->sub_dept : null;
+                                $subDept = $karyawan ? $karyawan->sub_departemen : null;
                             @endphp
                             @if($dept)
                                 <small class="d-block fw-semibold">{{ $dept }}</small>

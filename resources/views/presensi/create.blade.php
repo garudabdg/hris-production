@@ -1125,15 +1125,17 @@
                 init() {
                     return new Promise((resolve, reject) => {
                         Webcam.set({
-                            height: 480,
-                            width: 640,
+                            height: isMobile ? 640 : 480,
+                            width: isMobile ? 480 : 640,
+                            dest_width: isMobile ? 480 : 640,
+                            dest_height: isMobile ? 640 : 480,
                             image_format: 'jpeg',
                             jpeg_quality: 95, // Standardized to 95% for all devices
                             fps: isMobile ? 15 : 30,
                             constraints: {
                                 video: {
-                                    width: { ideal: 640 }, // Standardized to 640 for all
-                                    height: { ideal: 480 }, // Standardized to 480 for all
+                                    width: { ideal: isMobile ? 480 : 640 },
+                                    height: { ideal: isMobile ? 640 : 480 },
                                     facingMode: "user",
                                     frameRate: { ideal: isMobile ? 15 : 30 }
                                 }

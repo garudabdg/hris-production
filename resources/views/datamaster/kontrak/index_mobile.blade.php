@@ -159,13 +159,35 @@
                                 <ion-icon name="document-text-outline" class="text-2xl"></ion-icon>
                             </div>
                             <div class="slip-info">
+                                @php
+                                    $jenis_kontrak_text = match($d->jenis_kontrak) {
+                                        'K' => 'Kontrak',
+                                        'T' => 'Tetap',
+                                        'M' => 'Mitra',
+                                        'O' => 'Outsourcing',
+                                        'P' => 'Probation',
+                                        'G' => 'Magang',
+                                        default => $d->jenis_kontrak,
+                                    };
+                                @endphp
                                 <div class="slip-title">
-                                    <span>No. {{ $d->no_kontrak }}</span>
+                                    <div>
+                                        No. {{ $d->no_kontrak }} 
+                                        <span style="font-size: 10px; background: #e7e7ff; color: #696cff; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600;">{{ $jenis_kontrak_text }}</span>
+                                    </div>
                                     <span class="status-badge {{ $statusClass }}">{{ $statusText }}</span>
                                 </div>
-                                <div class="slip-period">
+                                <div class="slip-period mt-1">
                                     <ion-icon name="time-outline"></ion-icon>
-                                    <span>{{ \Carbon\Carbon::parse($d->dari)->translatedFormat('d/m/y') }} - {{ \Carbon\Carbon::parse($d->sampai)->translatedFormat('d/m/y') }}</span>
+                                    <span>
+                                        @if ($d->jenis_kontrak == 'T')
+                                            Karyawan Tetap
+                                        @elseif($d->dari && $d->sampai)
+                                            {{ \Carbon\Carbon::parse($d->dari)->translatedFormat('d/m/Y') }} - {{ \Carbon\Carbon::parse($d->sampai)->translatedFormat('d/m/Y') }}
+                                        @else
+                                            -
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
                             <ion-icon name="chevron-forward-outline" class="chevron-icon"></ion-icon>

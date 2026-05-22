@@ -118,7 +118,12 @@
                         <div class="dropdown-header d-flex align-items-center py-3">
                             <h5 class="text-body mb-0 me-auto">Notification</h5>
                             <a href="javascript:void(0)" class="dropdown-notifications-all text-body" data-bs-toggle="tooltip"
-                                data-bs-placement="top" title="Mark all as read"><i class="ti ti-mail-opened fs-4"></i></a>
+                                data-bs-placement="top" title="Mark all as read" onclick="event.preventDefault(); document.getElementById('mark-all-read-form').submit();">
+                                <i class="ti ti-mail-opened fs-4"></i>
+                            </a>
+                            <form id="mark-all-read-form" action="{{ route('notification.mark-all-as-read') }}" method="POST" class="d-none">
+                                @csrf
+                            </form>
                         </div>
                     </li>
                     <li class="dropdown-notifications-list scrollable-container">

@@ -61,6 +61,18 @@
                         <span class="fw-semibold">{{ $itTicket->pemohon->name ?? '-' }}</span>
                     </div>
                     <div class="col-sm-4">
+                        <small class="text-muted d-block">Departemen</small>
+                        @php
+                            $karyawan = \App\Models\Karyawan::where('nik', $itTicket->pemohon->username ?? null)->first();
+                            $dept = $karyawan ? optional($karyawan->departemen)->nama_dept : null;
+                            $subDept = $karyawan ? $karyawan->sub_departemen : null;
+                        @endphp
+                        <span class="fw-semibold">{{ $dept ?? '-' }}</span>
+                        @if($subDept)
+                            <small class="text-muted d-block" style="font-size:10px;">{{ $subDept }}</small>
+                        @endif
+                    </div>
+                    <div class="col-sm-4">
                         <small class="text-muted d-block">Assigned To</small>
                         @if($itTicket->assignedTo)
                             <span class="badge bg-label-info">{{ $itTicket->assignedTo->name }}</span>

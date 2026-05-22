@@ -69,6 +69,7 @@ class ItTicketController extends Controller
         if ($request->filled('kode_cabang')) $query->where('kode_cabang', $request->kode_cabang);
 
         $tickets = $query->with(['pemohon', 'assignedTo', 'cabang'])
+                         ->orderByRaw("FIELD(status,'open','in_progress','pending','resolved','closed')")
                          ->orderByRaw("FIELD(prioritas,'critical','high','medium','low')")
                          ->orderByDesc('created_at')
                          ->paginate(15)->withQueryString();

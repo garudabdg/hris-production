@@ -309,14 +309,13 @@ class KontrakController extends Controller
             ->get();
             
         $pengaturan = \App\Models\Pengaturanumum::first();
+        $konten = $this->generateKontrakKonten($kontrak, $tunjanganItems, $pengaturan);
 
         if ($user->hasRole('karyawan')) {
-            return view('datamaster.kontrak.show_mobile', compact('kontrak', 'tunjanganItems', 'pengaturan'));
+            return view('datamaster.kontrak.show_mobile', compact('kontrak', 'tunjanganItems', 'pengaturan', 'konten'));
         }
         
-        // For now, admin also uses the same view or we can create a desktop view later
-        // return view('datamaster.kontrak.show', compact('kontrak', 'tunjanganItems'));
-        return view('datamaster.kontrak.show_mobile', compact('kontrak', 'tunjanganItems', 'pengaturan'));
+        return view('datamaster.kontrak.show_mobile', compact('kontrak', 'tunjanganItems', 'pengaturan', 'konten'));
     }
 
     public function template()
@@ -416,56 +415,7 @@ class KontrakController extends Controller
 
         $setting = \App\Models\Pengaturanumum::first();
         
-        // Get Template
-        $template = \App\Models\KonfigurasiDokumen::where('kode_dokumen', 'PKWT')->first();
-        if (!$template) {
-             // Fallback to default if not configured
-             $konten = view('datamaster.kontrak.default_template')->render();
-        } else {
-            $konten = $template->konten;
-        }
-
-
-        // Prepare Placeholders
-        $placeholders = [
-            '{{no_kontrak}}' => $kontrak->no_kontrak,
-            '{{hari_ini}}' => now()->isoFormat('dddd'),
-            '{{tanggal_hari_ini}}' => now()->isoFormat('D MMMM Y'),
-            '{{nama_hrd}}' => $setting->nama_hrd ?? 'Pihak Pertama',
-            '{{nama_perusahaan}}' => $setting->nama_perusahaan ?? 'Perusahaan',
-            '{{alamat_perusahaan}}' => $setting->alamat ?? 'Lokasi Perusahaan',
-            '{{nama_karyawan}}' => $kontrak->nama_karyawan,
-            '{{tempat_lahir}}' => $kontrak->tempat_lahir ?? '-',
-            '{{tanggal_lahir}}' => $kontrak->tanggal_lahir ? Carbon::parse($kontrak->tanggal_lahir)->format('d-m-Y') : '-',
-            '{{jenis_kelamin}}' => $kontrak->jenis_kelamin == 'L' ? 'Laki-laki' : ($kontrak->jenis_kelamin == 'P' ? 'Perempuan' : $kontrak->jenis_kelamin),
-            '{{alamat_karyawan}}' => $kontrak->alamat ?? '-',
-            '{{no_ktp}}' => $kontrak->no_ktp ?? '-',
-            '{{jabatan}}' => $kontrak->nama_jabatan,
-            '{{cabang}}' => $kontrak->nama_cabang,
-            '{{tanggal_mulai}}' => $kontrak->dari ? Carbon::parse($kontrak->dari)->isoFormat('D MMMM Y') : '-',
-            '{{tanggal_selesai}}' => $kontrak->sampai ? Carbon::parse($kontrak->sampai)->isoFormat('D MMMM Y') : '-',
-            '{{gaji_pokok}}' => 'Rp ' . number_format($kontrak->jumlah_gaji ?? 0, 0, ',', '.'),
-        ];
-        
-        // Replace Tunjangan Loop
-        $tunjanganHtml = '<table width="100%" style="border-collapse:collapse; margin:0; padding:0;">';
-        if ($tunjanganItems->isNotEmpty()) {
-            foreach ($tunjanganItems as $item) {
-                $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">'.$item->jenis.'</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp '.number_format($item->jumlah ?? 0, 0, ',', '.').'</td></tr>';
-            }
-        } else {
-             $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">Transport</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp 0</td></tr>';
-             $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">Tunjangan Shift Malam</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp 0</td></tr>';
-             $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">Uang Makan</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp 0</td></tr>';
-        }
-        $tunjanganHtml .= '</table>';
-        $placeholders['{{tabel_tunjangan}}'] = $tunjanganHtml;
-
-
-        // Perform Replacement
-        foreach ($placeholders as $key => $value) {
-            $konten = str_replace($key, $value, $konten);
-        }
+        $konten = $this->generateKontrakKonten($kontrak, $tunjanganItems, $setting);
 
         $pdf = Pdf::loadView('datamaster.kontrak.print_dynamic', [
             'konten' => $konten,
@@ -681,5 +631,54 @@ class KontrakController extends Controller
                 'details' => $allowanceDetails,
             ] : null,
         ]);
+    }
+
+    private function generateKontrakKonten($kontrak, $tunjanganItems, $setting)
+    {
+        $template = \App\Models\KonfigurasiDokumen::where('kode_dokumen', 'PKWT')->first();
+        if (!$template) {
+             $konten = view('datamaster.kontrak.default_template')->render();
+        } else {
+            $konten = $template->konten;
+        }
+
+        $placeholders = [
+            '{{no_kontrak}}' => $kontrak->no_kontrak,
+            '{{hari_ini}}' => now()->isoFormat('dddd'),
+            '{{tanggal_hari_ini}}' => now()->isoFormat('D MMMM Y'),
+            '{{nama_hrd}}' => $setting->nama_hrd ?? 'Pihak Pertama',
+            '{{nama_perusahaan}}' => $setting->nama_perusahaan ?? 'Perusahaan',
+            '{{alamat_perusahaan}}' => $setting->alamat ?? 'Lokasi Perusahaan',
+            '{{nama_karyawan}}' => $kontrak->nama_karyawan,
+            '{{tempat_lahir}}' => $kontrak->tempat_lahir ?? '-',
+            '{{tanggal_lahir}}' => $kontrak->tanggal_lahir ? \Carbon\Carbon::parse($kontrak->tanggal_lahir)->format('d-m-Y') : '-',
+            '{{jenis_kelamin}}' => $kontrak->jenis_kelamin == 'L' ? 'Laki-laki' : ($kontrak->jenis_kelamin == 'P' ? 'Perempuan' : $kontrak->jenis_kelamin),
+            '{{alamat_karyawan}}' => $kontrak->alamat ?? '-',
+            '{{no_ktp}}' => $kontrak->no_ktp ?? '-',
+            '{{jabatan}}' => $kontrak->nama_jabatan,
+            '{{cabang}}' => $kontrak->nama_cabang,
+            '{{tanggal_mulai}}' => $kontrak->dari ? \Carbon\Carbon::parse($kontrak->dari)->isoFormat('D MMMM Y') : '-',
+            '{{tanggal_selesai}}' => $kontrak->sampai ? \Carbon\Carbon::parse($kontrak->sampai)->isoFormat('D MMMM Y') : '-',
+            '{{gaji_pokok}}' => 'Rp ' . number_format($kontrak->jumlah_gaji ?? 0, 0, ',', '.'),
+        ];
+        
+        $tunjanganHtml = '<table width="100%" style="border-collapse:collapse; margin:0; padding:0;">';
+        if ($tunjanganItems->isNotEmpty()) {
+            foreach ($tunjanganItems as $item) {
+                $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">'.$item->jenis.'</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp '.number_format($item->jumlah ?? 0, 0, ',', '.').'</td></tr>';
+            }
+        } else {
+             $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">Transport</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp 0</td></tr>';
+             $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">Tunjangan Shift Malam</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp 0</td></tr>';
+             $tunjanganHtml .= '<tr><td class="label" style="width:55%; padding: 6px 10px; border:none;">Uang Makan</td><td class="value" style="text-align:right; padding: 6px 10px; border:none;">Rp 0</td></tr>';
+        }
+        $tunjanganHtml .= '</table>';
+        $placeholders['{{tabel_tunjangan}}'] = $tunjanganHtml;
+
+        foreach ($placeholders as $key => $value) {
+            $konten = str_replace($key, $value, $konten);
+        }
+        
+        return $konten;
     }
 }
