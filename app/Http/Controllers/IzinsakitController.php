@@ -568,6 +568,26 @@ class IzinsakitController extends Controller
                     return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
                 }
             }
+            // Case 3: Status is Rejected (2) — cancel rejection and stay at current step
+            else if ($izinsakit->status == 2) {
+                // Find and delete the rejection record
+                $rejectedApproval = Approval::where('approvable_type', Izinsakit::class)
+                    ->where('approvable_id', $kode_izin_sakit)
+                    ->where('status', 'rejected')
+                    ->first();
+                
+                if ($rejectedApproval) {
+                    $rejectedApproval->delete();
+                }
+
+                // Reset status to pending, leave approval_step as is
+                Izinsakit::where('kode_izin_sakit', $kode_izin_sakit)->update([
+                    'status' => 0
+                ]);
+                
+                DB::commit();
+                return Redirect::back()->with(messageSuccess('Penolakan berhasil dibatalkan. Pengajuan kembali ke status Pending di tahap ' . $izinsakit->approval_step . '.'));
+            }
             
             return Redirect::back()->with(messageError('Status tidak valid untuk pembatalan.'));
 
@@ -697,6 +717,7 @@ class IzinsakitController extends Controller
 
         $data['izinsakit'] = $izinabsen;
         $data['approvals'] = $approvals;
+        $data['encryptedKode'] = Crypt::encrypt($kode_izin_sakit);
         return view('izinsakit.show', $data);
     }
 }

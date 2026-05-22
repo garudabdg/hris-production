@@ -483,6 +483,26 @@ class LemburController extends Controller
                     return Redirect::back()->with(messageSuccess('Data Berhasil Dibatalkan'));
                 }
             }
+            // Case 3: Status is Rejected (2) — cancel rejection and stay at current step
+            else if ($lembur->status == 2) {
+                // Find and delete the rejection record
+                $rejectedApproval = Approval::where('approvable_type', 'App\Models\Lembur')
+                    ->where('approvable_id', $id)
+                    ->where('status', 'rejected')
+                    ->first();
+                
+                if ($rejectedApproval) {
+                    $rejectedApproval->delete();
+                }
+
+                // Reset status to pending, leave approval_step as is
+                Lembur::where('id', $id)->update([
+                    'status' => 0
+                ]);
+                
+                DB::commit();
+                return Redirect::back()->with(messageSuccess('Penolakan berhasil dibatalkan. Pengajuan kembali ke status Pending di tahap ' . $lembur->approval_step . '.'));
+            }
             return Redirect::back()->with(messageError('Status tidak valid untuk pembatalan.'));
         } catch (\Exception $e) {
             DB::rollBack();
@@ -522,6 +542,7 @@ class LemburController extends Controller
             ->orderBy('level', 'asc')
             ->get();
         $data['approvals'] = $approvals;
+        $data['encryptedKode'] = Crypt::encrypt($id);
 
         return view('lembur.show', $data);
     }

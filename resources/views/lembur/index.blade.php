@@ -155,11 +155,19 @@
                                                     id="{{ Crypt::encrypt($d->id) }}" title="Approve">
                                                     <i class="ti ti-external-link"></i>
                                                 </a>
-                                            @elseif($d->status == 1 || $d->status == 2)
+                                            @elseif($d->status == 1)
                                                 <form method="POST" action="{{ route('lembur.cancelapprove', Crypt::encrypt($d->id)) }}" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-warning cancel-confirm rounded-0 py-1 px-2" title="Batalkan Approval">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger cancel-confirm rounded-0 py-1 px-2" title="Batalkan">
+                                                        <i class="ti ti-circle-minus"></i>
+                                                    </button>
+                                                </form>
+                                            @elseif($d->status == 2)
+                                                <form method="POST" action="{{ route('lembur.cancelapprove', Crypt::encrypt($d->id)) }}" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning cancel-confirm rounded-0 py-1 px-2" title="Batalkan Penolakan">
                                                         <i class="ti ti-arrow-back-up"></i>
                                                     </button>
                                                 </form>
@@ -167,9 +175,11 @@
                                         @endcan
                                         
                                         @can('lembur.edit')
-                                             <a href="#" class="btn btn-sm btn-outline-success btnEdit py-1 px-2" id="{{ Crypt::encrypt($d->id) }}" title="Edit">
-                                                <i class="ti ti-edit"></i>
-                                            </a>
+                                             @if ($d->status == 0 || $d->status == 2)
+                                                 <a href="#" class="btn btn-sm btn-outline-success btnEdit py-1 px-2" id="{{ Crypt::encrypt($d->id) }}" title="Edit">
+                                                    <i class="ti ti-edit"></i>
+                                                </a>
+                                            @endif
                                         @endcan
                                         
                                         @can('lembur.index')

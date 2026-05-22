@@ -265,6 +265,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/karyawan/{nik}/deleteuser', 'deleteuser')->name('karyawan.deleteuser')->can('users.create');
         Route::get('/karyawan/{nik}/lockunlocklocation', 'lockunlocklocation')->name('karyawan.lockunlocklocation')->can('karyawan.edit');
         Route::get('/karyawan/{nik}/lockunlockjamkerja', 'lockunlockjamkerja')->name('karyawan.lockunlockjamkerja')->can('karyawan.edit');
+        Route::post('/karyawan/bulklockunlock', 'bulkLockUnlock')->name('karyawan.bulklockunlock')->can('karyawan.edit');
         Route::get('/karyawan/{nik}/idcard', 'idcard')->name('karyawan.idcard');
 
         Route::get('/karyawan/getkaryawan', 'getkaryawan')->name('karyawan.getkaryawan');

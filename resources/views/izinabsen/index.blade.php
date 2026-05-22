@@ -179,11 +179,20 @@
                                                                     <i class="ti ti-circle-minus"></i>
                                                                 </button>
                                                             </form>
+                                                        @elseif($d->status == 2)
+                                                            <form method="POST" name="deleteform" class="deleteform d-inline"
+                                                                action="{{ route('izinabsen.cancelapprove', Crypt::encrypt($d->kode_izin)) }}">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-warning cancel-confirm rounded-0 py-1 px-2" title="Batalkan Penolakan">
+                                                                    <i class="ti ti-arrow-back-up"></i>
+                                                                </button>
+                                                            </form>
                                                         @endif
                                                     @endcan
                                                     
                                                     @can('izinabsen.edit')
-                                                        @if ($d->status == 0)
+                                                        @if ($d->status == 0 || $d->status == 2)
                                                             <a href="#" class="btn btn-sm btn-outline-success btnEdit py-1 px-2" kode_izin="{{ Crypt::encrypt($d->kode_izin) }}" title="Edit">
                                                                 <i class="ti ti-edit"></i>
                                                             </a>

@@ -79,5 +79,78 @@
             @endif
         </table>
 
+        {{-- Action buttons when REJECTED --}}
+        @if($izincuti->status == 2)
+        <div class="alert alert-danger d-flex align-items-start gap-3 rounded-3 mt-3 p-3">
+            <i class="ti ti-circle-x fs-4 mt-1 flex-shrink-0"></i>
+            <div class="flex-grow-1">
+                <div class="fw-semibold mb-1">Pengajuan Ditolak</div>
+                <div class="small text-muted mb-3">
+                    Pengajuan ini telah ditolak. Anda dapat membatalkan penolakan (reset ke Pending) agar dapat di-approve ulang, atau langsung edit datanya terlebih dahulu.
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @can('izincuti.edit')
+                    <button type="button" class="btn btn-primary btn-sm" id="btnEditFromShow"
+                        data-encrypted="{{ $encryptedKode }}"
+                        title="Buka form edit">
+                        <i class="ti ti-edit me-1"></i>
+                        Edit Pengajuan
+                    </button>
+                    @endcan
+                    <!-- Cancel rejection button visible to all users -->
+                    <form method="POST" action="{{ route('izincuti.cancelapprove', $encryptedKode) }}" id="formResetCutiVisible" class="d-inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="button" class="btn btn-warning btn-sm" id="btnResetCutiVisible" title="Batalkan penolakan dan reset ke pending">
+                            <i class="ti ti-arrow-back-up me-1"></i>
+                            Batalkan Penolakan
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endif
+
     </div>
 </div>
+
+@if($izincuti->status == 2)
+<script>
+$(function() {
+    // Confirm before resetting to pending
+    $('#btnResetCutiVisible').on('click', function() {
+        Swal.fire({
+            title: 'Reset ke Pending?',
+            text: 'Penolakan akan dibatalkan dan status pengajuan kembali ke Pending. Lanjutkan?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Reset!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#formResetCutiVisible').submit();
+            }
+        });
+    });
+
+    // Edit button: swap modal content to the edit form
+    $('#btnEditFromShow').on('click', function() {
+        const encryptedKode = $(this).data('encrypted');
+        // Target the parent modal elements
+        $('#modal').find('.modal-title').text('Edit Izin Cuti');
+        $('#loadmodal').html(
+            `<div class="sk-wave sk-primary" style="margin:auto">
+                <div class="sk-wave-rect"></div>
+                <div class="sk-wave-rect"></div>
+                <div class="sk-wave-rect"></div>
+                <div class="sk-wave-rect"></div>
+                <div class="sk-wave-rect"></div>
+            </div>`
+        );
+        $('#loadmodal').load('/izincuti/' + encryptedKode + '/edit');
+    });
+});
+</script>
+@endif

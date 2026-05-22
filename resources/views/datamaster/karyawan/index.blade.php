@@ -42,6 +42,29 @@
                     @can('users.create')
                         <a href="{{ route('karyawan.generatealluser') }}" class="btn btn-warning"><i class="ti ti-user-plus me-2"></i> Buat User (All)</a>
                     @endcan
+                    @can('karyawan.edit')
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="ti ti-settings me-2"></i> Pengaturan Presensi (All)
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item btn-bulk-action" href="#" data-action="lock_location"><i class="ti ti-map-pin me-2 text-danger"></i> Lock Location All</a></li>
+                                <li><a class="dropdown-item btn-bulk-action" href="#" data-action="unlock_location"><i class="ti ti-map-pin-off me-2 text-success"></i> Unlock Location All</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item btn-bulk-action" href="#" data-action="lock_jam_kerja"><i class="ti ti-clock me-2 text-danger"></i> Lock Jam Kerja All</a></li>
+                                <li><a class="dropdown-item btn-bulk-action" href="#" data-action="unlock_jam_kerja"><i class="ti ti-clock-pause me-2 text-success"></i> Unlock Jam Kerja All</a></li>
+                            </ul>
+                        </div>
+                        <form id="formBulkAction" action="{{ route('karyawan.bulklockunlock') }}" method="POST" style="display: none;">
+                            @csrf
+                            <input type="hidden" name="bulk_action" id="bulk_action_input">
+                            <input type="hidden" name="nama_karyawan" value="{{ Request('nama_karyawan') }}">
+                            <input type="hidden" name="kode_cabang" value="{{ Request('kode_cabang') }}">
+                            <input type="hidden" name="kode_dept" value="{{ Request('kode_dept') }}">
+                            <input type="hidden" name="sub_departemen" value="{{ Request('sub_departemen') }}">
+                            <input type="hidden" name="status_aktif" value="{{ Request('status_aktif') }}">
+                        </form>
+                    @endcan
                 @endcan
             </div>
             <div class="card-body">
@@ -178,12 +201,12 @@
                                                         @if ($d->lock_location == '1')
                                                             <a href="{{ route('karyawan.lockunlocklocation', Crypt::encrypt($d->nik)) }}"
                                                                 data-bs-toggle="tooltip" title="Unlock Location">
-                                                                <i class="ti ti-lock text-success fs-5"></i>
+                                                                <i class="ti ti-lock text-danger fs-5"></i>
                                                             </a>
                                                         @else
                                                             <a href="{{ route('karyawan.lockunlocklocation', Crypt::encrypt($d->nik)) }}"
                                                                 data-bs-toggle="tooltip" title="Lock Location">
-                                                                <i class="ti ti-lock-open text-danger fs-5"></i>
+                                                                <i class="ti ti-lock-open text-success fs-5"></i>
                                                             </a>
                                                         @endif
                                                         <div class="d-block text-muted" style="font-size: 9px;">Location</div>
@@ -192,12 +215,12 @@
                                                         @if ($d->lock_jam_kerja == '1')
                                                             <a href="{{ route('karyawan.lockunlockjamkerja', Crypt::encrypt($d->nik)) }}"
                                                                 data-bs-toggle="tooltip" title="Unlock Jam Kerja">
-                                                                <i class="ti ti-lock text-success fs-5"></i>
+                                                                <i class="ti ti-lock text-danger fs-5"></i>
                                                             </a>
                                                         @else
                                                             <a href="{{ route('karyawan.lockunlockjamkerja', Crypt::encrypt($d->nik)) }}"
                                                                 data-bs-toggle="tooltip" title="Lock Jam Kerja">
-                                                                <i class="ti ti-lock-open text-danger fs-5"></i>
+                                                                <i class="ti ti-lock-open text-success fs-5"></i>
                                                             </a>
                                                         @endif
                                                         <div class="d-block text-muted" style="font-size: 9px;">Jam Kerja</div>
@@ -452,6 +475,26 @@
             $("#loadmodalSetCabang").load(`/karyawan/${nik}/setcabang`);
         });
 
+        $('.btn-bulk-action').on('click', function(e) {
+            e.preventDefault();
+            let action = $(this).data('action');
+            let title = $(this).text().trim();
+            
+            Swal.fire({
+                title: "Apakah Anda Yakin?",
+                text: "Anda akan mengeksekusi: " + title + " untuk seluruh karyawan yang difilter.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Ya, Lanjutkan!"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#bulk_action_input').val(action);
+                    $('#formBulkAction').submit();
+                }
+            });
+        });
 
     });
 </script>

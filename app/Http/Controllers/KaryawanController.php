@@ -210,7 +210,8 @@ class KaryawanController extends Controller
                 'kode_jabatan' => $request->kode_jabatan,
                 'tanggal_masuk' => $request->tanggal_masuk,
                 'status_karyawan' => $request->status_karyawan,
-                'lock_location' => 1,
+                'lock_location' => $request->lock_location,
+                'lock_jam_kerja' => $request->lock_jam_kerja,
                 'status_aktif_karyawan' => 1,
                 'rfid_uid' => $request->rfid_uid,
                 'password' => Hash::make('12345')
@@ -323,6 +324,8 @@ class KaryawanController extends Controller
                 'tanggal_masuk' => $request->tanggal_masuk,
                 'status_karyawan' => $request->status_karyawan,
                 'status_aktif_karyawan' => $request->status_aktif_karyawan,
+                'lock_location' => $request->lock_location,
+                'lock_jam_kerja' => $request->lock_jam_kerja,
                 'tanggal_nonaktif' => $request->status_aktif_karyawan === '0' ? $request->tanggal_nonaktif : null,
                 'rfid_uid' => $request->rfid_uid,
                 'pin' => $request->pin
@@ -762,6 +765,89 @@ class KaryawanController extends Controller
 
         $karyawan = $query->orderBy('nama_karyawan')->get();
         return response()->json($karyawan);
+    }
+
+    public function bulkLockUnlock(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $query = Karyawan::query();
+
+        if (!$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+
+            if (!empty($userCabangs)) {
+                $query->whereIn('kode_cabang', $userCabangs);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+
+            if (!empty($userDepartemens)) {
+                $query->whereIn('kode_dept', $userDepartemens);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        if (!empty($request->kode_cabang)) {
+            $query->where('kode_cabang', $request->kode_cabang);
+        }
+        if (!empty($request->kode_dept)) {
+            $query->where('kode_dept', $request->kode_dept);
+        }
+        if (!empty($request->sub_departemen)) {
+            $query->where('sub_departemen', $request->sub_departemen);
+        }
+        if ($request->has('status_aktif') && $request->status_aktif !== '' && $request->status_aktif !== null) {
+            $query->where('status_aktif_karyawan', $request->status_aktif);
+        }
+        if (!empty($request->kode_group)) {
+            $query->where('kode_group', $request->kode_group);
+        }
+
+        if (filled($request->nama_karyawan)) {
+            $keyword = $request->nama_karyawan;
+            $query->where(function($q) use ($keyword) {
+                $q->where('nama_karyawan', 'like', '%' . $keyword . '%')
+                  ->orWhere('nik', 'like', '%' . $keyword . '%')
+                  ->orWhere('nik_show', 'like', '%' . $keyword . '%');
+            });
+        }
+
+        $action = $request->input('bulk_action');
+        
+        try {
+            $updateData = [];
+            $message = "Pengaturan berhasil diperbarui.";
+
+            switch ($action) {
+                case 'lock_location':
+                    $updateData['lock_location'] = 1;
+                    $message = "Lock Location berhasil diaktifkan untuk karyawan yang difilter.";
+                    break;
+                case 'unlock_location':
+                    $updateData['lock_location'] = 0;
+                    $message = "Lock Location berhasil dinonaktifkan untuk karyawan yang difilter.";
+                    break;
+                case 'lock_jam_kerja':
+                    $updateData['lock_jam_kerja'] = 1;
+                    $message = "Lock Jam Kerja berhasil diaktifkan untuk karyawan yang difilter.";
+                    break;
+                case 'unlock_jam_kerja':
+                    $updateData['lock_jam_kerja'] = 0;
+                    $message = "Lock Jam Kerja berhasil dinonaktifkan untuk karyawan yang difilter.";
+                    break;
+                default:
+                    return Redirect::back()->with(messageError('Aksi tidak valid.'));
+            }
+
+            $query->update($updateData);
+
+            return Redirect::back()->with(messageSuccess($message));
+        } catch (\Exception $e) {
+            return Redirect::back()->with(messageError($e->getMessage()));
+        }
     }
 
     public function idcard($nik)

@@ -711,6 +711,26 @@ class IzincutiController extends Controller
                     return Redirect::back()->with(messageSuccess('Data Berhasil Dibatalkan'));
                 }
             }
+            // Case 3: Status is Rejected (2) — cancel rejection and stay at current step
+            else if ($izincuti->status == 2) {
+                // Find and delete the rejection record
+                $rejectedApproval = Approval::where('approvable_type', Izincuti::class)
+                    ->where('approvable_id', $kode_izin_cuti)
+                    ->where('status', 'rejected')
+                    ->first();
+                
+                if ($rejectedApproval) {
+                    $rejectedApproval->delete();
+                }
+
+                // Reset status to pending, leave approval_step as is
+                Izincuti::where('kode_izin_cuti', $kode_izin_cuti)->update([
+                    'status' => 0
+                ]);
+                
+                DB::commit();
+                return Redirect::back()->with(messageSuccess('Penolakan berhasil dibatalkan. Pengajuan kembali ke status Pending di tahap ' . $izincuti->approval_step . '.'));
+            }
             return Redirect::back()->with(messageError('Status tidak valid untuk pembatalan.'));
 
         } catch (\Exception $e) {
@@ -803,6 +823,7 @@ class IzincutiController extends Controller
 
         $data['izincuti'] = $izincuti;
         $data['approvals'] = $approvals;
+        $data['encryptedKode'] = Crypt::encrypt($kode_izin_cuti);
         return view('izincuti.show', $data);
     }
 

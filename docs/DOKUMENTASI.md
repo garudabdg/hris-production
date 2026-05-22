@@ -556,47 +556,67 @@ users (login account)
 
 ## 9. API ENDPOINTS
 
-### Authentication
+### Karyawan Mobile API (`/api/karyawan/`)
 
-```
-POST   /api/karyawan/login          Login karyawan (token)
-POST   /api/sanctum/token           Sanctum token
-```
-
-### Karyawan API (`/api/karyawan/`)
-
-```
-GET    /api/karyawan/profile         Data profil + karyawan
-GET    /api/karyawan/presensi        Riwayat presensi
-POST   /api/karyawan/presensi/masuk  Presensi masuk (GPS + foto)
-POST   /api/karyawan/presensi/keluar Presensi keluar
-GET    /api/karyawan/jadwal          Jadwal kerja
-GET    /api/karyawan/izin            Riwayat izin
-GET    /api/karyawan/lembur          Riwayat lembur
-GET    /api/karyawan/pengumuman      Pengumuman aktif
-GET    /api/karyawan/info            Info presensi hari ini
+**Public:**
+```text
+POST   /api/karyawan/login                 Login karyawan (mengembalikan Sanctum token)
 ```
 
-### ADMS (Fingerprint Machine)
+**Protected (Membutuhkan Bearer Token Sanctum):**
+```text
+POST   /api/karyawan/logout                Logout (Hapus token)
+GET    /api/karyawan/dashboard             Data dashboard utama
+GET    /api/karyawan/presensi              Riwayat presensi
+GET    /api/karyawan/rekap                 Rekap presensi bulanan
+GET    /api/karyawan/lembur                Riwayat lembur
+GET    /api/karyawan/pengajuan-izin        Riwayat pengajuan izin
+GET    /api/karyawan/profil                Data profil karyawan
+PUT    /api/karyawan/profil                Update profil karyawan
+GET    /api/karyawan/notifikasi            Daftar notifikasi
+POST   /api/karyawan/notifikasi/read-all   Tandai semua notifikasi dibaca
 
+# Face Recognition
+GET    /api/karyawan/face                  Ambil descriptor wajah yang tersimpan
+POST   /api/karyawan/face                  Simpan data wajah baru
+DELETE /api/karyawan/face                  Hapus semua data wajah
+DELETE /api/karyawan/face/{id}             Hapus data wajah spesifik
+
+# Aksi Presensi
+GET    /api/karyawan/presensi/info         Info presensi hari ini
+GET    /api/karyawan/presensi/jam-kerja    Daftar jam kerja
+POST   /api/karyawan/presensi              Presensi (Masuk/Pulang)
+POST   /api/karyawan/presensi/istirahat    Presensi (Mulai/Selesai Istirahat)
 ```
-POST   /api/adms/push               Push data dari mesin absensi
-GET    /api/adms/info-device        Info device terdaftar
+
+### ADMS & Mesin Fingerprint
+
+**Tanpa Middleware Throttle:**
+```text
+GET|POST /api/presensimachine              Resource API Presensi Machine
+POST   /api/presensi/log                   Simpan log presensi
+POST   /api/presensi/receive-data          Menerima data dari mesin REVO
+POST   /api/adms/capture                   Menerima data mentah dari mesin ADMS
 ```
 
 ### Update System
 
-```
-GET    /api/update/latest            Cek versi terbaru
-GET    /api/update/list              Daftar update tersedia
-GET    /api/update/{version}/download Download package update
+**Public:**
+```text
+GET    /api/update/check                   Cek versi terbaru
+GET    /api/update/version                 Ambil current version
+GET    /api/update/list                    Daftar update tersedia
+GET    /api/update/{version}               Lihat detail versi
 ```
 
-### Face Recognition
-
-```
-POST   /api/facerecognition/verify   Verifikasi wajah
-GET    /api/facerecognition/{nik}    Ambil descriptor wajah
+**Protected:**
+```text
+GET    /api/update/history                 Riwayat update
+GET    /api/update/log/{id}                Lihat log instalasi
+GET    /api/update/status/{logId}          Status progress update
+POST   /api/update/{version}/download      Download package update
+POST   /api/update/{version}/install       Install package update
+POST   /api/update/{version}/update-now    Langsung update
 ```
 
 ### Request/Response Format

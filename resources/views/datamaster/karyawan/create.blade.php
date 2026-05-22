@@ -74,6 +74,24 @@
             <option value="G">Magang</option>
         </select>
     </div>
+
+    <div class="row mb-3 mt-3">
+        <div class="col-12">
+            <label style="font-weight: 600" class="form-label d-block">Pengaturan Presensi</label>
+            <div class="d-flex gap-4">
+                <div class="form-check form-switch">
+                    <input type="hidden" name="lock_location" value="0">
+                    <input class="form-check-input" type="checkbox" name="lock_location" value="1" id="lock_location" checked>
+                    <label class="form-check-label" for="lock_location">Lock Location (Radius)</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input type="hidden" name="lock_jam_kerja" value="0">
+                    <input class="form-check-input" type="checkbox" name="lock_jam_kerja" value="1" id="lock_jam_kerja" checked>
+                    <label class="form-check-label" for="lock_jam_kerja">Lock Jam Kerja</label>
+                </div>
+            </div>
+        </div>
+    </div>
     <x-input-with-icon-label icon="ti ti-id" label="RFID UID" name="rfid_uid" />
     <x-input-file name="foto" label="Foto" />
     <div class="form-group">
