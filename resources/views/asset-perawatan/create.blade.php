@@ -191,206 +191,221 @@
 
 @push('myscript')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const categoryFilter   = document.getElementById('kategori_filter');
-    const assetSelect      = document.getElementById('kode_asset');
-    const checklistSection = document.getElementById('checklistSection');
-    const checklistBody    = document.getElementById('checklistBody');
-    const noAssetMsg       = document.getElementById('noAssetMsg');
-    const kategoriInfo     = document.getElementById('kategoriInfo');
-    const kategoriNama     = document.getElementById('kategoriNama');
-    const totalItems       = document.getElementById('totalItems');
-    const btnSimpan        = document.getElementById('btnSimpan');
-    const btnTambahItem    = document.getElementById('btnTambahItem');
+$(function() {
+    // Select elements
+    const $kategoriFilter = $('#kategori_filter');
+    const $assetSelect = $('#kode_asset');
+    const $checklistSection = $('#checklistSection');
+    const $checklistBody = $('#checklistBody');
+    const $noAssetMsg = $('#noAssetMsg');
+    const $kategoriInfo = $('#kategoriInfo');
+    const $kategoriNama = $('#kategoriNama');
+    const $totalItems = $('#totalItems');
+    const $btnSimpan = $('#btnSimpan');
+    const $btnTambahItem = $('#btnTambahItem');
 
-    // Store a master copy of all asset options (except the placeholder/first option)
-    const originalOptions = Array.from(assetSelect.options).slice(1);
+    // Initialize Select2
+    if ($kategoriFilter.length) {
+        $kategoriFilter.wrap('<div class="position-relative"></div>').select2({
+            placeholder: '-- Semua Kategori --',
+            allowClear: true,
+            dropdownParent: $kategoriFilter.parent()
+        });
+    }
+
+    if ($assetSelect.length) {
+        $assetSelect.wrap('<div class="position-relative"></div>').select2({
+            placeholder: '-- Pilih Aset --',
+            allowClear: true,
+            dropdownParent: $assetSelect.parent()
+        });
+    }
+
+    // Keep track of the currently loaded asset to avoid duplicate AJAX calls or overwriting page-load selections
+    let lastLoadedAsset = $assetSelect.val() || '';
+
+    // Keep original options as DOM elements copy
+    const originalOptions = $assetSelect.find('option').slice(1).map(function() {
+        return $(this).clone()[0];
+    }).get();
 
     function filterAssets() {
-        const categoryId = categoryFilter.value;
-        const currentSelectedVal = assetSelect.value;
+        const categoryId = $kategoriFilter.val();
+        const currentSelectedVal = $assetSelect.val();
 
-        // Clear all options except the placeholder
-        assetSelect.innerHTML = '<option value="">-- Pilih Aset --</option>';
+        // Empty options except placeholder
+        $assetSelect.empty().append('<option value="">-- Pilih Aset --</option>');
 
-        // Filter options
-        const filteredOptions = originalOptions.filter(option => {
-            if (!categoryId) return true;
-            return option.getAttribute('data-kategori-id') == categoryId;
+        // Filter and append
+        originalOptions.forEach(option => {
+            const $opt = $(option).clone();
+            if (!categoryId || $opt.attr('data-kategori-id') == categoryId) {
+                $assetSelect.append($opt);
+            }
         });
 
-        // Append filtered options back
-        filteredOptions.forEach(option => {
-            assetSelect.appendChild(option.cloneNode(true));
-        });
-
-        // Re-select the previous value if it is still in the filtered list
+        // Re-select if it still exists in filtered options
         if (currentSelectedVal) {
-            const hasVal = Array.from(assetSelect.options).some(opt => opt.value === currentSelectedVal);
+            const hasVal = $assetSelect.find(`option[value="${currentSelectedVal}"]`).length > 0;
             if (hasVal) {
-                assetSelect.value = currentSelectedVal;
+                $assetSelect.val(currentSelectedVal);
             } else {
-                assetSelect.value = '';
-                assetSelect.dispatchEvent(new Event('change'));
+                $assetSelect.val('');
             }
         }
+        
+        $assetSelect.trigger('change'); // update Select2 and trigger change handlers
     }
 
-    categoryFilter.addEventListener('change', function () {
+    $kategoriFilter.on('change', function () {
         filterAssets();
-        assetSelect.dispatchEvent(new Event('change'));
     });
 
-    // If an asset is already selected on page load, select its category in the filter
-    if (assetSelect.value) {
-        const selectedOption = assetSelect.options[assetSelect.selectedIndex];
-        if (selectedOption) {
-            const categoryId = selectedOption.getAttribute('data-kategori-id');
-            if (categoryId) {
-                categoryFilter.value = categoryId;
-                filterAssets();
-            }
+    // If an asset is already selected on page load (e.g., validation redirect)
+    if (lastLoadedAsset) {
+        const categoryId = $assetSelect.find(':selected').attr('data-kategori-id');
+        if (categoryId) {
+            $kategoriFilter.val(categoryId).trigger('change');
         }
     }
 
-    assetSelect.addEventListener('change', function () {
-        const kodeAsset = this.value;
+    $assetSelect.on('change', function () {
+        const kodeAsset = $(this).val() || '';
+        if (kodeAsset === lastLoadedAsset) {
+            return;
+        }
+        lastLoadedAsset = kodeAsset;
+
         if (!kodeAsset) {
-            checklistSection.classList.add('d-none');
-            noAssetMsg.classList.remove('d-none');
-            kategoriInfo.style.display = 'none';
-            btnSimpan.disabled = true;
+            $checklistSection.addClass('d-none');
+            $noAssetMsg.removeClass('d-none');
+            $kategoriInfo.hide();
+            $btnSimpan.prop('disabled', true);
             return;
         }
 
         // Fetch checklist items via AJAX
-        fetch(`{{ route('asset-perawatan.checklist-items') }}?kode_asset=${encodeURIComponent(kodeAsset)}`, {
-                credentials: 'same-origin',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(r => {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            })
-            .then(data => {
+        $.ajax({
+            url: `{{ route('asset-perawatan.checklist-items') }}`,
+            type: 'GET',
+            data: { kode_asset: kodeAsset },
+            cache: false,
+            success: function(data) {
                 if (!data.items || data.items.length === 0) {
-                    checklistSection.classList.add('d-none');
-                    noAssetMsg.classList.remove('d-none');
-                    kategoriInfo.style.display = 'none';
-                    btnSimpan.disabled = true;
+                    $checklistSection.addClass('d-none');
+                    $noAssetMsg.removeClass('d-none');
+                    $kategoriInfo.hide();
+                    $btnSimpan.prop('disabled', true);
                     return;
                 }
 
                 // Update kategori info
-                kategoriNama.textContent = data.kategori || '-';
-                kategoriInfo.style.display = '';
-                totalItems.textContent = data.items.length + ' item';
+                $kategoriNama.text(data.kategori || '-');
+                $kategoriInfo.show();
+                $totalItems.text(data.items.length + ' item');
 
                 renderRows(data.items);
-                checklistSection.classList.remove('d-none');
-                noAssetMsg.classList.add('d-none');
-                btnSimpan.disabled = false;
-            })
-            .catch((err) => {
-                console.error('Gagal load checklist items:', err);
-                checklistSection.classList.add('d-none');
-                noAssetMsg.innerHTML = '<i class="ti ti-alert-circle fs-1 d-block mb-2 text-danger"></i>Gagal memuat item checklist. Silakan refresh halaman.';
-                noAssetMsg.classList.remove('d-none');
-                btnSimpan.disabled = true;
-            });
+                $checklistSection.removeClass('d-none');
+                $noAssetMsg.addClass('d-none');
+                $btnSimpan.prop('disabled', false);
+            },
+            error: function(xhr, status, error) {
+                console.error('Gagal load checklist items:', error);
+                lastLoadedAsset = '';
+                $checklistSection.addClass('d-none');
+                $noAssetMsg.html('<i class="ti ti-alert-circle fs-1 d-block mb-2 text-danger"></i>Gagal memuat item checklist. Silakan refresh halaman.');
+                $noAssetMsg.removeClass('d-none');
+                $btnSimpan.prop('disabled', true);
+            }
+        });
     });
 
     function escHtml(text) {
-        const d = document.createElement('div');
-        d.appendChild(document.createTextNode(text));
-        return d.innerHTML;
+        return $('<div>').text(text || '').html();
     }
-        // Render rows helper
-        function renderRows(items) {
-            let html = '';
-            items.forEach(function (item, i) {
-                html += rowHtml(item, i);
-            });
-            checklistBody.innerHTML = html;
-            totalItems.textContent = items.length + ' item';
-            reindexRows();
-        }
 
-        function rowHtml(item, i) {
-            const name = escHtml(item || '');
-            return `
-                <tr>
-                    <td class="text-center text-muted">${i + 1}</td>
-                    <td>
-                        <input type="text" name="items[${i}][item_name]" value="${name}" class="form-control form-control-sm item-name-input" required>
-                    </td>
-                    <td>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="baik_${i}" value="baik" checked required>
-                                <label class="form-check-label text-success fw-semibold" for="baik_${i}"><i class="ti ti-circle-check me-1"></i>Baik</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="cukup_${i}" value="cukup_baik">
-                                <label class="form-check-label text-warning fw-semibold" for="cukup_${i}"><i class="ti ti-alert-triangle me-1"></i>Cukup Baik</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="rusak_${i}" value="rusak">
-                                <label class="form-check-label text-danger fw-semibold" for="rusak_${i}"><i class="ti ti-x me-1"></i>Rusak</label>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <input type="text" name="items[${i}][keterangan]" class="form-control form-control-sm" placeholder="Keterangan (opsional)">
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-row" title="Hapus baris">&times;</button>
-                        </div>
-                    </td>
-                </tr>`;
-        }
-
-        // Add new empty item
-        btnTambahItem.addEventListener('click', function () {
-            const rows = checklistBody.querySelectorAll('tr');
-            const nextIndex = rows.length;
-            const temp = document.createElement('tbody');
-            temp.innerHTML = rowHtml('', nextIndex);
-            checklistBody.appendChild(temp.firstElementChild);
-            reindexRows();
-            totalItems.textContent = checklistBody.querySelectorAll('tr').length + ' item';
+    // Render rows helper
+    function renderRows(items) {
+        let html = '';
+        items.forEach(function (item, i) {
+            html += rowHtml(item, i);
         });
+        $checklistBody.html(html);
+        $totalItems.text(items.length + ' item');
+        reindexRows();
+    }
 
-        // Delete row (event delegation)
-        checklistBody.addEventListener('click', function (e) {
-            if (e.target.closest('.btn-delete-row')) {
-                const btn = e.target.closest('.btn-delete-row');
-                const row = btn.closest('tr');
-                row.remove();
-                reindexRows();
-                totalItems.textContent = checklistBody.querySelectorAll('tr').length + ' item';
-            }
-        });
+    function rowHtml(item, i) {
+        const name = escHtml(item || '');
+        return `
+            <tr>
+                <td class="text-center text-muted">${i + 1}</td>
+                <td>
+                    <input type="text" name="items[${i}][item_name]" value="${name}" class="form-control form-control-sm item-name-input" required>
+                </td>
+                <td>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="baik_${i}" value="baik" checked required>
+                            <label class="form-check-label text-success fw-semibold" for="baik_${i}"><i class="ti ti-circle-check me-1"></i>Baik</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="cukup_${i}" value="cukup_baik">
+                            <label class="form-check-label text-warning fw-semibold" for="cukup_${i}"><i class="ti ti-alert-triangle me-1"></i>Cukup Baik</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="rusak_${i}" value="rusak">
+                            <label class="form-check-label text-danger fw-semibold" for="rusak_${i}"><i class="ti ti-x me-1"></i>Rusak</label>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <input type="text" name="items[${i}][keterangan]" class="form-control form-control-sm" placeholder="Keterangan (opsional)">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-row" title="Hapus baris">&times;</button>
+                    </div>
+                </td>
+            </tr>`;
+    }
 
-        // Reindex names and ids after add/remove
-        function reindexRows() {
-            const rows = Array.from(checklistBody.querySelectorAll('tr'));
-            rows.forEach(function (tr, idx) {
-                tr.querySelectorAll('input, label').forEach(function (el) {
-                    if (el.name) {
-                        el.name = el.name.replace(/items\[\d+\]/, `items[${idx}]`);
-                    }
-                    if (el.id) {
-                        el.id = el.id.replace(/_(\d+)$/, `_${idx}`);
-                    }
-                    if (el.htmlFor) {
-                        el.htmlFor = el.htmlFor.replace(/_(\d+)$/, `_${idx}`);
-                    }
-                });
-                const noCell = tr.querySelector('td.text-center.text-muted');
-                if (noCell) noCell.textContent = idx + 1;
+    // Add new empty item
+    $btnTambahItem.on('click', function () {
+        const rowsCount = $checklistBody.find('tr').length;
+        $checklistBody.append(rowHtml('', rowsCount));
+        reindexRows();
+    });
+
+    // Delete row (event delegation)
+    $checklistBody.on('click', '.btn-delete-row', function () {
+        $(this).closest('tr').remove();
+        reindexRows();
+    });
+
+    // Reindex names and ids after add/remove
+    function reindexRows() {
+        const $rows = $checklistBody.find('tr');
+        $rows.each(function (idx, tr) {
+            const $tr = $(tr);
+            $tr.find('input, label').each(function () {
+                const $el = $(this);
+                const name = $el.attr('name');
+                if (name) {
+                    $el.attr('name', name.replace(/items\[\d+\]/, `items[${idx}]`));
+                }
+                const id = $el.attr('id');
+                if (id) {
+                    $el.attr('id', id.replace(/_(\d+)$/, `_${idx}`));
+                }
+                const htmlFor = $el.attr('for');
+                if (htmlFor) {
+                    $el.attr('for', htmlFor.replace(/_(\d+)$/, `_${idx}`));
+                }
             });
-        }
-
+            const noCell = $tr.find('td.text-center.text-muted');
+            if (noCell.length) noCell.text(idx + 1);
+        });
+        $totalItems.text($rows.length + ' item');
+    }
 });
 </script>
 @endpush
