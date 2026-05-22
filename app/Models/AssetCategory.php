@@ -14,6 +14,11 @@ class AssetCategory extends Model
     protected $fillable = [
         'nama_kategori',
         'deskripsi',
+        'checklist_items',
+    ];
+
+    protected $casts = [
+        'checklist_items' => 'array',
     ];
 
     public function assets()

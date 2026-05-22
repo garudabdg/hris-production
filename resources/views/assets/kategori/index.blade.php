@@ -41,6 +41,28 @@
                             rows="2" placeholder="Deskripsi singkat kategori">{{ old('deskripsi') }}</textarea>
                         @error('deskripsi') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Checklist Default</label>
+                        <div class="d-flex gap-2 align-items-center mb-2">
+                            <button type="button" id="btnTambahItemTambah" class="btn btn-sm btn-outline-primary">Tambah Item</button>
+                            <small class="text-muted">Jika kosong, gunakan checklist default umum.</small>
+                        </div>
+                        <div class="table-responsive" style="max-height:250px; overflow-y:auto;">
+                            <table class="table table-bordered table-sm align-middle" id="checklistTableTambah">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:40px;">No</th>
+                                        <th>Item Checklist</th>
+                                        <th style="width:50px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="checklistBodyTambah">
+                                </tbody>
+                            </table>
+                        </div>
+                        <input type="hidden" id="checklistItemsInput" name="checklist_items">
+                        @error('checklist_items') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="ti ti-plus me-1"></i> Tambah Kategori
                     </button>
@@ -60,6 +82,7 @@
                             <th>No</th>
                             <th>Nama Kategori</th>
                             <th>Deskripsi</th>
+                            <th class="text-center">Checklist</th>
                             <th class="text-center">Jml Aset</th>
                             <th class="text-center">Aksi</th>
                         </tr>
@@ -71,6 +94,9 @@
                                 <td class="fw-semibold">{{ $cat->nama_kategori }}</td>
                                 <td class="text-muted small">{{ $cat->deskripsi ?? '-' }}</td>
                                 <td class="text-center">
+                                    <span class="badge bg-label-secondary">{{ count($cat->checklist_items ?? []) }} item</span>
+                                </td>
+                                <td class="text-center">
                                     <span class="badge bg-label-primary">{{ $cat->assets_count }}</span>
                                 </td>
                                 <td class="text-center">
@@ -78,7 +104,8 @@
                                         <button class="btn btn-sm btn-outline-primary btn-edit-cat"
                                             data-id="{{ $cat->id }}"
                                             data-nama="{{ $cat->nama_kategori }}"
-                                            data-deskripsi="{{ $cat->deskripsi }}">
+                                            data-deskripsi="{{ $cat->deskripsi }}"
+                                            data-checklist='@json($cat->checklist_items ?? [])'>
                                             <i class="ti ti-pencil"></i>
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger btn-delete-cat"
@@ -92,7 +119,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
+                                <td colspan="6" class="text-center py-4 text-muted">
                                     Belum ada kategori.
                                 </td>
                             </tr>
@@ -126,6 +153,27 @@
                         <label class="form-label">Deskripsi</label>
                         <textarea name="deskripsi" id="editDeskripsiKat" class="form-control" rows="2"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Checklist Default</label>
+                        <div class="d-flex gap-2 align-items-center mb-2">
+                            <button type="button" id="btnTambahItemEdit" class="btn btn-sm btn-outline-primary">Tambah Item</button>
+                            <small class="text-muted">Jika kosong, gunakan checklist default umum.</small>
+                        </div>
+                        <div class="table-responsive" style="max-height:250px; overflow-y:auto;">
+                            <table class="table table-bordered table-sm align-middle" id="checklistTableEdit">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:40px;">No</th>
+                                        <th>Item Checklist</th>
+                                        <th style="width:50px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="checklistBodyEdit">
+                                </tbody>
+                            </table>
+                        </div>
+                        <input type="hidden" id="editChecklistItemsInput" name="checklist_items">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
@@ -145,18 +193,107 @@
 @push('myscript')
 <script>
 $(function () {
-    // Edit
+    // Checklist table helpers - TAMBAH
+    const bodyTambah = $('#checklistBodyTambah');
+    const inputTambah = $('#checklistItemsInput');
+    const btnTambahItemTambah = $('#btnTambahItemTambah');
+
+    // Checklist table helpers - EDIT
+    const bodyEdit = $('#checklistBodyEdit');
+    const inputEdit = $('#editChecklistItemsInput');
+    const btnTambahItemEdit = $('#btnTambahItemEdit');
+
+    function rowHtml(item, i) {
+        return `
+            <tr>
+                <td class="text-center">${i + 1}</td>
+                <td>
+                    <input type="text" class="form-control form-control-sm item-input" value="${item}" placeholder="Item checklist">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-item">&times;</button>
+                </td>
+            </tr>`;
+    }
+
+    function renderRows(container, items) {
+        let html = '';
+        items.forEach((item, i) => {
+            html += rowHtml(item, i);
+        });
+        container.html(html);
+    }
+
+    function reindexRows(container) {
+        container.find('tr').each(function(idx) {
+            $(this).find('td:first').text(idx + 1);
+        });
+    }
+
+    function getItems(container) {
+        const items = [];
+        container.find('.item-input').each(function() {
+            const val = $(this).val().trim();
+            if (val) items.push(val);
+        });
+        return items;
+    }
+
+    // TAMBAH KATEGORI
+    btnTambahItemTambah.on('click', function(e) {
+        e.preventDefault();
+        const items = getItems(bodyTambah);
+        renderRows(bodyTambah, [...items, '']);
+    });
+
+    bodyTambah.on('click', '.btn-delete-item', function(e) {
+        e.preventDefault();
+        $(this).closest('tr').remove();
+        reindexRows(bodyTambah);
+    });
+
+    $('form[action*="kategori"]').on('submit', function(e) {
+        if ($(this).attr('id') !== 'formEditKat') {
+            const items = getItems(bodyTambah);
+            inputTambah.val(JSON.stringify(items));
+        }
+    });
+
+    // EDIT KATEGORI
     $('.btn-edit-cat').on('click', function () {
-        const id   = $(this).data('id');
-        const nama = $(this).data('nama');
-        const desk = $(this).data('deskripsi') || '';
-        $('#formEditKat').attr('action', `/assets/kategori/${id}`);
+        const id        = $(this).data('id');
+        const nama      = $(this).data('nama');
+        const desk      = $(this).data('deskripsi') || '';
+        const checklist = $(this).data('checklist') || [];
+        
+        $('#formEditKat').attr('action', `/manajemen-aset/kategori/${id}`);
         $('#editNamaKat').val(nama);
         $('#editDeskripsiKat').val(desk);
+        
+        const items = Array.isArray(checklist) ? checklist : [];
+        renderRows(bodyEdit, items);
+        
         new bootstrap.Modal(document.getElementById('modalEditKat')).show();
     });
 
-    // Delete
+    btnTambahItemEdit.on('click', function(e) {
+        e.preventDefault();
+        const items = getItems(bodyEdit);
+        renderRows(bodyEdit, [...items, '']);
+    });
+
+    bodyEdit.on('click', '.btn-delete-item', function(e) {
+        e.preventDefault();
+        $(this).closest('tr').remove();
+        reindexRows(bodyEdit);
+    });
+
+    $('#formEditKat').on('submit', function(e) {
+        const items = getItems(bodyEdit);
+        inputEdit.val(JSON.stringify(items));
+    });
+
+    // DELETE
     $('.btn-delete-cat').on('click', function () {
         const id    = $(this).data('id');
         const nama  = $(this).data('nama');
@@ -175,7 +312,7 @@ $(function () {
             cancelButtonText: 'Batal',
         }).then(r => {
             if (r.isConfirmed) {
-                $('#formDeleteKat').attr('action', `/assets/kategori/${id}`).submit();
+                $('#formDeleteKat').attr('action', `/manajemen-aset/kategori/${id}`).submit();
             }
         });
     });

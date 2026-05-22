@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\AssetCategory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -27,9 +28,18 @@ class AssetPerawatan extends Model
     /**
      * Daftar item checklist per kategori.
      */
-    public static function checklistItems(string $namaKategori): array
+    public static function checklistItems(AssetCategory|array|string|null $category = null): array
     {
-        $kategori = strtolower($namaKategori);
+        if ($category instanceof AssetCategory) {
+            if (!empty($category->checklist_items)) {
+                return $category->checklist_items;
+            }
+            $kategori = strtolower($category->nama_kategori);
+        } elseif (is_array($category)) {
+            return $category;
+        } else {
+            $kategori = strtolower((string) ($category ?? ''));
+        }
 
         if (str_contains($kategori, 'komputer') || str_contains($kategori, 'computer') || str_contains($kategori, 'laptop') || str_contains($kategori, 'pc')) {
             return [

@@ -87,7 +87,10 @@
                     <div id="checklistSection" class="{{ ($selectedAsset && count($checklistItems) > 0) ? '' : 'd-none' }}">
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <h6 class="fw-bold mb-0"><i class="ti ti-list-check me-2"></i>Item Checklist</h6>
-                            <span class="badge bg-label-primary" id="totalItems">{{ count($checklistItems) }} item</span>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button type="button" id="btnTambahItem" class="btn btn-sm btn-outline-primary">Tambah Item</button>
+                                <span class="badge bg-label-primary" id="totalItems">{{ count($checklistItems) }} item</span>
+                            </div>
                         </div>
 
                         <div class="table-responsive">
@@ -105,8 +108,7 @@
                                     <tr>
                                         <td class="text-center text-muted">{{ $i + 1 }}</td>
                                         <td>
-                                            <input type="hidden" name="items[{{ $i }}][item_name]" value="{{ $item }}">
-                                            <span class="fw-semibold">{{ $item }}</span>
+                                            <input type="text" name="items[{{ $i }}][item_name]" value="{{ $item }}" class="form-control form-control-sm item-name-input" required>
                                         </td>
                                         <td>
                                             <div class="d-flex gap-2 flex-wrap">
@@ -140,10 +142,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <input type="text" name="items[{{ $i }}][keterangan]"
-                                                class="form-control form-control-sm"
-                                                placeholder="Keterangan (opsional)"
-                                                value="{{ old("items.$i.keterangan") }}">
+                                            <div class="d-flex gap-2">
+                                                <input type="text" name="items[{{ $i }}][keterangan]"
+                                                    class="form-control form-control-sm"
+                                                    placeholder="Keterangan (opsional)"
+                                                    value="{{ old("items.$i.keterangan") }}">
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-row" title="Hapus baris">&times;</button>
+                                            </div>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -183,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const kategoriNama     = document.getElementById('kategoriNama');
     const totalItems       = document.getElementById('totalItems');
     const btnSimpan        = document.getElementById('btnSimpan');
+        const btnTambahItem    = document.getElementById('btnTambahItem');
 
     assetSelect.addEventListener('change', function () {
         const kodeAsset = this.value;
@@ -217,53 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 kategoriInfo.style.display = '';
                 totalItems.textContent = data.items.length + ' item';
 
-                // Render rows
-                let html = '';
-                data.items.forEach(function (item, i) {
-                    html += `
-                    <tr>
-                        <td class="text-center text-muted">${i + 1}</td>
-                        <td>
-                            <input type="hidden" name="items[${i}][item_name]" value="${escHtml(item)}">
-                            <span class="fw-semibold">${escHtml(item)}</span>
-                        </td>
-                        <td>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio"
-                                        name="items[${i}][klasifikasi]"
-                                        id="baik_${i}" value="baik" checked required>
-                                    <label class="form-check-label text-success fw-semibold" for="baik_${i}">
-                                        <i class="ti ti-circle-check me-1"></i>Baik
-                                    </label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio"
-                                        name="items[${i}][klasifikasi]"
-                                        id="cukup_${i}" value="cukup_baik">
-                                    <label class="form-check-label text-warning fw-semibold" for="cukup_${i}">
-                                        <i class="ti ti-alert-triangle me-1"></i>Cukup Baik
-                                    </label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio"
-                                        name="items[${i}][klasifikasi]"
-                                        id="rusak_${i}" value="rusak">
-                                    <label class="form-check-label text-danger fw-semibold" for="rusak_${i}">
-                                        <i class="ti ti-x me-1"></i>Rusak
-                                    </label>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <input type="text" name="items[${i}][keterangan]"
-                                class="form-control form-control-sm"
-                                placeholder="Keterangan (opsional)">
-                        </td>
-                    </tr>`;
-                });
-
-                checklistBody.innerHTML = html;
+                    renderRows(data.items);
                 checklistSection.classList.remove('d-none');
                 noAssetMsg.classList.add('d-none');
                 btnSimpan.disabled = false;
@@ -282,6 +242,92 @@ document.addEventListener('DOMContentLoaded', function () {
         d.appendChild(document.createTextNode(text));
         return d.innerHTML;
     }
+        // Render rows helper
+        function renderRows(items) {
+            let html = '';
+            items.forEach(function (item, i) {
+                html += rowHtml(item, i);
+            });
+            checklistBody.innerHTML = html;
+            totalItems.textContent = items.length + ' item';
+            reindexRows();
+        }
+
+        function rowHtml(item, i) {
+            const name = escHtml(item || '');
+            return `
+                <tr>
+                    <td class="text-center text-muted">${i + 1}</td>
+                    <td>
+                        <input type="text" name="items[${i}][item_name]" value="${name}" class="form-control form-control-sm item-name-input" required>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="baik_${i}" value="baik" checked required>
+                                <label class="form-check-label text-success fw-semibold" for="baik_${i}"><i class="ti ti-circle-check me-1"></i>Baik</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="cukup_${i}" value="cukup_baik">
+                                <label class="form-check-label text-warning fw-semibold" for="cukup_${i}"><i class="ti ti-alert-triangle me-1"></i>Cukup Baik</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="items[${i}][klasifikasi]" id="rusak_${i}" value="rusak">
+                                <label class="form-check-label text-danger fw-semibold" for="rusak_${i}"><i class="ti ti-x me-1"></i>Rusak</label>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <input type="text" name="items[${i}][keterangan]" class="form-control form-control-sm" placeholder="Keterangan (opsional)">
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-row" title="Hapus baris">&times;</button>
+                        </div>
+                    </td>
+                </tr>`;
+        }
+
+        // Add new empty item
+        btnTambahItem.addEventListener('click', function () {
+            const rows = checklistBody.querySelectorAll('tr');
+            const nextIndex = rows.length;
+            const temp = document.createElement('tbody');
+            temp.innerHTML = rowHtml('', nextIndex);
+            checklistBody.appendChild(temp.firstElementChild);
+            reindexRows();
+            totalItems.textContent = checklistBody.querySelectorAll('tr').length + ' item';
+        });
+
+        // Delete row (event delegation)
+        checklistBody.addEventListener('click', function (e) {
+            if (e.target.closest('.btn-delete-row')) {
+                const btn = e.target.closest('.btn-delete-row');
+                const row = btn.closest('tr');
+                row.remove();
+                reindexRows();
+                totalItems.textContent = checklistBody.querySelectorAll('tr').length + ' item';
+            }
+        });
+
+        // Reindex names and ids after add/remove
+        function reindexRows() {
+            const rows = Array.from(checklistBody.querySelectorAll('tr'));
+            rows.forEach(function (tr, idx) {
+                tr.querySelectorAll('input, label').forEach(function (el) {
+                    if (el.name) {
+                        el.name = el.name.replace(/items\[\d+\]/, `items[${idx}]`);
+                    }
+                    if (el.id) {
+                        el.id = el.id.replace(/_(\d+)$/, `_${idx}`);
+                    }
+                    if (el.htmlFor) {
+                        el.htmlFor = el.htmlFor.replace(/_(\d+)$/, `_${idx}`);
+                    }
+                });
+                const noCell = tr.querySelector('td.text-center.text-muted');
+                if (noCell) noCell.textContent = idx + 1;
+            });
+        }
+
 });
 </script>
 @endpush

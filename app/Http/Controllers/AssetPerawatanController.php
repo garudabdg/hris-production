@@ -100,8 +100,9 @@ class AssetPerawatanController extends Controller
         $selectedAsset     = null;
         $checklistItems    = [];
 
-        if ($request->filled('kode_asset')) {
-            $selectedAsset  = $assets->firstWhere('kode_asset', $request->kode_asset);
+        $selectedAssetCode = $request->filled('kode_asset') ? $request->kode_asset : session()->getOldInput('kode_asset');
+        if ($selectedAssetCode) {
+            $selectedAsset  = $assets->firstWhere('kode_asset', $selectedAssetCode);
             if ($selectedAsset && $selectedAsset->category) {
                 $checklistItems = AssetPerawatan::checklistItems($selectedAsset->category->nama_kategori);
             } else {
@@ -122,8 +123,8 @@ class AssetPerawatanController extends Controller
             return response()->json(['items' => []]);
         }
 
-        $kategoriNama   = $asset->category?->nama_kategori ?? '';
-        $items          = AssetPerawatan::checklistItems($kategoriNama);
+        $items = AssetPerawatan::checklistItems($asset->category);
+        $kategoriNama = $asset->category?->nama_kategori ?? '';
 
         return response()->json([
             'items'    => $items,

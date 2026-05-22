@@ -262,10 +262,17 @@ class AssetController extends Controller
     {
         abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori'), 403);
         $request->validate([
-            'nama_kategori' => 'required|string|max:100|unique:asset_categories,nama_kategori',
-            'deskripsi'     => 'nullable|string',
+            'nama_kategori'   => 'required|string|max:100|unique:asset_categories,nama_kategori',
+            'deskripsi'       => 'nullable|string',
+            'checklist_items' => 'nullable|string',
         ]);
-        AssetCategory::create($request->only('nama_kategori', 'deskripsi'));
+
+        AssetCategory::create([
+            'nama_kategori'   => $request->nama_kategori,
+            'deskripsi'       => $request->deskripsi,
+            'checklist_items' => $this->parseChecklistItems($request->checklist_items),
+        ]);
+
         return redirect()->route('assets.kategori.index')->with('success', 'Kategori berhasil ditambahkan.');
     }
 
@@ -273,11 +280,39 @@ class AssetController extends Controller
     {
         abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori'), 403);
         $request->validate([
-            'nama_kategori' => 'required|string|max:100|unique:asset_categories,nama_kategori,' . $category->id,
-            'deskripsi'     => 'nullable|string',
+            'nama_kategori'   => 'required|string|max:100|unique:asset_categories,nama_kategori,' . $category->id,
+            'deskripsi'       => 'nullable|string',
+            'checklist_items' => 'nullable|string',
         ]);
-        $category->update($request->only('nama_kategori', 'deskripsi'));
+
+        $category->update([
+            'nama_kategori'   => $request->nama_kategori,
+            'deskripsi'       => $request->deskripsi,
+            'checklist_items' => $this->parseChecklistItems($request->checklist_items),
+        ]);
+
         return redirect()->route('assets.kategori.index')->with('success', 'Kategori berhasil diperbarui.');
+    }
+
+    private function parseChecklistItems(?string $value): array
+    {
+        if (!$value) {
+            return [];
+        }
+
+        // Try to parse as JSON (from table form)
+        if (str_starts_with($value, '[') && str_ends_with($value, ']')) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return array_filter(array_map('trim', $decoded));
+            }
+        }
+
+        // Fallback: parse as newline-separated (legacy textarea)
+        $normalized = str_replace(["\r\n", "\r"], "\n", $value);
+        $items = array_filter(array_map('trim', explode("\n", $normalized)));
+
+        return array_values($items);
     }
 
     public function kategoriDestroy(AssetCategory $category)
