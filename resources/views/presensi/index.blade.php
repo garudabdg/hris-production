@@ -87,43 +87,52 @@
                                     $total_potongan_jam = $pulangcepat + $potongan_jam_terlambat + $potongan_tidak_hadir;
                                 @endphp
                                 <div class="col-12">
-                                    <div class="card mb-2 shadow-sm border card-hover">
+                                    <div class="card mb-3 border-0 shadow-sm" style="border-radius: 10px;">
                                         <div class="card-body p-3">
                                             {{-- Row 1: Header Info & Status --}}
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <div class="d-flex align-items-center flex-wrap gap-2">
-                                                    <span class="avatar avatar-xs rounded bg-primary-subtle text-primary">
-                                                        <i class="ti ti-user fs-5"></i>
-                                                    </span>
-                                                    <span class="fw-bold text-dark">{{ $d->nama_karyawan }}</span>
-                                                    <span class="text-muted" style="font-size: 0.85rem;"><i class="ti ti-id me-1"></i>{{ $d->nik_show ?? $d->nik }}</span>
-                                                    <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-building me-1"></i>{{ $d->kode_dept }}</span>
-                                                    <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-map-pin me-1"></i>{{ $d->kode_cabang }}</span>
+                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    @php
+                                                        $path = Storage::url('karyawan/'.$d->foto);
+                                                    @endphp
+                                                    @if (!empty($d->foto) && Storage::disk('public')->exists('/karyawan/' . $d->foto))
+                                                        <img src="{{ url($path) }}" alt="Avatar" class="rounded-circle border" style="width: 46px; height: 46px; object-fit: cover; flex-shrink: 0;">
+                                                    @else
+                                                        <img src="{{ asset('assets/img/avatars/No_Image_Available.jpg') }}" alt="No Image" class="rounded-circle border" style="width: 46px; height: 46px; object-fit: cover; flex-shrink: 0;">
+                                                    @endif
+                                                    <div>
+                                                        <h6 class="mb-0 fw-bold text-dark">{{ $d->nama_karyawan }}</h6>
+                                                        <div class="text-muted mt-1" style="font-size: 0.8rem;">
+                                                            <span class="text-primary fw-medium">{{ $d->nik_show ?? $d->nik }}</span> 
+                                                            <span class="mx-1">•</span> <i class="ti ti-building me-1"></i>{{ $d->kode_dept }}
+                                                            <span class="mx-1">•</span> <i class="ti ti-map-pin me-1"></i>{{ $d->kode_cabang }}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div>
                                                         @if ($d->status == 'h')
-                                                            <span class="badge bg-success bg-glow"><i class="ti ti-check me-1"></i>Hadir</span>
+                                                            <span class="badge bg-success-subtle text-success"><i class="ti ti-check me-1"></i>Hadir</span>
                                                         @elseif($d->status == 'i')
-                                                            <span class="badge bg-info bg-glow"><i class="ti ti-file-info me-1"></i>Izin</span>
+                                                            <span class="badge bg-info-subtle text-info"><i class="ti ti-file-info me-1"></i>Izin</span>
                                                         @elseif($d->status == 's')
-                                                            <span class="badge bg-warning bg-glow"><i class="ti ti-ambulance me-1"></i>Sakit</span>
+                                                            <span class="badge bg-warning-subtle text-warning"><i class="ti ti-ambulance me-1"></i>Sakit</span>
                                                         @elseif($d->status == 'a')
-                                                            <span class="badge bg-danger bg-glow"><i class="ti ti-x me-1"></i>Alpa</span>
+                                                            <span class="badge bg-danger-subtle text-danger"><i class="ti ti-x me-1"></i>Alpa</span>
                                                         @elseif($d->status == 'c')
-                                                            <span class="badge bg-primary bg-glow"><i class="ti ti-calendar-event me-1"></i>Cuti</span>
+                                                            <span class="badge bg-primary-subtle text-primary"><i class="ti ti-calendar-event me-1"></i>Cuti</span>
                                                         @else
-                                                            <span class="badge bg-secondary"><i class="ti ti-minus me-1"></i>Belum Absen</span>
+                                                            <span class="badge bg-secondary-subtle text-secondary"><i class="ti ti-minus me-1"></i>Belum Absen</span>
                                                         @endif
                                                     </div>
 
                                                     {{-- Actions --}}
                                                     <div class="d-flex gap-1">
                                                         @if (isset($d->status_potongan))
-                                                            <button class="btn btn-sm btn-icon btn-dark" disabled title="Terkunci"><i class="ti ti-lock"></i></button>
+                                                            <button class="btn btn-sm btn-icon btn-light text-muted" disabled title="Terkunci"><i class="ti ti-lock"></i></button>
                                                         @else
-                                                            <a href="#" class="btn btn-sm btn-icon btn-outline-success koreksiPresensi" nik="{{ Crypt::encrypt($d->nik) }}"
+                                                            <a href="#" class="btn btn-sm btn-icon btn-light text-success koreksiPresensi" nik="{{ Crypt::encrypt($d->nik) }}"
                                                                 tanggal="{{ $tanggal_presensi }}" title="Koreksi"><i class="ti ti-edit"></i></a>
 
                                                             @if(!empty($d->id))
@@ -131,13 +140,13 @@
                                                                 style="display:inline-block;" class="delete-form">
                                                                 @csrf
                                                                 @method('DELETE')
-                                                                <button type="submit" class="btn btn-sm btn-icon btn-outline-danger delete-confirm"
+                                                                <button type="submit" class="btn btn-sm btn-icon btn-light text-danger delete-confirm"
                                                                     title="Hapus"><i class="ti ti-trash"></i></button>
                                                             </form>
                                                             @endif
                                                         @endif
     
-                                                        <a href="#" class="btn btn-sm btn-icon btn-outline-primary btngetDatamesin" pin="{{ $d->pin }}"
+                                                        <a href="#" class="btn btn-sm btn-icon btn-light text-primary btngetDatamesin" pin="{{ $d->pin }}"
                                                             tanggal="{{ !empty(Request('tanggal')) ? Request('tanggal') : date('Y-m-d') }}" title="Log Mesin"> <i
                                                                 class="ti ti-device-desktop"></i>
                                                         </a>
@@ -145,119 +154,84 @@
                                                 </div>
                                             </div>
 
-                                            <hr class="my-2 border-dashed">
-
                                             {{-- Row 2: Details Grid --}}
-                                            <div class="row g-2 text-muted" style="font-size: 0.85rem;">
+                                            <div class="bg-light rounded-3 p-3 d-flex flex-wrap gap-4 align-items-center" style="font-size: 0.85rem;">
+                                                
                                                 {{-- Jadwal --}}
-                                                <div class="col-6 col-md-2 d-flex align-items-center border-end">
-                                                    <div class="avatar avatar-xs me-2 bg-light rounded text-muted">
-                                                        <i class="ti ti-clock"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Jadwal</small>
-                                                        <span class="fw-medium text-dark">
-                                                            @if ($d->kode_jam_kerja != null)
-                                                                <span class="d-block text-primary small fw-bold">{{ $d->nama_jam_kerja }}</span>
-                                                                {{ date('H:i', strtotime($d->jam_masuk)) }} - {{ date('H:i', strtotime($d->jam_pulang)) }}
-                                                            @else
-                                                                -
-                                                            @endif
-                                                        </span>
-                                                    </div>
+                                                <div>
+                                                    <small class="d-block text-muted mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">JADWAL</small>
+                                                    <span class="fw-medium text-dark">
+                                                        <i class="ti ti-clock text-secondary me-1"></i>
+                                                        @if ($d->kode_jam_kerja != null)
+                                                            {{ date('H:i', strtotime($d->jam_masuk)) }} - {{ date('H:i', strtotime($d->jam_pulang)) }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </span>
                                                 </div>
 
                                                 {{-- Jam Masuk --}}
-                                                <div class="col-6 col-md-2 d-flex align-items-center border-end">
-                                                    <div class="avatar avatar-xs me-2 bg-success-subtle rounded text-success">
-                                                        <i class="ti ti-login"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Masuk</small>
-                                                        @if ($d->jam_in != null)
-                                                            <a href="#" class="btnShowpresensi_in fw-bold text-dark text-decoration-none" id="{{ $d->id }}" status="in">
-                                                                {{ date('H:i', strtotime($d->jam_in)) }}
-                                                            </a>
-                                                            @if (!empty($d->foto_in))
-                                                                <i class="ti ti-photo text-primary ms-1" style="font-size:10px" title="Ada Foto"></i>
-                                                            @endif
-                                                            <span class="text-danger ms-1" style="font-size:10px">
-                                                                @if ($potongan_jam_terlambat > 0)
-                                                                    (-{{ $potongan_jam_terlambat }})
-                                                                @endif
-                                                            </span>
-                                                        @else
-                                                            -
+                                                <div>
+                                                    <small class="d-block text-muted mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">MASUK</small>
+                                                    @if ($d->jam_in != null)
+                                                        <a href="#" class="btnShowpresensi_in fw-bold text-success text-decoration-none" id="{{ $d->id }}" status="in">
+                                                            <i class="ti ti-login me-1"></i>{{ date('H:i', strtotime($d->jam_in)) }}
+                                                        </a>
+                                                        @if (!empty($d->foto_in))
+                                                            <i class="ti ti-photo text-success ms-1" style="font-size:12px" title="Ada Foto"></i>
                                                         @endif
-                                                    </div>
+                                                        @if ($potongan_jam_terlambat > 0)
+                                                            <span class="text-danger ms-1" style="font-size: 11px;">(-{{ $potongan_jam_terlambat }})</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted"><i class="ti ti-login me-1"></i>-</span>
+                                                    @endif
                                                 </div>
 
                                                 {{-- Jam Pulang --}}
-                                                <div class="col-6 col-md-2 d-flex align-items-center border-end">
-                                                    <div class="avatar avatar-xs me-2 bg-danger-subtle rounded text-danger">
-                                                        <i class="ti ti-logout"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Pulang</small>
-                                                        @if ($d->jam_out != null)
-                                                            <a href="#" class="btnShowpresensi_out fw-bold text-dark text-decoration-none" id="{{ $d->id }}" status="out">
-                                                                {{ date('H:i', strtotime($d->jam_out)) }}
-                                                            </a>
-                                                            @if (!empty($d->foto_out))
-                                                                <i class="ti ti-photo text-primary ms-1" style="font-size:10px" title="Ada Foto"></i>
-                                                            @endif
-                                                            <span class="text-danger ms-1" style="font-size:10px">
-                                                                @if ($pulangcepat > 0)
-                                                                    (-{{ $pulangcepat }})
-                                                                @endif
-                                                            </span>
-                                                        @else
-                                                            -
+                                                <div>
+                                                    <small class="d-block text-muted mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">PULANG</small>
+                                                    @if ($d->jam_out != null)
+                                                        <a href="#" class="btnShowpresensi_out fw-bold text-danger text-decoration-none" id="{{ $d->id }}" status="out">
+                                                            <i class="ti ti-logout me-1"></i>{{ date('H:i', strtotime($d->jam_out)) }}
+                                                        </a>
+                                                        @if (!empty($d->foto_out))
+                                                            <i class="ti ti-photo text-danger ms-1" style="font-size:12px" title="Ada Foto"></i>
                                                         @endif
-                                                    </div>
+                                                        @if ($pulangcepat > 0)
+                                                            <span class="text-danger ms-1" style="font-size: 11px;">(-{{ $pulangcepat }})</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted"><i class="ti ti-logout me-1"></i>-</span>
+                                                    @endif
                                                 </div>
 
                                                  {{-- Terlambat --}}
-                                                 <div class="col-6 col-md-2 d-flex align-items-center border-end">
-                                                    <div class="avatar avatar-xs me-2 bg-warning-subtle rounded text-warning">
-                                                        <i class="ti ti-clock-exclamation"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Terlambat</small>
-                                                        @if($terlambat != null)
-                                                            <span class="fw-medium text-danger">{!! $terlambat['show'] !!}</span>
-                                                        @else
-                                                             <span class="text-success fw-medium"><i class="ti ti-check"></i> Tepat Waktu</span>
-                                                        @endif
-                                                    </div>
+                                                 <div>
+                                                    <small class="d-block text-muted mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">TERLAMBAT</small>
+                                                    @if($terlambat != null)
+                                                        <span class="fw-medium text-warning"><i class="ti ti-clock-exclamation me-1"></i>{!! strip_tags($terlambat['show']) !!}</span>
+                                                    @else
+                                                         <span class="text-success fw-medium"><i class="ti ti-check me-1"></i> Tepat Waktu</span>
+                                                    @endif
                                                 </div>
 
                                                 {{-- Denda --}}
-                                                <div class="col-6 col-md-2 d-flex align-items-center border-end">
-                                                    <div class="avatar avatar-xs me-2 bg-danger-subtle rounded text-danger">
-                                                        <i class="ti ti-coin"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Denda</small>
-                                                        <span class="fw-bold text-danger">{{ empty($denda) ? '0' : formatAngka($denda) }}</span>
-                                                    </div>
+                                                <div>
+                                                    <small class="d-block text-muted mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">DENDA</small>
+                                                    <span class="fw-bold text-danger"><i class="ti ti-coin me-1"></i>{{ empty($denda) ? '0' : formatAngka($denda) }}</span>
                                                 </div>
 
                                                 {{-- Potongan Jam --}}
-                                                <div class="col-6 col-md-2 d-flex align-items-center">
-                                                    <div class="avatar avatar-xs me-2 bg-dark-subtle rounded text-dark">
-                                                        <i class="ti ti-cut"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Potongan</small>
-                                                        @if ($total_potongan_jam > 0)
-                                                            <span class="badge bg-danger rounded-pill">
-                                                                {{ formatAngkaDesimal($total_potongan_jam) }} Jam
-                                                            </span>
-                                                        @else
-                                                            <span class="text-success fw-medium">0 Jam</span>
-                                                        @endif
-                                                    </div>
+                                                <div>
+                                                    <small class="d-block text-muted mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">POTONGAN</small>
+                                                    @if ($total_potongan_jam > 0)
+                                                        <span class="badge bg-danger rounded-1">
+                                                            <i class="ti ti-cut me-1"></i>{{ formatAngkaDesimal($total_potongan_jam) }} Jam
+                                                        </span>
+                                                    @else
+                                                        <span class="text-success fw-medium"><i class="ti ti-cut me-1"></i>0 Jam</span>
+                                                    @endif
                                                 </div>
 
                                             </div>

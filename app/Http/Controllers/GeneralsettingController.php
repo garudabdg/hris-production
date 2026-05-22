@@ -31,7 +31,7 @@ class GeneralsettingController extends Controller
             'periode_laporan_dari' => 'required',
             'periode_laporan_sampai' => 'required',
             'domain_email' => 'required|regex:/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/',
-            'provider_wa' => 'required|in:ig,fe',
+            'provider_wa' => 'required|in:local,ig,fe',
             'tujuan_notifikasi_wa' => 'required|in:0,1',
             'id_group_wa' => 'nullable|string|max:255',
             'timezone' => 'required|string|max:50',
