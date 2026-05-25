@@ -175,7 +175,7 @@
                                         @endcan
                                         
                                         @can('lembur.edit')
-                                             @if ($d->status == 0 || $d->status == 2)
+                                             @if ($d->status == 0 || $d->status == 1 || $d->status == 2)
                                                  <a href="#" class="btn btn-sm btn-outline-success btnEdit py-1 px-2" id="{{ Crypt::encrypt($d->id) }}" title="Edit">
                                                     <i class="ti ti-edit"></i>
                                                 </a>

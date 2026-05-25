@@ -276,6 +276,12 @@ class LemburController extends Controller
         ]);
 
         try {
+            $lembur = Lembur::find($id);
+            $newStatus = $lembur->status;
+            if ($request->lembur_in && $request->lembur_out) {
+                $newStatus = 1;
+            }
+
             Lembur::where('id', $id)->update([
                 'nik' => $request->nik,
                 'tanggal' => date('Y-m-d', strtotime($request->dari)),
@@ -284,7 +290,7 @@ class LemburController extends Controller
                 'keterangan' => $request->keterangan,
                 'lembur_in' => $request->lembur_in,
                 'lembur_out' => $request->lembur_out,
-                'status' => $request->lembur_in && $request->lembur_out ? 1 : 0,
+                'status' => $newStatus,
             ]);
             return Redirect::back()->with('success', 'Data Lembur berhasil disimpan');
         } catch (\Exception $e) {

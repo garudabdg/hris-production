@@ -130,6 +130,9 @@ class LaporanController extends Controller
 
     public function cetakpresensi(Request $request)
     {
+        ini_set('pcre.jit', '0');
+        ini_set('pcre.backtrack_limit', '100000000');
+        libxml_use_internal_errors(true);
 
         $user = User::where('id', Auth::user()->id)->first();
         $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();

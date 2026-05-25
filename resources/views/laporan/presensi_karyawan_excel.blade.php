@@ -134,7 +134,7 @@
                                 $ket_terlambat = str_replace('<br>', ' ', strip_tags($terlambat_info['show_laporan'], '<span><br>'));
                                 // For Excel, we might just want the plain text
                                 $ket_terlambat = strip_tags($terlambat_info['show_laporan']);
-                                if ($terlambat_info['menitterlambat'] > 0) {
+                                if ($terlambat_info['jamterlambat'] > 0 || $terlambat_info['menitterlambat'] > 0) {
                                     $jml_terlambat++;
                                 }
                             }

@@ -420,9 +420,9 @@
                                                             ? $d[$tanggal_presensi]['total_jam']
                                                             : $terlambat['desimal_terlambat'];
                                                 }
-                                                if ($terlambat['menitterlambat'] > 0) {
+                                                if ($terlambat['jamterlambat'] > 0 || $terlambat['menitterlambat'] > 0) {
                                                     $jml_terlambat++;
-                                                    $total_menit_terlambat += $terlambat['menitterlambat'];
+                                                    $total_menit_terlambat += ($terlambat['jamterlambat'] * 60) + $terlambat['menitterlambat'];
                                                 }
                                             } else {
                                                 $potongan_jam_terlambat = 0;
@@ -440,9 +440,9 @@
                                                             : $terlambat['desimal_terlambat'];
                                                     $denda = 0;
                                                 }
-                                                if ($terlambat['menitterlambat'] > 0) {
+                                                if ($terlambat['jamterlambat'] > 0 || $terlambat['menitterlambat'] > 0) {
                                                     $jml_terlambat++;
-                                                    $total_menit_terlambat += $terlambat['menitterlambat'];
+                                                    $total_menit_terlambat += ($terlambat['jamterlambat'] * 60) + $terlambat['menitterlambat'];
                                                 }
                                             } else {
                                                 $potongan_jam_terlambat = 0;

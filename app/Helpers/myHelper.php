@@ -414,6 +414,7 @@ function hitungjamterlambat($jam_in, $jam_mulai)
             ];
         } else {
             return [
+                'jamterlambat' => 0,
                 'menitterlambat' => 0,
                 'desimal_terlambat' => 0,
                 'color' => 'green',

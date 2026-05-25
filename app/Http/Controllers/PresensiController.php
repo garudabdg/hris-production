@@ -318,13 +318,13 @@ class PresensiController extends Controller
 
         //dd($jam_sekarang);
         //Get Lokasi User
-        $koordinat_user = explode(",", $lokasi);
-        $latitude_user = $koordinat_user[0];
-        $longitude_user = $koordinat_user[1];
+        $koordinat_user = explode(",", (string) $lokasi);
+        $latitude_user = $koordinat_user[0] ?? 0;
+        $longitude_user = $koordinat_user[1] ?? 0;
 
-        $koordinat_kantor = explode(",", $lokasi_kantor);
-        $latitude_kantor = $koordinat_kantor[0];
-        $longitude_kantor = $koordinat_kantor[1];
+        $koordinat_kantor = explode(",", (string) $lokasi_kantor);
+        $latitude_kantor = $koordinat_kantor[0] ?? 0;
+        $longitude_kantor = $koordinat_kantor[1] ?? 0;
 
         $jarak = hitungjarak($latitude_kantor, $longitude_kantor, $latitude_user, $longitude_user);
 

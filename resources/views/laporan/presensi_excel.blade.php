@@ -39,7 +39,7 @@
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Denda</th>
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Pot. Jam</th>
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Lembur</th>
-                <th colspan="9" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Rekap</th>
+                <th colspan="10" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Rekap</th>
             </tr>
             <tr>
                 @php
@@ -195,9 +195,9 @@
                                                         ? $d[$tanggal_presensi]['total_jam']
                                                         : $terlambat['desimal_terlambat'];
                                             }
-                                            if ($terlambat['menitterlambat'] > 0) {
+                                            if ($terlambat['jamterlambat'] > 0 || $terlambat['menitterlambat'] > 0) {
                                                 $jml_terlambat++;
-                                                $total_menit_terlambat += $terlambat['menitterlambat'];
+                                                $total_menit_terlambat += ($terlambat['jamterlambat'] * 60) + $terlambat['menitterlambat'];
                                             }
                                         } else {
                                             $potongan_jam_terlambat = 0;
@@ -215,9 +215,9 @@
                                                         : $terlambat['desimal_terlambat'];
                                                 $denda = 0;
                                             }
-                                            if ($terlambat['menitterlambat'] > 0) {
+                                            if ($terlambat['jamterlambat'] > 0 || $terlambat['menitterlambat'] > 0) {
                                                 $jml_terlambat++;
-                                                $total_menit_terlambat += $terlambat['menitterlambat'];
+                                                $total_menit_terlambat += ($terlambat['jamterlambat'] * 60) + $terlambat['menitterlambat'];
                                             }
                                         } else {
                                             $potongan_jam_terlambat = 0;

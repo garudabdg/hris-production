@@ -254,7 +254,7 @@
 
                                     if ($terlambat_info != null) {
                                         $ket_terlambat = $terlambat_info['show_laporan'];
-                                        if ($terlambat_info['menitterlambat'] > 0) {
+                                        if ($terlambat_info['jamterlambat'] > 0 || $terlambat_info['menitterlambat'] > 0) {
                                             $jml_terlambat++;
                                         }
                                     }
