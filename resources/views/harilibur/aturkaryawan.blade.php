@@ -9,8 +9,14 @@
     </div>
     <div class="row mb-3">
         <div class="col-lg-6 col-md-12 col-sm-12">
-            <x-select label="Departemen" name="kode_dept" :data="$departemen" key="kode_dept" textShow="nama_dept" select2="select2Group"
-                upperCase="true" />
+            <div class="form-group mb-3">
+                <label for="kode_dept" class="form-label" style="font-weight: 600;">Departemen</label>
+                <select name="kode_dept[]" id="kode_dept" class="form-select select2DeptMultiple" multiple>
+                    @foreach ($departemen as $d)
+                        <option value="{{ $d->kode_dept }}">{{ strtoupper(strtolower($d->nama_dept)) }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
         <div class="col-lg-6 col-md-12 col-sm-12">
             <x-input-with-icon label="Nama Karyawan" name="nama_karyawan" icon="ti ti-user" />
@@ -40,6 +46,18 @@
     $(document).ready(function() {
         const form = $('#frmKaryawan');
 
+        // Initialize select2 multi-select for departemen
+        const select2DeptMultiple = $(".select2DeptMultiple");
+        if (select2DeptMultiple.length) {
+            select2DeptMultiple.each(function() {
+                var $this = $(this);
+                $this.wrap('<div class="position-relative"></div>').select2({
+                    placeholder: "Pilih Departemen (bisa pilih banyak)",
+                    dropdownParent: $this.parent(),
+                    allowClear: true,
+                });
+            });
+        }
 
         function loadliburkaryawan() {
             const kode_libur = "{{ Crypt::encrypt($harilibur->kode_libur) }}";
@@ -49,9 +67,8 @@
 
         function loadkaryawan() {
             const kode_libur = "{{ Crypt::encrypt($harilibur->kode_libur) }}";
-            const kode_dept = form.find("#kode_dept").val();
+            const kode_dept = form.find("#kode_dept").val(); // Returns array for multi-select
             const nama_karyawan = form.find("#nama_karyawan").val();
-            // $("#loadkaryawan").html(`<tr><td colspan="5" class="text-center">Tunggu Sebentar...</td></tr>`);
             $.ajax({
                 type: 'POST',
                 url: `/harilibur/getkaryawan`,
@@ -115,28 +132,56 @@
         $("#tambahkansemua").click(function(e) {
             e.preventDefault();
             const kode_libur = "{{ $harilibur->kode_libur }}";
-            const kode_dept = form.find("#kode_dept").val();
-            $("#loadkaryawan").html(`<tr><td colspan="5" class="text-center">Tunggu Sebentar....</td></tr>`);
-            $.ajax({
-                type: 'POST',
-                url: `/harilibur/tambahkansemua`,
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    kode_libur: kode_libur,
-                    kode_dept: kode_dept
-                },
-                cache: false,
-                success: function(respond) {
-                    if (respond.success == true) {
-                        loadkaryawan();
-                    } else {
-                        Swal.fire({
-                            title: "Oops!",
-                            text: respond.message,
-                            icon: "warning",
-                            showConfirmButton: true,
-                        });
-                    }
+            const kode_dept = form.find("#kode_dept").val(); // Returns array for multi-select
+            if (kode_dept === null || kode_dept.length === 0) {
+                Swal.fire({
+                    title: "Perhatian!",
+                    text: "Pilih minimal satu departemen terlebih dahulu",
+                    icon: "warning",
+                    showConfirmButton: true,
+                });
+                return;
+            }
+            Swal.fire({
+                title: "Konfirmasi",
+                text: "Tambahkan semua karyawan dari " + kode_dept.length + " departemen yang dipilih?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Ya, Tambahkan!",
+                cancelButtonText: "Batal",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $("#loadkaryawan").html(`<tr><td colspan="5" class="text-center">Tunggu Sebentar....</td></tr>`);
+                    $.ajax({
+                        type: 'POST',
+                        url: `/harilibur/tambahkansemua`,
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            kode_libur: kode_libur,
+                            kode_dept: kode_dept
+                        },
+                        cache: false,
+                        success: function(respond) {
+                            if (respond.success == true) {
+                                Swal.fire({
+                                    title: "Berhasil!",
+                                    text: respond.message,
+                                    icon: "success",
+                                    showConfirmButton: true,
+                                });
+                                loadkaryawan();
+                            } else {
+                                Swal.fire({
+                                    title: "Oops!",
+                                    text: respond.message,
+                                    icon: "warning",
+                                    showConfirmButton: true,
+                                });
+                            }
+                        }
+                    });
                 }
             });
         });
@@ -144,28 +189,56 @@
         $("#batalkansemua").click(function(e) {
             e.preventDefault();
             const kode_libur = "{{ $harilibur->kode_libur }}";
-            const kode_group = form.find("#kode_group").val();
-            $("#loadkaryawan").html(`<tr><td colspan="5" class="text-center">Tunggu Sebentar....</td></tr>`);
-            $.ajax({
-                type: 'POST',
-                url: `/harilibur/batalkansemua`,
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    kode_libur: kode_libur,
-                    kode_group: kode_group
-                },
-                cache: false,
-                success: function(respond) {
-                    if (respond.success == true) {
-                        loadkaryawan();
-                    } else {
-                        Swal.fire({
-                            title: "Oops!",
-                            text: respond.message,
-                            icon: "warning",
-                            showConfirmButton: true,
-                        });
-                    }
+            const kode_dept = form.find("#kode_dept").val(); // Returns array for multi-select
+            if (kode_dept === null || kode_dept.length === 0) {
+                Swal.fire({
+                    title: "Perhatian!",
+                    text: "Pilih minimal satu departemen terlebih dahulu",
+                    icon: "warning",
+                    showConfirmButton: true,
+                });
+                return;
+            }
+            Swal.fire({
+                title: "Konfirmasi",
+                text: "Batalkan semua karyawan dari " + kode_dept.length + " departemen yang dipilih?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Ya, Batalkan!",
+                cancelButtonText: "Batal",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $("#loadkaryawan").html(`<tr><td colspan="5" class="text-center">Tunggu Sebentar....</td></tr>`);
+                    $.ajax({
+                        type: 'POST',
+                        url: `/harilibur/batalkansemua`,
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            kode_libur: kode_libur,
+                            kode_dept: kode_dept
+                        },
+                        cache: false,
+                        success: function(respond) {
+                            if (respond.success == true) {
+                                Swal.fire({
+                                    title: "Berhasil!",
+                                    text: respond.message,
+                                    icon: "success",
+                                    showConfirmButton: true,
+                                });
+                                loadkaryawan();
+                            } else {
+                                Swal.fire({
+                                    title: "Oops!",
+                                    text: respond.message,
+                                    icon: "warning",
+                                    showConfirmButton: true,
+                                });
+                            }
+                        }
+                    });
                 }
             });
         });

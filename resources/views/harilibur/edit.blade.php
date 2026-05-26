@@ -8,6 +8,18 @@
     @endif
     <x-textarea label="Keterangan" name="keterangan" :value="$harilibur->keterangan" />
     <div class="form-group mb-3">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="is_cuti_bersama" id="is_cuti_bersama" value="1"
+                {{ $harilibur->is_cuti_bersama ? 'checked' : '' }}>
+            <label class="form-check-label fw-semibold" for="is_cuti_bersama">
+                <i class="ti ti-calendar-minus me-1 text-warning"></i> Cuti Bersama
+            </label>
+            <div class="form-text text-muted" style="font-size: 0.75rem;">
+                Jika diaktifkan, jatah cuti tahunan karyawan akan otomatis terpotong saat ditambahkan ke hari libur ini.
+            </div>
+        </div>
+    </div>
+    <div class="form-group mb-3">
         <button class="btn btn-primary w-100" id="btnSimpan"><i class="ti ti-send me-1"></i>Simpan</button>
     </div>
 </form>

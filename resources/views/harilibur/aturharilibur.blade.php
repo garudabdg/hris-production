@@ -37,7 +37,23 @@
                                 <th>Keterangan</th>
                                 <td class="text-end">{{ $harilibur->keterangan }}</td>
                             </tr>
+                            <tr>
+                                <th>Cuti Bersama</th>
+                                <td class="text-end">
+                                    @if($harilibur->is_cuti_bersama)
+                                        <span class="badge bg-warning"><i class="ti ti-calendar-minus ti-xs me-1"></i>Aktif</span>
+                                    @else
+                                        <span class="badge bg-secondary">Tidak Aktif</span>
+                                    @endif
+                                </td>
+                            </tr>
                         </table>
+                        @if($harilibur->is_cuti_bersama)
+                            <div class="alert alert-warning py-2 px-3 mb-0" style="font-size: 0.8rem;">
+                                <i class="ti ti-alert-triangle me-1"></i>
+                                <strong>Perhatian:</strong> Hari libur ini adalah <strong>Cuti Bersama</strong>. Menambahkan karyawan akan <strong>otomatis memotong jatah cuti tahunan (C01)</strong> karyawan tersebut.
+                            </div>
+                        @endif
                     </div>
                 </div>
                 <div class="row">

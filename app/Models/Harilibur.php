@@ -12,4 +12,7 @@ class Harilibur extends Model
     protected $primaryKey = 'kode_libur';
     public $incrementing = false;
     protected $guarded = [];
+    protected $casts = [
+        'is_cuti_bersama' => 'boolean',
+    ];
 }

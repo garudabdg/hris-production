@@ -99,7 +99,14 @@
                                     <td class="fw-bold py-2 text-primary">{{ $d->kode_libur }}</td>
                                     <td class="py-2">{{ formatIndo($d->tanggal) }}</td>
                                     <td class="py-2"><span class="badge bg-label-info text-uppercase">{{ $d->nama_cabang }}</span></td>
-                                    <td class="py-2">{{ $d->keterangan }}</td>
+                                    <td class="py-2">
+                                        {{ $d->keterangan }}
+                                        @if($d->is_cuti_bersama)
+                                            <span class="badge bg-label-warning ms-1" title="Cuti Bersama - Memotong jatah cuti tahunan">
+                                                <i class="ti ti-calendar-minus ti-xs me-1"></i>CB
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td class="py-2 text-center">
                                         <div class="d-inline-flex border rounded overflow-hidden shadow-xs">
                                             @can('harilibur.edit')
