@@ -1259,6 +1259,7 @@ class LaporanController extends Controller
         $data['periode_dari'] = $periode_dari;
         $data['periode_sampai'] = $periode_sampai;
         $data['generalsetting'] = $generalsetting;
+        $data['datalibur'] = getdatalibur($periode_dari, $periode_sampai);
 
         if ($request->has('exportButton')) {
             return Excel::download(new \App\Exports\LemburExport($data), 'Laporan Lembur ' . $periode_dari . ' - ' . $periode_sampai . '.xlsx');

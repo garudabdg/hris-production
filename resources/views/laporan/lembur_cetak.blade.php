@@ -194,8 +194,22 @@
                     }
                     $total_rencana += $rencana_jam;
                     $total_aktual += $aktual_jam;
+
+                    $search = [
+                        'nik' => $d->nik,
+                        'tanggal' => $d->tanggal,
+                    ];
+                    $ceklibur = ceklibur($datalibur ?? [], $search);
+                    $is_weekend = in_array(date('w', strtotime($d->tanggal)), [0, 6]);
+                    $is_designated_holiday = !empty($ceklibur);
+                    $row_style = '';
+                    if ($is_designated_holiday && !$is_weekend) {
+                        $row_style = 'background-color: #59B292; color: white;';
+                    } elseif ($is_weekend) {
+                        $row_style = 'background-color: #622B14; color: white;';
+                    }
                 @endphp
-                <tr>
+                <tr @if($row_style) style="{{ $row_style }}" @endif>
                     <td class="text-center">{{ $loop->iteration }}</td>
                     <td class="text-center">{{ $d->nik_show ?? $d->nik }}</td>
                     <td>{{ $d->nama_karyawan }}</td>

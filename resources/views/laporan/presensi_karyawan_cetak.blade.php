@@ -360,7 +360,16 @@
                             $total_denda += $denda;
                             $total_potongan_jam += $potongan_jam;
                             $total_jam_lembur += $jml_jam_lembur;
-                            if ($nama_hari == 'Minggu') $bgcolor = 'orange';
+                            
+                            $is_weekend = in_array(date('w', strtotime($tanggal_presensi)), [0, 6]);
+                            $is_designated_holiday = !empty($ceklibur);
+                            if ($is_designated_holiday && !$is_weekend) {
+                                $bgcolor = '#59B292';
+                                $textcolor = 'white';
+                            } elseif ($is_weekend) {
+                                $bgcolor = '#622B14';
+                                $textcolor = 'white';
+                            }
                         @endphp
 
                         <tr>
