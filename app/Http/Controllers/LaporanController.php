@@ -435,7 +435,9 @@ class LaporanController extends Controller
             $q_presensi->whereIn('karyawan.nik', (array) $request->nik);
         }
 
-        if (!empty($request->jenis_upah)) {
+        // Jangan filter jenis_upah untuk Laporan Presensi (format 1) — bisa bikin data kosong
+        // kalau karyawan belum punya data gaji_pokok
+        if (!empty($request->jenis_upah) && $request->format_laporan != 1) {
             $q_presensi->where('gaji_pokok.jenis_upah', $request->jenis_upah);
         }
 

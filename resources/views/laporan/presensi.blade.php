@@ -367,6 +367,8 @@
             if (format_laporan == "1") {
                 $("#baris_jenis_upah").hide();
                 $("#jenis_upah").removeAttr('required');
+                // Reset nilai jenis_upah agar tidak terkirim & memfilter data
+                $("#jenis_upah").val('');
             } else {
                 $("#baris_jenis_upah").show();
                 $("#jenis_upah").attr('required', true);
