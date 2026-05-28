@@ -64,14 +64,8 @@ class PengumumanController extends Controller
                 'isi' => $request->isi,
             ]);
             
-            // Send Notification to all active Users with email
-            $users = \App\Models\User::whereNotNull('email')
-                ->where('email', '!=', '')
-                ->get();
-            
-            if ($users->isNotEmpty()) {
-                \Illuminate\Support\Facades\Notification::send($users, new \App\Notifications\PengumumanNotification($pengumuman));
-            }
+            // Send Notification to all active Users with email in the background
+            \App\Jobs\BroadcastPengumumanJob::dispatch($pengumuman);
 
             // Send OneSignal Push Notification - DISABLED
             // $this->sendOneSignalNotification($pengumuman->judul, $pengumuman->isi);
