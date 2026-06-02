@@ -26,5 +26,15 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Anda tidak memiliki akses ke halaman ini.',
+                ], 403);
+            }
+
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        });
     }
 }

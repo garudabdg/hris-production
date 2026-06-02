@@ -83,7 +83,11 @@ class HariliburController extends Controller
             if ($user->hasRole(['super admin', 'admin pusat'])) {
                 $kode_cabang = $request->kode_cabang;
             } else {
-                $kode_cabang = $user->kode_cabang;
+                $firstCabang = $user->cabangs()->first();
+                $kode_cabang = $firstCabang ? $firstCabang->kode_cabang : null;
+                if (empty($kode_cabang)) {
+                    return Redirect::back()->with(messageError('User tidak memiliki akses cabang. Hubungi admin.'));
+                }
             }
             Harilibur::create([
                 'kode_libur' => $kode_libur,
@@ -128,7 +132,11 @@ class HariliburController extends Controller
             if ($user->hasRole(['super admin', 'admin pusat'])) {
                 $kode_cabang = $request->kode_cabang;
             } else {
-                $kode_cabang = $user->kode_cabang;
+                $firstCabang = $user->cabangs()->first();
+                $kode_cabang = $firstCabang ? $firstCabang->kode_cabang : null;
+                if (empty($kode_cabang)) {
+                    return Redirect::back()->with(messageError('User tidak memiliki akses cabang. Hubungi admin.'));
+                }
             }
             Harilibur::where('kode_libur', $kode_libur)->update([
                 'tanggal' => $request->tanggal,
