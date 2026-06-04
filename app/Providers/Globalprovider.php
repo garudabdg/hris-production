@@ -139,6 +139,24 @@ class Globalprovider extends ServiceProvider
                 $data_izin = $data_izinabsen->unionAll($data_izinsakit)->unionAll($data_izincuti)->unionAll($data_izin_dinas)->get();
 
                 $notifikasi_ajuan_absen = $notifikasi_izinabsen + $notifikasi_izincuti + $notifikasi_izinsakit + $notifikasi_izin_dinas + $notifikasi_ajuan_jadwal;
+                
+                // Notifikasi Ticket
+                $q_ticket = \App\Models\ItTicket::whereNotIn('status', ['resolved', 'closed']);
+                // If it-ticket needs cab/dept filtering, we might need to apply it depending on business logic. Usually tickets are visible by IT or branch.
+                // Assuming it's simple global count for those who have access, or we can filter it. Let's just do a basic count for now.
+                if (!$isSuperAdmin) {
+                     if (!empty($userCabangs)) $q_ticket->whereIn('kode_cabang', $userCabangs);
+                }
+                $notifikasi_ticket = $q_ticket->count();
+
+                // Notifikasi Recruitment
+                $q_recruitment = \App\Models\Recruitment::whereNotIn('status', ['diterima', 'ditolak']);
+                if (!$isSuperAdmin) {
+                     if (!empty($userCabangs)) $q_recruitment->whereIn('kode_cabang', $userCabangs);
+                     if (!empty($userDepartemens)) $q_recruitment->whereIn('kode_dept', $userDepartemens);
+                }
+                $notifikasi_recruitment = $q_recruitment->count();
+
                 $shareddata = [
                     'notifikasi_izinabsen' => $notifikasi_izinabsen,
                     'notifikasi_izinsakit' => $notifikasi_izinsakit,
@@ -147,6 +165,8 @@ class Globalprovider extends ServiceProvider
                     'notifikasi_izin_dinas' => $notifikasi_izin_dinas,
                     'notifikasi_ajuan_absen' => $notifikasi_ajuan_absen,
                     'notifikasi_ajuan_jadwal' => $notifikasi_ajuan_jadwal,
+                    'notifikasi_ticket' => $notifikasi_ticket,
+                    'notifikasi_recruitment' => $notifikasi_recruitment,
                     'data_izin' => $data_izin,
                 ];
                 View::share($shareddata);

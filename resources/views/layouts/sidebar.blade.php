@@ -451,6 +451,9 @@
                  <a href="{{ route('it-ticket.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-headset"></i>
                      <div>IT Ticket</div>
+                     @if (!empty($notifikasi_ticket))
+                         <div class="badge bg-danger rounded-pill ms-auto">{{ $notifikasi_ticket }}</div>
+                     @endif
                  </a>
              </li>
          @endcan
@@ -576,6 +579,9 @@
                  <a href="javascript:void(0)" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-user-plus"></i>
                      <div>Recruitment</div>
+                     @if (!empty($notifikasi_recruitment))
+                         <div class="badge bg-danger rounded-pill ms-auto">{{ $notifikasi_recruitment }}</div>
+                     @endif
                  </a>
                  <ul class="menu-sub">
                      <li class="menu-item {{ request()->is('recruitment') ? 'active' : '' }}">

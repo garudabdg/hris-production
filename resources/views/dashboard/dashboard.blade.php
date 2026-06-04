@@ -429,10 +429,14 @@
                             <div class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
 
                                 <div>
-                                    <p class="mb-1">Data Karyawn Aktif</p>
+                                    <p class="mb-1">Karyawan Aktif</p>
                                     <h4 class="mb-1">{{ $status_karyawan->jml_aktif }}</h4>
                                 </div>
-                                <img src="{{ asset('assets/img/illustrations/karyawan1.png') }}" height="70" alt="view sales" class="me-3">
+                                <div class="avatar me-sm-4">
+                                    <span class="avatar-initial rounded bg-label-primary">
+                                        <i class="ti ti-users fs-4"></i>
+                                    </span>
+                                </div>
                             </div>
 
                         </div>
@@ -442,7 +446,11 @@
                                     <p class="mb-1">Karyawan Tetap</p>
                                     <h4 class="mb-1">{{ $status_karyawan->jml_tetap }}</h4>
                                 </div>
-                                <img src="{{ asset('assets/img/illustrations/karyawan2.webp') }}" height="70" alt="view sales" class="me-3">
+                                <div class="avatar me-sm-4">
+                                    <span class="avatar-initial rounded bg-label-success">
+                                        <i class="ti ti-user-check fs-4"></i>
+                                    </span>
+                                </div>
                             </div>
 
                         </div>
@@ -452,7 +460,11 @@
                                     <p class="mb-1">Karyawan Kontrak</p>
                                     <h4 class="mb-1">{{ $status_karyawan->jml_kontrak }}</h4>
                                 </div>
-                                <img src="{{ asset('assets/img/illustrations/karyawan3.png') }}" height="70" alt="view sales" class="me-3">
+                                <div class="avatar me-sm-4">
+                                    <span class="avatar-initial rounded bg-label-warning">
+                                        <i class="ti ti-user-exclamation fs-4"></i>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-3">
@@ -461,7 +473,11 @@
                                     <p class="mb-1">Outsourcing</p>
                                     <h4 class="mb-1">{{ $status_karyawan->jml_outsourcing }}</h4>
                                 </div>
-                                <img src="{{ asset('assets/img/illustrations/karyawan4.webp') }}" height="70" alt="view sales" class="me-3">
+                                <div class="avatar">
+                                    <span class="avatar-initial rounded bg-label-info">
+                                        <i class="ti ti-user-share fs-4"></i>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
