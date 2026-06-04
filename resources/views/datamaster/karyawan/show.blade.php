@@ -10,7 +10,7 @@
     <div class="col-12">
         <div class="card mb-4">
             <div class="user-profile-header-banner">
-                <div class="rounded-top" style="height: 250px; background-color: {{ $general_setting->theme_color_1 }};"></div>
+                <div class="rounded-top" style="height: 250px; background-image: url('{{ asset('assets/img/bg-didimax.jpg') }}'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color: {{ $general_setting->theme_color_1 ?? '#005b9f' }};"></div>
             </div>
             <div class="user-profile-header d-flex flex-column flex-sm-row text-sm-start text-center mb-4">
                 <div class="flex-shrink-0 mt-n2 mx-sm-0 mx-auto">
@@ -27,40 +27,53 @@
                     <div
                         class="d-flex align-items-md-end align-items-sm-start align-items-center justify-content-md-between justify-content-start mx-4 flex-md-row flex-column gap-4">
                         <div class="user-profile-info">
-                            <h4>{{ textCamelCase($karyawan->nama_karyawan) }}</h4>
-                            <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2">
-                                <li class="list-inline-item d-flex gap-1">
-                                    <i class="ti ti-barcode"></i> {{ textCamelCase($karyawan->nik_show ?? $karyawan->nik) }}
-                                </li>
-                                <li class="list-inline-item d-flex gap-1">
-                                    <i class="ti ti-building"></i> {{ textCamelCase($karyawan->nama_cabang) }}
-                                </li>
-                                <li class="list-inline-item d-flex gap-1"><i class="ti ti-building-arch"></i>
-                                    {{ textCamelCase($karyawan->nama_dept) }}
-                                </li>
-                                <li class="list-inline-item d-flex gap-1">
-                                    <i class="ti ti-user"></i> {{ textCamelCase($karyawan->nama_jabatan) }}
-                                </li>
-                                <li class="list-inline-item d-flex gap-1">
+                            <h4 class="mb-2 fw-bold">{{ textCamelCase($karyawan->nama_karyawan) }}</h4>
+                            <div class="d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2 mb-3">
+                                <span class="badge bg-label-secondary" style="font-size: 12px;"><i class="ti ti-barcode me-1"></i> {{ $karyawan->nik_show ?? $karyawan->nik }}</span>
+                                <span class="badge bg-label-primary" style="font-size: 12px;"><i class="ti ti-user me-1"></i> {{ textCamelCase($karyawan->nama_jabatan) }}</span>
+                                <span class="badge bg-label-info" style="font-size: 12px;"><i class="ti ti-building-arch me-1"></i> {{ textCamelCase($karyawan->nama_dept) }}</span>
+                                <span class="badge bg-label-warning" style="font-size: 12px;"><i class="ti ti-building me-1"></i> {{ textCamelCase($karyawan->nama_cabang) }}</span>
+                            </div>
+                            <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-3 text-muted">
+                                <li class="list-inline-item d-flex align-items-center gap-1">
                                     <i class="ti ti-calendar-event"></i>
-                                    {{ !empty($karyawan->tanggal_masuk) ? DateToIndo($karyawan->tanggal_masuk) : '-' }}
+                                    Bergabung: <span class="fw-medium text-dark">{{ !empty($karyawan->tanggal_masuk) ? DateToIndo($karyawan->tanggal_masuk) : '-' }}</span>
                                 </li>
                                 @if ($karyawan->status_aktif_karyawan === '0')
-                                    <li class="list-inline-item d-flex gap-1">
+                                    <li class="list-inline-item d-flex align-items-center gap-1 text-danger">
                                         <i class="ti ti-calendar-off"></i>
-                                        {{ !empty($karyawan->tanggal_nonaktif) ? DateToIndo($karyawan->tanggal_nonaktif) : '-' }}
+                                        Nonaktif: <span class="fw-medium text-danger">{{ !empty($karyawan->tanggal_nonaktif) ? DateToIndo($karyawan->tanggal_nonaktif) : '-' }}</span>
+                                    </li>
+                                @endif
+                                
+                                @if ($karyawan->status_karyawan)
+                                    @php
+                                        $status_karyawan_text = $karyawan->status_karyawan == 'K' ? 'Kontrak' 
+                                            : ($karyawan->status_karyawan == 'T' ? 'Tetap' 
+                                            : ($karyawan->status_karyawan == 'M' ? 'Mitra' 
+                                            : ($karyawan->status_karyawan == 'O' ? 'Outsourcing' 
+                                            : $karyawan->status_karyawan)));
+                                        $badge_class = $karyawan->status_karyawan == 'T' ? 'bg-label-success' : 'bg-label-primary';
+                                    @endphp
+                                    <li class="list-inline-item d-flex align-items-center gap-1">
+                                        <i class="ti ti-briefcase"></i>
+                                        Status: <span class="badge {{ $badge_class }} py-1 px-2" style="font-size: 10px;">{{ $status_karyawan_text }}</span>
                                     </li>
                                 @endif
                             </ul>
                         </div>
                         @if ($karyawan->status_aktif_karyawan === '1')
-                            <a href="javascript:void(0)" class="btn btn-success waves-effect waves-light">
-                                <i class="ti ti-check me-1"></i> Aktif
-                            </a>
+                            <div class="text-center text-md-end mt-3 mt-md-0">
+                                <span class="badge bg-success fs-6 px-3 py-2 shadow-sm rounded-pill">
+                                    <i class="ti ti-check me-1"></i> Aktif
+                                </span>
+                            </div>
                         @else
-                            <a href="javascript:void(0)" class="btn btn-danger waves-effect waves-light">
-                                <i class="ti ti-check me-1"></i> Nonaktif
-                            </a>
+                            <div class="text-center text-md-end mt-3 mt-md-0">
+                                <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm rounded-pill">
+                                    <i class="ti ti-x me-1"></i> Nonaktif
+                                </span>
+                            </div>
                         @endif
 
                     </div>
@@ -181,6 +194,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="javascript:void(0);" onclick="showTab('allowance')"><i class="ti-xs ti ti-report-money me-1"></i> Tunjangan</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" onclick="showTab('pelatihan')"><i class="ti-xs ti ti-certificate me-1"></i> Pelatihan & Sertifikasi</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -299,10 +315,145 @@
             </div>
         </div>
         <!--/ Mutation History -->
+
+        <!-- Pelatihan & Sertifikasi -->
+        <div class="row" style="display: none;" id="pelatihan_completeness">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header border-bottom d-flex justify-content-between align-items-center bg-transparent pt-3 pb-3">
+                        <h5 class="mb-0 fw-bold text-primary"><i class="ti ti-certificate me-2"></i>Daftar Pelatihan & Sertifikasi</h5>
+                        @can('karyawan.edit')
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahPelatihan">
+                            <i class="ti ti-plus me-1"></i> Tambah Data
+                        </button>
+                        @endcan
+                    </div>
+                    <div class="card-body p-0">
+                        @if($karyawan->pelatihan && $karyawan->pelatihan->isEmpty())
+                            <div class="text-center p-5">
+                                <i class="ti ti-certificate text-muted mb-3" style="font-size: 4rem; opacity: 0.5;"></i>
+                                <h6 class="text-muted">Belum ada riwayat pelatihan atau sertifikasi</h6>
+                                <p class="text-muted small mb-0">Klik tombol Tambah Data untuk memasukkan riwayat baru.</p>
+                            </div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-4">Nama Pelatihan/Sertifikasi</th>
+                                            <th>Tgl Pelatihan</th>
+                                            <th>Tgl Expired</th>
+                                            <th>Status</th>
+                                            <th class="text-center">Sertifikat</th>
+                                            @can('karyawan.edit')
+                                            <th class="text-center pe-4">Aksi</th>
+                                            @endcan
+                                        </tr>
+                                    </thead>
+                                    <tbody class="table-border-bottom-0">
+                                        @foreach($karyawan->pelatihan ?? [] as $pelatihan)
+                                        <tr>
+                                            <td class="ps-4 fw-medium text-dark">{{ $pelatihan->nama_pelatihan }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ti ti-calendar-event text-muted me-2" style="font-size: 1.1rem;"></i>
+                                                    {{ $pelatihan->tanggal_pelatihan ? $pelatihan->tanggal_pelatihan->format('d M Y') : '-' }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ti ti-calendar-off text-muted me-2" style="font-size: 1.1rem;"></i>
+                                                    {{ $pelatihan->tanggal_expired ? $pelatihan->tanggal_expired->format('d M Y') : '-' }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if($pelatihan->tanggal_expired)
+                                                    @if(\Carbon\Carbon::now()->gt($pelatihan->tanggal_expired))
+                                                        <span class="badge bg-label-danger"><i class="ti ti-alert-circle me-1"></i>Expired</span>
+                                                    @else
+                                                        <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Active</span>
+                                                    @endif
+                                                @else
+                                                    <span class="badge bg-label-info"><i class="ti ti-infinity me-1"></i>Lifetime</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if($pelatihan->file_sertifikat)
+                                                    <a href="{{ Storage::url('uploads/pelatihan/' . $pelatihan->file_sertifikat) }}" target="_blank" class="btn btn-sm btn-icon btn-label-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Lihat Sertifikat">
+                                                        <i class="ti ti-file-text"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small"><i>-</i></span>
+                                                @endif
+                                            </td>
+                                            @can('karyawan.edit')
+                                            <td class="text-center pe-4">
+                                                <button type="button" class="btn btn-sm btn-icon btn-label-primary btnEditPelatihan" data-id="{{ $pelatihan->id }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Data">
+                                                    <i class="ti ti-edit"></i>
+                                                </button>
+                                                <form action="{{ route('karyawan-pelatihan.destroy', $pelatihan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data sertifikasi ini? File dokumen juga akan terhapus secara permanen.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-icon btn-label-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Hapus Data">
+                                                        <i class="ti ti-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                            @endcan
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/ Pelatihan & Sertifikasi -->
+
     </div>
 </div>
 <x-modal-form id="modal" show="loadmodal" size="modal-lg" />
 <!--/ User Profile Content -->
+
+<!-- Modal Tambah Pelatihan -->
+<div class="modal fade" id="modalTambahPelatihan" tabindex="-1" aria-labelledby="modalTambahPelatihanLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('karyawan-pelatihan.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="nik" value="{{ $karyawan->nik }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTambahPelatihanLabel">Tambah Pelatihan/Sertifikasi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Pelatihan/Sertifikasi</label>
+                        <input type="text" class="form-control" name="nama_pelatihan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tanggal Pelatihan</label>
+                        <input type="date" class="form-control" name="tanggal_pelatihan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tanggal Expired (Kosongkan jika seumur hidup)</label>
+                        <input type="date" class="form-control" name="tanggal_expired">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Upload Sertifikat (PDF/JPG/PNG)</label>
+                        <input type="file" class="form-control" name="file_sertifikat" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -351,6 +502,7 @@
         // Hide all tabs
         $("#face_completeness").hide();
         $("#mutation_completeness").hide();
+        $("#pelatihan_completeness").hide();
         
         // Remove active class from all nav links
         $(".nav-link").removeClass("active");
@@ -362,6 +514,9 @@
         } else if (tab == 'mutation') {
             $("#mutation_completeness").show();
             $(".nav-link:contains('Mutasi')").addClass("active");
+        } else if (tab == 'pelatihan') {
+            $("#pelatihan_completeness").show();
+            $(".nav-link:contains('Pelatihan')").addClass("active");
         } else if (tab == 'salary') {
              // Future implementation
              $(".nav-link:contains('Gaji')").addClass("active");
@@ -432,5 +587,33 @@
             });
         }
     });
+
+    $(document).ready(function() {
+        $('.btnEditPelatihan').click(function() {
+            var id = $(this).data('id');
+            $('#modalEditPelatihan').modal('show');
+            $('#loadmodalEditPelatihan').html('<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            $('#loadmodalEditPelatihan').load(`/karyawan-pelatihan/${id}/edit`);
+        });
+    });
 </script>
+
+<!-- Modal Edit Pelatihan -->
+<div class="modal fade" id="modalEditPelatihan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Pelatihan / Sertifikasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="loadmodalEditPelatihan">
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endpush

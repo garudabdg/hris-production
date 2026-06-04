@@ -172,6 +172,18 @@
                                                             @endphp
                                                             <span class="badge {{ $upah_class }}" style="font-size: 10px;">{{ $d->jenis_upah }}</span>
                                                         @endif
+                                                        
+                                                        @if ($d->pelatihan && $d->pelatihan->isNotEmpty())
+                                                            @foreach ($d->pelatihan as $p)
+                                                                @php
+                                                                    $is_active = !$p->tanggal_expired || \Carbon\Carbon::now()->lt($p->tanggal_expired);
+                                                                    $badge_color = $is_active ? 'bg-label-success' : 'bg-label-danger';
+                                                                @endphp
+                                                                <span class="badge {{ $badge_color }}" style="font-size: 10px;" title="{{ $is_active ? 'Sertifikasi Aktif' : 'Sertifikasi Expired' }}">
+                                                                    <i class="ti ti-certificate me-1" style="font-size: 10px;"></i>{{ $p->nama_pelatihan }}
+                                                                </span>
+                                                            @endforeach
+                                                        @endif
                                                     </div>
                                                 </div>
                                                 <!-- Status & Date -->

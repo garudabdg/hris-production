@@ -36,7 +36,7 @@ class KaryawanController extends Controller
         /** @var \App\Models\User $user */
         $user = auth()->user();
 
-        $query = Karyawan::query();
+        $query = Karyawan::query()->with('pelatihan');
         $latest_gaji = DB::table('karyawan_gaji_pokok')
             ->select('nik', 'jenis_upah')
             ->whereIn('kode_gaji', function ($query) {
@@ -402,7 +402,7 @@ class KaryawanController extends Controller
     public function show($nik)
     {
         $nik = Crypt::decrypt($nik);
-        $karyawan = Karyawan::where('nik', $nik)
+        $karyawan = Karyawan::with('pelatihan')->where('nik', $nik)
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
             ->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
             ->join('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')

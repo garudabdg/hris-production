@@ -267,9 +267,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/karyawan/{nik}/lockunlockjamkerja', 'lockunlockjamkerja')->name('karyawan.lockunlockjamkerja')->can('karyawan.edit');
         Route::post('/karyawan/bulklockunlock', 'bulkLockUnlock')->name('karyawan.bulklockunlock')->can('karyawan.edit');
         Route::get('/karyawan/{nik}/idcard', 'idcard')->name('karyawan.idcard');
-
         Route::get('/karyawan/getkaryawan', 'getkaryawan')->name('karyawan.getkaryawan');
+        Route::post('/karyawan/{nik}/updatepassword', 'updatepassword')->name('karyawan.updatepassword');
+        Route::post('/karyawan/storekaryawanwajah', 'storekaryawanwajah')->name('karyawan.storekaryawanwajah');
     });
+
+    // Pelatihan & Sertifikasi Karyawan
+    Route::get('/karyawan-pelatihan', [\App\Http\Controllers\KaryawanPelatihanController::class, 'index'])->name('karyawan-pelatihan.index')->middleware('can:pelatihan.index');
+    Route::post('/karyawan-pelatihan/store', [\App\Http\Controllers\KaryawanPelatihanController::class, 'store'])->name('karyawan-pelatihan.store');
+    Route::get('/karyawan-pelatihan/{id}/edit', [\App\Http\Controllers\KaryawanPelatihanController::class, 'edit'])->name('karyawan-pelatihan.edit');
+    Route::put('/karyawan-pelatihan/{id}', [\App\Http\Controllers\KaryawanPelatihanController::class, 'update'])->name('karyawan-pelatihan.update');
+    Route::delete('/karyawan-pelatihan/{id}', [\App\Http\Controllers\KaryawanPelatihanController::class, 'destroy'])->name('karyawan-pelatihan.destroy');
 
     Route::controller(KontrakController::class)->group(function () {
         Route::get('/kontrak/template', 'template')->name('kontrak.template')->can('kontrak.create');

@@ -122,4 +122,9 @@ class Karyawan extends Model
     {
         return $this->belongsTo(Cabang::class, 'kode_cabang', 'kode_cabang');
     }
+
+    public function pelatihan()
+    {
+        return $this->hasMany(KaryawanPelatihan::class, 'nik', 'nik');
+    }
 }

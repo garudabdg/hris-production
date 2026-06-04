@@ -24,6 +24,9 @@
             $id_permission_group = '';
         @endphp
         @foreach ($permissions as $key => $d)
+            @if (strtolower(trim($d->group_name)) === 'website crm' || strtolower(trim($d->group_name)) === 'cms')
+                @continue
+            @endif
             <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
                 <div class="card h-100 shadow-sm border-0">
                     <div class="card-header d-flex justify-content-between align-items-center py-3" style="background-color: var(--theme-color-1); border-bottom: 3px solid rgba(0,0,0,0.1);">

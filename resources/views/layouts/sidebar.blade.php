@@ -84,9 +84,9 @@
                  <div>Dashboard</div>
              </a>
          </li>
-         @if (auth()->user()->hasAnyPermission(['karyawan.index', 'departemen.index', 'cabang.index', 'cuti.index', 'jabatan.index', 'grup.index']))
+         @if (auth()->user()->hasAnyPermission(['karyawan.index', 'pelatihan.index', 'departemen.index', 'cabang.index', 'cuti.index', 'jabatan.index', 'grup.index']))
              <li
-                 class="menu-item {{ request()->is(['karyawan', 'karyawan/*', 'departemen', 'departemen/*', 'cabang', 'cuti', 'jabatan', 'grup', 'grup/*']) ? 'open' : '' }}">
+                 class="menu-item {{ request()->is(['karyawan', 'karyawan/*', 'karyawan-pelatihan', 'karyawan-pelatihan/*', 'departemen', 'departemen/*', 'cabang', 'cuti', 'jabatan', 'grup', 'grup/*']) ? 'open' : '' }}">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-database"></i>
                      <div>Data Master</div>
@@ -94,9 +94,16 @@
                  </a>
                  <ul class="menu-sub">
                      @can('karyawan.index')
-                         <li class="menu-item {{ request()->is(['karyawan', 'karyawan/*']) ? 'active' : '' }}">
+                         <li class="menu-item {{ request()->is(['karyawan', 'karyawan/*']) && !request()->is(['karyawan-pelatihan*']) ? 'active' : '' }}">
                              <a href="{{ route('karyawan.index') }}" class="menu-link">
                                  <div>Karyawan</div>
+                             </a>
+                         </li>
+                     @endcan
+                     @can('pelatihan.index')
+                         <li class="menu-item {{ request()->is(['karyawan-pelatihan', 'karyawan-pelatihan/*']) ? 'active' : '' }}">
+                             <a href="{{ route('karyawan-pelatihan.index') }}" class="menu-link">
+                                 <div>Sertifikasi</div>
                              </a>
                          </li>
                      @endcan
