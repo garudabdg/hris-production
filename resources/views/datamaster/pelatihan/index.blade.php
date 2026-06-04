@@ -49,10 +49,13 @@
                                 <option value="expired" {{ request('status') == 'expired' ? 'selected' : '' }}>Expired</option>
                             </select>
                         </div>
-                        <div class="col-lg-2 col-md-2 col-sm-12">
+                        <div class="col-lg-5 col-md-12 col-sm-12">
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary"><i class="ti ti-search me-1"></i> Cari</button>
                                 <a href="{{ route('karyawan-pelatihan.index') }}" class="btn btn-secondary"><i class="ti ti-refresh"></i></a>
+                                @can('pelatihan.create')
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalTambahPelatihan"><i class="ti ti-plus me-1"></i> Tambah</button>
+                                @endcan
                             </div>
                         </div>
                     </div>
@@ -149,6 +152,54 @@
     </div>
 </div>
 
+<!-- Modal Tambah -->
+<div class="modal fade" id="modalTambahPelatihan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah Pelatihan / Sertifikasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('karyawan-pelatihan.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Karyawan <span class="text-danger">*</span></label>
+                        <select name="nik" class="form-select select2-karyawan" required>
+                            <option value="">-- Pilih Karyawan --</option>
+                            @foreach($karyawan as $k)
+                                <option value="{{ $k->nik }}">{{ $k->nama_karyawan }} ({{ $k->nik }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Pelatihan / Sertifikasi <span class="text-danger">*</span></label>
+                        <input type="text" name="nama_pelatihan" class="form-control" required placeholder="Contoh: BNSP Manajemen Risiko">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tanggal Pelatihan <span class="text-danger">*</span></label>
+                        <input type="date" name="tanggal_pelatihan" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Berlaku Sampai</label>
+                        <input type="date" name="tanggal_expired" class="form-control">
+                        <small class="text-muted">Kosongkan jika sertifikat berlaku seumur hidup</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">File Sertifikat (Opsional)</label>
+                        <input type="file" name="file_sertifikat" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">Maksimal 2MB. Format: PDF, JPG, JPEG, PNG</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Edit -->
 <div class="modal fade" id="modalEditPelatihan" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -172,6 +223,12 @@
 @push('myscript')
 <script>
     $(document).ready(function() {
+        if ($('.select2-karyawan').length) {
+            $('.select2-karyawan').select2({
+                dropdownParent: $('#modalTambahPelatihan')
+            });
+        }
+
         $('.btnEditPelatihan').click(function() {
             var id = $(this).data('id');
             $('#modalEditPelatihan').modal('show');

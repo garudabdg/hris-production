@@ -817,6 +817,74 @@
                 </div>
             </div>
         </div>
+
+        <!-- Sertifikasi Expired -->
+        <div class="row mt-3">
+            <div class="col">
+                <div class="card contract-card" style="border-left: 4px solid #ef4444;">
+                    <div class="card-header contract-header d-flex flex-column flex-lg-row align-items-lg-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-3">
+                                <span class="avatar-initial rounded bg-label-danger">
+                                    <i class="ti ti-certificate-off fs-4"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">Sertifikasi / Pelatihan Expired</h4>
+                                <small class="text-muted">Daftar sertifikasi karyawan yang telah melewati masa berlaku</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-label-danger rounded-pill mt-3 mt-lg-0">
+                            Total {{ count($sertifikasi_expired) }} Sertifikasi
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        @if (count($sertifikasi_expired) === 0)
+                            <div class="contract-empty">
+                                <i class="ti ti-shield-check fs-1 mb-2 d-block text-success"></i>
+                                Tidak ada sertifikasi karyawan yang expired.
+                            </div>
+                        @else
+                            <div class="table-responsive contract-table-wrapper mt-3">
+                                <table class="table table-hover align-middle mb-0 contract-table" style="border-radius: 8px;">
+                                    <thead class="table-dark" style="background: #7f1d1d;">
+                                        <tr>
+                                            <th>NIK</th>
+                                            <th>Nama Karyawan</th>
+                                            <th>Nama Sertifikasi</th>
+                                            <th>Tanggal Expired</th>
+                                            <th>Cabang</th>
+                                            <th class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($sertifikasi_expired as $s)
+                                            <tr>
+                                                <td>{{ $s->nik }}</td>
+                                                <td>{{ formatName($s->karyawan->nama_karyawan ?? 'Unknown') }}</td>
+                                                <td><span class="fw-medium">{{ $s->nama_pelatihan }}</span></td>
+                                                <td>
+                                                    <span class="badge bg-label-danger">
+                                                        {{ \Carbon\Carbon::parse($s->tanggal_expired)->format('d M Y') }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ textupperCase($s->karyawan->kode_cabang ?? '-') }}</td>
+                                                <td class="text-center">
+                                                    <a href="{{ route('karyawan-pelatihan.index', ['nama_karyawan' => $s->nik, 'status' => 'expired']) }}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Lihat Sertifikasi">
+                                                        <i class="ti ti-external-link"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     <div class="col-lg-4 col-md-6 col-sm-12">
         <div class="row mb-2">

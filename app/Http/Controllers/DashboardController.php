@@ -303,6 +303,30 @@ class DashboardController extends Controller
             $data['kontrak_bulanini'] = $sk->getRekapkontrak(1, $userCabangs, $userDepartemens);
             $data['kontrak_bulandepan'] = $sk->getRekapkontrak(2, $userCabangs, $userDepartemens);
             $data['kontrak_duabulan'] = $sk->getRekapkontrak(3, $userCabangs, $userDepartemens);
+
+            // Sertifikasi Expired
+            $now = Carbon::now(config('app.timezone'))->format('Y-m-d');
+            $data['sertifikasi_expired'] = \App\Models\KaryawanPelatihan::with('karyawan')
+                ->whereNotNull('tanggal_expired')
+                ->where('tanggal_expired', '<', $now)
+                ->when(!$user->isSuperAdmin(), function ($query) use ($userCabangs, $userDepartemens) {
+                    $query->whereHas('karyawan', function($q) use ($userCabangs, $userDepartemens) {
+                        if (!empty($userCabangs)) {
+                            $q->whereIn('kode_cabang', $userCabangs);
+                        } else {
+                            $q->whereRaw('1 = 0');
+                        }
+
+                        if (!empty($userDepartemens)) {
+                            $q->whereIn('kode_dept', $userDepartemens);
+                        } else {
+                            $q->whereRaw('1 = 0');
+                        }
+                    });
+                })
+                ->orderBy('tanggal_expired', 'desc')
+                ->get();
+
             // dd($data['rekappresensi']);
             return view('dashboard.dashboard', $data);
         }

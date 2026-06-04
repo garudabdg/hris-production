@@ -37,7 +37,9 @@ class KaryawanPelatihanController extends Controller
         $pelatihan = $query->orderBy('tanggal_pelatihan', 'desc')->paginate(15);
         $pelatihan->appends($request->all());
 
-        return view('datamaster.pelatihan.index', compact('pelatihan'));
+        $karyawan = \App\Models\Karyawan::orderBy('nama_karyawan')->get();
+
+        return view('datamaster.pelatihan.index', compact('pelatihan', 'karyawan'));
     }
     public function store(Request $request)
     {
