@@ -171,6 +171,14 @@
                  </a>
              </li>
          @endcan
+         @can('bukutamu.index')
+             <li class="menu-item {{ request()->is(['tamu', 'tamu/*']) ? 'active' : '' }}">
+                 <a href="{{ route('tamu.index') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-notebook"></i>
+                     <div>Buku Tamu</div>
+                 </a>
+             </li>
+         @endcan
          @can('pelanggaran.index')
              <li class="menu-item {{ request()->is(['pelanggaran', 'pelanggaran/*']) ? 'active' : '' }}">
                  <a href="{{ route('pelanggaran.index') }}" class="menu-link">

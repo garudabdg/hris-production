@@ -25,11 +25,8 @@ class TrackingKunjunganController extends Controller
         // Ambil karyawan untuk filter berdasarkan akses user
         $karyawans = $this->getKaryawansByAccess($user);
 
-        // Ambil data kunjungan dengan koordinat - hanya jika NIK dipilih
-        $kunjungans = collect(); // Default empty collection
-        if ($nik) {
-            $kunjungans = $this->getKunjunganData($tanggal, $tanggal, $nik, $user);
-        }
+        // Ambil data kunjungan dengan koordinat untuk semua yang sesuai filter
+        $kunjungans = $this->getKunjunganData($tanggal, $tanggal, $nik, $user);
 
         return view('tracking-kunjungan.index', compact('kunjungans', 'karyawans', 'tanggal', 'nik'));
     }
@@ -105,7 +102,9 @@ class TrackingKunjunganController extends Controller
 
         // Parse koordinat dari field lokasi dan tambahkan offset untuk marker yang sama
         $coordinateCount = [];
-        $kunjungans->transform(function ($kunjungan, $index) use (&$coordinateCount, $kunjungans) {
+        $prevKunjunganByNik = [];
+        
+        $kunjungans->transform(function ($kunjungan) use (&$coordinateCount, &$prevKunjunganByNik) {
             $lokasi = $kunjungan->lokasi;
 
             // Parse koordinat dari format "lat,lng" atau "latitude,longitude"
@@ -138,9 +137,12 @@ class TrackingKunjunganController extends Controller
                 }
             }
 
-            // Hitung jarak dari titik sebelumnya
-            if ($index > 0) {
-                $prevKunjungan = $kunjungans[$index - 1];
+            $nik = $kunjungan->nik;
+
+            // Hitung jarak dan durasi dari titik sebelumnya untuk NIK yang sama
+            if (isset($prevKunjunganByNik[$nik])) {
+                $prevKunjungan = $prevKunjunganByNik[$nik];
+                
                 if (
                     isset($prevKunjungan->latitude) && isset($prevKunjungan->longitude) &&
                     isset($kunjungan->latitude) && isset($kunjungan->longitude)
@@ -155,21 +157,18 @@ class TrackingKunjunganController extends Controller
                 } else {
                     $kunjungan->distance_from_previous = null;
                 }
-            } else {
-                $kunjungan->distance_from_previous = null; // Titik pertama
-            }
 
-            // Hitung durasi dari titik sebelumnya
-            if ($index > 0) {
-                $prevKunjungan = $kunjungans[$index - 1];
                 $duration = $this->calculateDuration(
                     $prevKunjungan->created_at,
                     $kunjungan->created_at
                 );
                 $kunjungan->duration_from_previous = $duration;
             } else {
+                $kunjungan->distance_from_previous = null; // Titik pertama
                 $kunjungan->duration_from_previous = null; // Titik pertama
             }
+
+            $prevKunjunganByNik[$nik] = clone $kunjungan;
 
             return $kunjungan;
         });

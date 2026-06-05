@@ -61,6 +61,7 @@ use App\Http\Controllers\AssetPinjamController;
 use App\Http\Controllers\AssetTransactionController;
 use App\Http\Controllers\AssetPerawatanController;
 use App\Http\Controllers\ItTicketController;
+use App\Http\Controllers\TamuController;
 
 
 /*
@@ -850,6 +851,37 @@ Route::group(['middleware' => ['auth']], function () { // Removed userAkses:admi
     });
 
     Route::get('/kpi/myscore', [KpiEmployeeController::class, 'myScore'])->name('kpi.transactions.myscore');
+
+    // Perbaikan Permission Group Buku Tamu
+    Route::get('/fix-tamu', function() {
+        try {
+            // Buat grup khusus Buku Tamu agar tidak terpotong oleh GROUP_CONCAT limit
+            $groupId = \Illuminate\Support\Facades\DB::table('permission_groups')
+                        ->where('name', 'Buku Tamu')
+                        ->value('id');
+            
+            if (!$groupId) {
+                $groupId = \Illuminate\Support\Facades\DB::table('permission_groups')->insertGetId(['name' => 'Buku Tamu']);
+            }
+
+            // Update permission bukutamu.index ke grup baru ini
+            \Illuminate\Support\Facades\DB::table('permissions')
+                ->where('name', 'bukutamu.index')
+                ->update(['id_permission_group' => $groupId]);
+
+            return "Berhasil! Permission 'bukutamu.index' telah dipindahkan ke grup 'Buku Tamu'. Silakan cek kembali halamannya.";
+        } catch (\Exception $e) {
+            return "Error: " . $e->getMessage();
+        }
+    });
+
+    // Buku Tamu Routes
+    Route::group(['middleware' => ['permission:bukutamu.index']], function () {
+        Route::get('/tamu', [TamuController::class, 'index'])->name('tamu.index');
+        Route::post('/tamu/store', [TamuController::class, 'store'])->name('tamu.store');
+        Route::put('/tamu/{id}/out', [TamuController::class, 'updateOut'])->name('tamu.updateOut');
+        Route::delete('/tamu/{id}', [TamuController::class, 'destroy'])->name('tamu.destroy');
+    });
 });
     // Ajuan Jadwal Routes
     Route::group(['middleware' => ['permission:ajuanjadwal.index']], function () {

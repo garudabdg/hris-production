@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@section('titlepage', 'Tracking Kunjungan')
 
 @push('styles')
     <style>
@@ -85,18 +86,9 @@
                     <!-- Maps Container -->
                     <div class="row">
                         <div class="col-12">
-                            @if ($nik)
-                                <div id="map" style="height: 600px; border-radius: 8px; border: 1px solid #e0e0e0;"></div>
-                            @else
-                                <div class="text-center py-5"
-                                    style="height: 600px; border-radius: 8px; border: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;">
-                                    <div>
-                                        <i class="ti ti-user-search" style="font-size: 64px; color: #6c757d; margin-bottom: 16px;"></i>
-                                        <h5 class="text-muted">Pilih Karyawan Terlebih Dahulu</h5>
-                                        <p class="text-muted">Silakan pilih karyawan untuk melihat tracking kunjungan</p>
-                                    </div>
-                                </div>
-                            @endif
+                        <div class="col-12">
+                            <div id="map" style="height: 600px; border-radius: 8px; border: 1px solid #e0e0e0;"></div>
+                        </div>
                         </div>
                     </div>
 
@@ -108,6 +100,7 @@
                                     <thead class="table-dark">
                                         <tr>
                                             <th>No</th>
+                                            <th>Karyawan</th>
                                             <th>Deskripsi</th>
                                             <th>Lokasi</th>
                                             <th>Jarak</th>
@@ -116,10 +109,10 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if ($nik)
                                             @forelse($kunjungans as $index => $item)
                                                 <tr>
                                                     <td>{{ $index + 1 }}</td>
+                                                    <td>{{ $item->nama_karyawan }}</td>
                                                     <td>{{ Str::limit($item->deskripsi, 50) }}</td>
                                                     <td>
                                                         @if ($item->lokasi)
@@ -146,24 +139,14 @@
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="6" class="text-center py-4">
+                                                    <td colspan="7" class="text-center py-4">
                                                         <div class="text-muted">
                                                             <i class="ti ti-map-pin" style="font-size: 48px; opacity: 0.3;"></i>
-                                                            <p class="mt-2">Tidak ada data kunjungan untuk karyawan ini</p>
+                                                            <p class="mt-2">Tidak ada data kunjungan pada tanggal ini</p>
                                                         </div>
                                                     </td>
                                                 </tr>
                                             @endforelse
-                                        @else
-                                            <tr>
-                                                <td colspan="6" class="text-center py-4">
-                                                    <div class="text-muted">
-                                                        <i class="ti ti-user-search" style="font-size: 48px; opacity: 0.3;"></i>
-                                                        <p class="mt-2">Pilih karyawan terlebih dahulu untuk melihat data</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endif
                                     </tbody>
                                 </table>
                             </div>
@@ -192,7 +175,7 @@
                 });
             }
 
-            @if ($nik)
+
                 // Function untuk format tanggal dan waktu
                 function formatDateTime(dateString) {
                     if (!dateString) return '-';
@@ -265,23 +248,45 @@
                 // Data kunjungan dari server
                 var kunjunganData = @json($kunjungans);
 
-                // Warna tunggal untuk semua marker
-                var primaryColor = '#3B82F6'; // Blue yang menarik
-                var secondaryColor = '#1E40AF'; // Blue yang lebih gelap untuk border
-
-                // Group markers by date
-                var markersByDate = {};
+                // Group markers and paths by NIK
                 var bounds = [];
-                var routeCoordinates = []; // Array untuk koordinat jalur
+                var routesByNik = {};
+                var dataByNik = {};
+
+                // Generate consistent colors for different NIKs
+                function stringToColor(str) {
+                    var hash = 0;
+                    for (var i = 0; i < str.length; i++) {
+                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    var color = '#';
+                    for (var i = 0; i < 3; i++) {
+                        var value = (hash >> (i * 8)) & 0xFF;
+                        // Pastikan warna cukup gelap untuk background putih
+                        value = Math.max(0, Math.min(200, value));
+                        color += ('00' + value.toString(16)).substr(-2);
+                    }
+                    return color;
+                }
+                
+                function adjustColor(color, amount) {
+                    return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+                }
 
                 kunjunganData.forEach(function(item, index) {
                     if (item.latitude && item.longitude) {
-                        var date = item.tanggal_kunjungan;
-                        if (!markersByDate[date]) {
-                            markersByDate[date] = [];
+                        var nik = item.nik;
+                        if (!routesByNik[nik]) {
+                            routesByNik[nik] = [];
+                            dataByNik[nik] = [];
                         }
+                        
+                        var primaryColor = stringToColor(nik);
+                        var secondaryColor = adjustColor(primaryColor, -40);
+                        
+                        var nikIndex = routesByNik[nik].length;
 
-                        // Create custom icon dengan ukuran lebih besar dan desain yang menarik
+                        // Create custom icon
                         var customIcon = L.divIcon({
                             className: 'custom-marker',
                             html: '<div style="' +
@@ -290,7 +295,7 @@
                                 'height: 40px; ' +
                                 'border-radius: 50%; ' +
                                 'border: 3px solid white; ' +
-                                'box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(0,0,0,0.2); ' +
+                                'box-shadow: 0 4px 12px ' + primaryColor + '66, 0 2px 4px rgba(0,0,0,0.2); ' +
                                 'display: flex; ' +
                                 'align-items: center; ' +
                                 'justify-content: center; ' +
@@ -316,7 +321,7 @@
                                 'font-weight: bold; ' +
                                 'border: 2px solid white;' +
                                 '">' +
-                                (index + 1) +
+                                (nikIndex + 1) +
                                 '</div>' +
                                 '<i class="ti ti-map-pin" style="font-size: 18px;"></i>' +
                                 '</div>',
@@ -328,14 +333,14 @@
                             icon: customIcon
                         }).addTo(map);
 
-                        // Popup content dengan desain yang konsisten
+                        // Popup content
                         var popupContent = `
                         <div style="min-width: 250px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                             <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #E5E7EB;">
-                                <div style="background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 12px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">${index + 1}</div>
+                                <div style="background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 12px; box-shadow: 0 2px 8px ${primaryColor}4D;">${nikIndex + 1}</div>
                                 <div>
-                                    <h6 style="margin: 0; color: #1F2937; font-size: 16px; font-weight: 600;">Kunjungan #${index + 1}</h6>
-                                    <p style="margin: 0; color: #6B7280; font-size: 12px;">Lokasi kunjungan</p>
+                                    <h6 style="margin: 0; color: #1F2937; font-size: 16px; font-weight: 600;">Kunjungan #${nikIndex + 1}</h6>
+                                    <p style="margin: 0; color: #6B7280; font-size: 12px;">${item.nama_karyawan}</p>
                                 </div>
                             </div>
                             <div style="margin-bottom: 8px;">
@@ -352,168 +357,168 @@
                                 </p>
                             </div>
                         </div>
-                    `;
+                        `;
 
                         marker.bindPopup(popupContent);
-                        markersByDate[date].push(marker);
                         bounds.push([item.latitude, item.longitude]);
-
-                        // Tambahkan koordinat ke jalur
-                        routeCoordinates.push([item.latitude, item.longitude]);
+                        routesByNik[nik].push([item.latitude, item.longitude]);
+                        dataByNik[nik].push(item);
                     }
                 });
 
-                // Buat polyline untuk jalur kunjungan dengan arrow
-                if (routeCoordinates.length > 1) {
-                    // Tambahkan arrow pattern untuk menunjukkan arah dengan warna konsisten
-                    var arrowPattern = {
-                        color: primaryColor,
-                        weight: 5,
-                        opacity: 0.9,
-                        smoothFactor: 1,
-                        dashArray: '15, 8',
-                        lineCap: 'round',
-                        lineJoin: 'round'
-                    };
+                // Buat polyline untuk jalur kunjungan dengan arrow untuk tiap karyawan
+                Object.keys(routesByNik).forEach(function(nik) {
+                    var coords = routesByNik[nik];
+                    var nikData = dataByNik[nik];
+                    
+                    if (coords.length > 1) {
+                        var primaryColor = stringToColor(nik);
+                        
+                        var arrowPattern = {
+                            color: primaryColor,
+                            weight: 5,
+                            opacity: 0.9,
+                            smoothFactor: 1,
+                            dashArray: '15, 8',
+                            lineCap: 'round',
+                            lineJoin: 'round'
+                        };
 
-                    var routePolyline = L.polyline(routeCoordinates, arrowPattern).addTo(map);
+                        var routePolyline = L.polyline(coords, arrowPattern).addTo(map);
 
-                    // Tambahkan arrow markers di setiap segmen
-                    for (var i = 0; i < routeCoordinates.length - 1; i++) {
-                        var start = routeCoordinates[i];
-                        var end = routeCoordinates[i + 1];
+                        // Arrow markers
+                        for (var i = 0; i < coords.length - 1; i++) {
+                            var start = coords[i];
+                            var end = coords[i + 1];
 
-                        // Hitung titik tengah untuk arrow
-                        var midLat = (start[0] + end[0]) / 2;
-                        var midLng = (start[1] + end[1]) / 2;
+                            var midLat = (start[0] + end[0]) / 2;
+                            var midLng = (start[1] + end[1]) / 2;
+                            var bearing = calculateBearing(start[0], start[1], end[0], end[1]);
 
-                        // Hitung bearing (arah) dari start ke end
-                        var bearing = calculateBearing(start[0], start[1], end[0], end[1]);
+                            var arrowIcon = L.divIcon({
+                                className: 'arrow-marker',
+                                html: '<div style="transform: rotate(' + bearing + 'deg); color: ' + primaryColor +
+                                    '; font-size: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: bold;">→</div>',
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            });
 
-                        // Buat arrow icon dengan warna konsisten
-                        var arrowIcon = L.divIcon({
-                            className: 'arrow-marker',
-                            html: '<div style="transform: rotate(' + bearing + 'deg); color: ' + primaryColor +
-                                '; font-size: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: bold;">→</div>',
-                            iconSize: [20, 20],
-                            iconAnchor: [10, 10]
+                            L.marker([midLat, midLng], {
+                                icon: arrowIcon
+                            }).addTo(map);
+                        }
+
+                        // Start Marker
+                        var startIcon = L.divIcon({
+                            className: 'custom-marker-start',
+                            html: '<div style="' +
+                                'background: linear-gradient(135deg, #10B981 0%, #059669 100%); ' +
+                                'width: 50px; ' +
+                                'height: 50px; ' +
+                                'border-radius: 50%; ' +
+                                'border: 4px solid white; ' +
+                                'box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), 0 2px 4px rgba(0,0,0,0.2); ' +
+                                'display: flex; ' +
+                                'align-items: center; ' +
+                                'justify-content: center; ' +
+                                'color: white; ' +
+                                'font-weight: bold; ' +
+                                'font-size: 18px; ' +
+                                'animation: pulse 2s infinite;' +
+                                '">' +
+                                '<i class="ti ti-play" style="font-size: 20px;"></i>' +
+                                '</div>',
+                            iconSize: [50, 50],
+                            iconAnchor: [25, 25]
                         });
 
-                        var arrowMarker = L.marker([midLat, midLng], {
-                            icon: arrowIcon
+                        var startMarker = L.marker(coords[0], {
+                            icon: startIcon
                         }).addTo(map);
+                        
+                        var startKunjungan = nikData[0];
+                        var startPopupContent = `
+                            <div style="min-width: 250px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #E5E7EB;">
+                                    <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 12px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">🚀</div>
+                                    <div>
+                                        <h6 style="margin: 0; color: #1F2937; font-size: 16px; font-weight: 600;">Titik Awal</h6>
+                                        <p style="margin: 0; color: #6B7280; font-size: 12px;">${startKunjungan.nama_karyawan}</p>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151; line-height: 1.4;">${startKunjungan.deskripsi}</p>
+                                </div>
+                                ${startKunjungan.foto ? `
+                                                    <div style="margin-bottom: 8px;">
+                                                        <img src="/storage/uploads/kunjungan/${startKunjungan.foto}" alt="Foto Kunjungan" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                                    </div>
+                                                    ` : ''}
+                                <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; margin-bottom: 8px;">
+                                    <p style="margin: 0; font-size: 12px; color: #6B7280; display: flex; align-items: center;">
+                                        <i class="ti ti-clock" style="margin-right: 6px; color: #10B981;"></i> ${formatDateTime(startKunjungan.created_at)}
+                                    </p>
+                                </div>
+                            </div>
+                        `;
+                        startMarker.bindPopup(startPopupContent);
+
+                        // End Marker
+                        var endIcon = L.divIcon({
+                            className: 'custom-marker-end',
+                            html: '<div style="' +
+                                'background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); ' +
+                                'width: 50px; ' +
+                                'height: 50px; ' +
+                                'border-radius: 50%; ' +
+                                'border: 4px solid white; ' +
+                                'box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4), 0 2px 4px rgba(0,0,0,0.2); ' +
+                                'display: flex; ' +
+                                'align-items: center; ' +
+                                'justify-content: center; ' +
+                                'color: white; ' +
+                                'font-weight: bold; ' +
+                                'font-size: 18px; ' +
+                                'animation: pulse 2s infinite;' +
+                                '">' +
+                                '<i class="ti ti-flag" style="font-size: 20px;"></i>' +
+                                '</div>',
+                            iconSize: [50, 50],
+                            iconAnchor: [25, 25]
+                        });
+
+                        var endMarker = L.marker(coords[coords.length - 1], {
+                            icon: endIcon
+                        }).addTo(map);
+                        
+                        var endKunjungan = nikData[nikData.length - 1];
+                        var endPopupContent = `
+                            <div style="min-width: 250px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                                <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #E5E7EB;">
+                                    <div style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 12px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);">🏁</div>
+                                    <div>
+                                        <h6 style="margin: 0; color: #1F2937; font-size: 16px; font-weight: 600;">Titik Akhir</h6>
+                                        <p style="margin: 0; color: #6B7280; font-size: 12px;">${endKunjungan.nama_karyawan}</p>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151; line-height: 1.4;">${endKunjungan.deskripsi}</p>
+                                </div>
+                                ${endKunjungan.foto ? `
+                                                    <div style="margin-bottom: 8px;">
+                                                        <img src="/storage/uploads/kunjungan/${endKunjungan.foto}" alt="Foto Kunjungan" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                                    </div>
+                                                    ` : ''}
+                                <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; margin-bottom: 8px;">
+                                    <p style="margin: 0; font-size: 12px; color: #6B7280; display: flex; align-items: center;">
+                                        <i class="ti ti-clock" style="margin-right: 6px; color: #EF4444;"></i> ${formatDateTime(endKunjungan.created_at)}
+                                    </p>
+                                </div>
+                            </div>
+                        `;
+                        endMarker.bindPopup(endPopupContent);
                     }
-
-                    // Tambahkan marker khusus untuk titik awal dengan desain yang konsisten
-                    var startIcon = L.divIcon({
-                        className: 'custom-marker-start',
-                        html: '<div style="' +
-                            'background: linear-gradient(135deg, #10B981 0%, #059669 100%); ' +
-                            'width: 50px; ' +
-                            'height: 50px; ' +
-                            'border-radius: 50%; ' +
-                            'border: 4px solid white; ' +
-                            'box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), 0 2px 4px rgba(0,0,0,0.2); ' +
-                            'display: flex; ' +
-                            'align-items: center; ' +
-                            'justify-content: center; ' +
-                            'color: white; ' +
-                            'font-weight: bold; ' +
-                            'font-size: 18px; ' +
-                            'animation: pulse 2s infinite;' +
-                            '">' +
-                            '<i class="ti ti-play" style="font-size: 20px;"></i>' +
-                            '</div>',
-                        iconSize: [50, 50],
-                        iconAnchor: [25, 25]
-                    });
-
-                    var startMarker = L.marker(routeCoordinates[0], {
-                        icon: startIcon
-                    }).addTo(map);
-                    // Popup detail untuk titik awal
-                    var startKunjungan = kunjunganData[0];
-                    var startPopupContent = `
-                        <div style="min-width: 250px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                            <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #E5E7EB;">
-                                <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 12px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">🚀</div>
-                                <div>
-                                    <h6 style="margin: 0; color: #1F2937; font-size: 16px; font-weight: 600;">Titik Awal</h6>
-                                    <p style="margin: 0; color: #6B7280; font-size: 12px;">Mulai kunjungan</p>
-                                </div>
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151; line-height: 1.4;">${startKunjungan.deskripsi}</p>
-                            </div>
-                            ${startKunjungan.foto ? `
-                                                <div style="margin-bottom: 8px;">
-                                                    <img src="/storage/uploads/kunjungan/${startKunjungan.foto}" alt="Foto Kunjungan" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                                </div>
-                                                ` : ''}
-                            <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; margin-bottom: 8px;">
-                                <p style="margin: 0; font-size: 12px; color: #6B7280; display: flex; align-items: center;">
-                                    <i class="ti ti-clock" style="margin-right: 6px; color: #10B981;"></i> ${formatDateTime(startKunjungan.created_at)}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                    startMarker.bindPopup(startPopupContent);
-
-                    // Tambahkan marker khusus untuk titik akhir dengan desain yang konsisten
-                    var endIcon = L.divIcon({
-                        className: 'custom-marker-end',
-                        html: '<div style="' +
-                            'background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); ' +
-                            'width: 50px; ' +
-                            'height: 50px; ' +
-                            'border-radius: 50%; ' +
-                            'border: 4px solid white; ' +
-                            'box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4), 0 2px 4px rgba(0,0,0,0.2); ' +
-                            'display: flex; ' +
-                            'align-items: center; ' +
-                            'justify-content: center; ' +
-                            'color: white; ' +
-                            'font-weight: bold; ' +
-                            'font-size: 18px; ' +
-                            'animation: pulse 2s infinite;' +
-                            '">' +
-                            '<i class="ti ti-flag" style="font-size: 20px;"></i>' +
-                            '</div>',
-                        iconSize: [50, 50],
-                        iconAnchor: [25, 25]
-                    });
-
-                    var endMarker = L.marker(routeCoordinates[routeCoordinates.length - 1], {
-                        icon: endIcon
-                    }).addTo(map);
-                    // Popup detail untuk titik akhir
-                    var endKunjungan = kunjunganData[kunjunganData.length - 1];
-                    var endPopupContent = `
-                        <div style="min-width: 250px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                            <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #E5E7EB;">
-                                <div style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 12px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);">🏁</div>
-                                <div>
-                                    <h6 style="margin: 0; color: #1F2937; font-size: 16px; font-weight: 600;">Titik Akhir</h6>
-                                    <p style="margin: 0; color: #6B7280; font-size: 12px;">Selesai kunjungan</p>
-                                </div>
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151; line-height: 1.4;">${endKunjungan.deskripsi}</p>
-                            </div>
-                            ${endKunjungan.foto ? `
-                                                <div style="margin-bottom: 8px;">
-                                                    <img src="/storage/uploads/kunjungan/${endKunjungan.foto}" alt="Foto Kunjungan" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                                </div>
-                                                ` : ''}
-                            <div style="background: #F9FAFB; padding: 8px; border-radius: 6px; margin-bottom: 8px;">
-                                <p style="margin: 0; font-size: 12px; color: #6B7280; display: flex; align-items: center;">
-                                    <i class="ti ti-clock" style="margin-right: 6px; color: #EF4444;"></i> ${formatDateTime(endKunjungan.created_at)}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                    endMarker.bindPopup(endPopupContent);
-                }
+                });
 
                 // Fit map to show all markers
                 if (bounds.length > 0) {
@@ -527,6 +532,8 @@
                     position: 'bottomright'
                 });
                 legend.onAdd = function(map) {
+                    var legendPrimary = '#3B82F6';
+                    var legendSecondary = '#1E40AF';
                     var div = L.DomUtil.create('div', 'info legend');
                     div.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)';
                     div.style.padding = '16px';
@@ -535,7 +542,7 @@
                     div.style.border = '1px solid #e5e7eb';
                     div.innerHTML =
                         '<div style="display: flex; align-items: center; margin-bottom: 8px;">' +
-                        '<div style="background: linear-gradient(135deg, ' + primaryColor + ' 0%, ' + secondaryColor +
+                        '<div style="background: linear-gradient(135deg, ' + legendPrimary + ' 0%, ' + legendSecondary +
                         ' 100%); width: 20px; height: 20px; border-radius: 50%; margin-right: 8px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);"></div>' +
                         '<h6 style="margin: 0; color: #1F2937; font-size: 14px; font-weight: 600;">Kunjungan</h6>' +
                         '</div>' +
@@ -543,7 +550,7 @@
                     return div;
                 };
                 legend.addTo(map);
-            @endif
+
         });
     </script>
 @endpush
