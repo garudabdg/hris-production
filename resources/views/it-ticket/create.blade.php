@@ -37,10 +37,10 @@
                     <div class="row g-3">
                         {{-- Kategori --}}
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Kategori <span class="text-danger">*</span></label>
-                            <select name="kategori" class="form-select @error('kategori') is-invalid @enderror">
-                                <option value="">-- Pilih Kategori --</option>
-                                <option value="hardware"  {{ old('kategori')=='hardware'  ?'selected':'' }}>🖥️  Hardware</option>
+                            <label class="form-label fw-semibold">Kategori Masalah <span class="text-danger">*</span></label>
+                            <select name="kategori" class="form-select @error('kategori') is-invalid @enderror" required>
+                                <option value="" disabled {{ old('kategori') ? '' : 'selected' }}>Pilih Kategori...</option>
+                                <option value="hardware"  {{ old('kategori')=='hardware'  ?'selected':'' }}>🖥️ Hardware (PC, Printer, dll)</option>
                                 <option value="software"  {{ old('kategori')=='software'  ?'selected':'' }}>💻 Software / Aplikasi</option>
                                 <option value="jaringan"  {{ old('kategori')=='jaringan'  ?'selected':'' }}>🌐 Jaringan / Internet</option>
                                 <option value="keamanan"  {{ old('kategori')=='keamanan'  ?'selected':'' }}>🔒 Keamanan Informasi</option>
@@ -51,6 +51,15 @@
                             @error('kategori')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
+                        {{-- Lokasi --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Lokasi <span class="text-danger">*</span></label>
+                            <input type="text" name="lokasi" class="form-control @error('lokasi') is-invalid @enderror" 
+                                value="{{ old('lokasi') }}" placeholder="Contoh: Lt. 2 Ruang Meeting" required>
+                            @error('lokasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
                         {{-- Prioritas --}}
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Prioritas <span class="text-danger">*</span></label>
@@ -77,6 +86,8 @@
                             </select>
                             @error('klasifikasi_data')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        @endif
+
 
                         {{-- Dampak --}}
                         <div class="col-md-6">

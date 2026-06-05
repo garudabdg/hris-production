@@ -209,6 +209,11 @@
                 </span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
+                @if($itTicket->nomor_urut)
+                    <span style="font-size:10px;background:#ffffff;color:#000;padding:2px 8px;border-radius:20px;font-weight:800;">
+                        <ion-icon name="list-outline" style="vertical-align:-2px;margin-right:2px;"></ion-icon>Antrean #{{ $itTicket->nomor_urut }}
+                    </span>
+                @endif
                 <span style="font-size:10px;background:#ffffff30;color:#fff;padding:2px 8px;border-radius:20px;font-weight:700;">{{ ucfirst($itTicket->prioritas) }}</span>
                 <span style="font-size:10px;background:#ffffff20;color:#ffffffcc;padding:2px 8px;border-radius:20px;">{{ ucfirst($itTicket->kategori) }}</span>
                 @if($itTicket->isOverdue())
@@ -369,7 +374,6 @@
     </div>
 
     {{-- Form Balas --}}
-    @if(!in_array($itTicket->status, ['closed']))
     <div class="detail-card" id="reply-card">
         <div class="card-header-mobile">
             <ion-icon name="send-outline" style="color:{{ $t['primary'] ?? '#2d5a4c' }};"></ion-icon>
@@ -400,7 +404,6 @@
             </form>
         </div>
     </div>
-    @endif
 
 </div>
 
@@ -413,7 +416,6 @@
     const POLL_URL     = "{{ route('it-ticket.responses', $itTicket->id) }}";
     const CSRF_TOKEN   = "{{ csrf_token() }}";
     const PRIMARY_COLOR = "{{ $t['primary'] ?? '#2d5a4c' }}";
-    const IS_CLOSED    = {{ in_array($itTicket->status, ['closed']) ? 'true' : 'false' }};
 
     // Track last response id yang sudah tampil
     let lastResponseId = {{ $itTicket->responses->max('id') ?? 0 }};
@@ -481,13 +483,6 @@
                     // ionicons auto-renders new elements
                 }
             }
-
-            // Cek status tiket berubah — sembunyikan form reply jika closed
-            if (data.status === 'closed') {
-                const replyCard = document.getElementById('reply-card');
-                if (replyCard) replyCard.remove();
-                stopPolling();
-            }
         })
         .catch(() => {
             // silent fail — dot merah
@@ -500,7 +495,6 @@
     }
 
     function startPolling() {
-        if (IS_CLOSED) return;
         pollInterval = setInterval(pollResponses, 4000);
     }
 

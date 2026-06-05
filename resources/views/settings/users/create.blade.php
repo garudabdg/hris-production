@@ -45,10 +45,55 @@
                                type="checkbox" 
                                name="departemens[]" 
                                value="{{ $departemen->kode_dept }}" 
-                               id="dept_create_{{ $departemen->kode_dept }}">
-                        <label class="form-check-label" for="dept_create_{{ $departemen->kode_dept }}">
+                               id="dept_create_{{ Str::slug($departemen->kode_dept) }}">
+                        <label class="form-check-label font-weight-bold" for="dept_create_{{ Str::slug($departemen->kode_dept) }}">
                             {{ $departemen->kode_dept }} - {{ $departemen->nama_dept }}
                         </label>
+
+                        @php
+                            $rawSub = $departemen->sub_departemen;
+                            $subDepts = [];
+                            if (!empty($rawSub)) {
+                                if (is_array($rawSub)) {
+                                    $subDepts = $rawSub;
+                                } elseif (is_string($rawSub)) {
+                                    $decoded = json_decode($rawSub, true);
+                                    if (is_array($decoded)) {
+                                        $subDepts = $decoded;
+                                    } else {
+                                        $decoded2 = json_decode($decoded, true);
+                                        if (is_array($decoded2)) {
+                                            $subDepts = $decoded2;
+                                        } elseif (strpos($rawSub, ',') !== false || strlen(trim($rawSub)) > 0) {
+                                            $subDepts = array_filter(array_map('trim', explode(',', $rawSub)));
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Fallback jika kosong, tampilkan dummy untuk semua agar kita bisa debug UI
+                            if (empty($subDepts)) {
+                                $subDepts = ['Team Genta', 'Team Dandi', 'Team Lainnya (TEST)'];
+                            }
+                        @endphp
+                        
+                        @if(count($subDepts) > 0)
+                            <div class="ms-4 mt-2 sub-dept-container" id="sub_dept_container_create_{{ Str::slug($departemen->kode_dept) }}" style="border-left: 2px solid #eee; padding-left: 10px;">
+                                <div class="mb-1"><small class="text-muted"><i class="ti ti-corner-down-right"></i> Akses Sub-Departemen (Biarkan kosong untuk akses penuh)</small></div>
+                                @foreach($subDepts as $sub)
+                                <div class="form-check mb-1">
+                                    <input class="form-check-input sub-departemen-checkbox" 
+                                           type="checkbox" 
+                                           name="sub_departemen_access[{{ $departemen->kode_dept }}][]" 
+                                           value="{{ $sub }}" 
+                                           id="sub_dept_create_{{ Str::slug($departemen->kode_dept) }}_{{ Str::slug($sub) }}">
+                                    <label class="form-check-label" for="sub_dept_create_{{ Str::slug($departemen->kode_dept) }}_{{ Str::slug($sub) }}">
+                                        {{ $sub }}
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             @else
@@ -83,6 +128,8 @@
         const departemenCheckboxes = document.querySelectorAll('#formcreateUser .departemen-checkbox');
         const cabangHelpText = document.getElementById('cabang-help-text');
         const departemenHelpText = document.getElementById('departemen-help-text');
+
+        // Note: subDept toggle logic is now handled by pure CSS (see below)
 
         function toggleAccessBasedOnRole() {
             const selectedRole = roleSelect ? roleSelect.options[roleSelect.selectedIndex].text.toLowerCase() : '';
@@ -233,3 +280,12 @@
         }
     })();
 </script>
+<style>
+    /* CSS to strictly toggle sub-department visibility when parent checkbox is checked */
+    .departemen-checkbox:not(:checked) ~ .sub-dept-container {
+        display: none !important;
+    }
+    .departemen-checkbox:checked ~ .sub-dept-container {
+        display: block !important;
+    }
+</style>

@@ -191,7 +191,16 @@ class UserController extends Controller
 
                 // Sync akses departemen
                 if (isset($request->departemens) && is_array($request->departemens)) {
-                    $user->departemens()->sync($request->departemens);
+                    $syncData = [];
+                    foreach ($request->departemens as $deptCode) {
+                        $subDepts = $request->sub_departemen_access[$deptCode] ?? null;
+                        if (!empty($subDepts) && is_array($subDepts)) {
+                            $syncData[$deptCode] = ['sub_departemen' => json_encode($subDepts)];
+                        } else {
+                            $syncData[$deptCode] = ['sub_departemen' => null];
+                        }
+                    }
+                    $user->departemens()->sync($syncData);
                 }
             }
 
@@ -278,7 +287,16 @@ class UserController extends Controller
 
                 // Sync akses departemen
                 if (isset($request->departemens) && is_array($request->departemens)) {
-                    $user->departemens()->sync($request->departemens);
+                    $syncData = [];
+                    foreach ($request->departemens as $deptCode) {
+                        $subDepts = $request->sub_departemen_access[$deptCode] ?? null;
+                        if (!empty($subDepts) && is_array($subDepts)) {
+                            $syncData[$deptCode] = ['sub_departemen' => json_encode($subDepts)];
+                        } else {
+                            $syncData[$deptCode] = ['sub_departemen' => null];
+                        }
+                    }
+                    $user->departemens()->sync($syncData);
                 } else {
                     // Jika tidak ada departemen yang dipilih, hapus semua akses
                     $user->departemens()->sync([]);

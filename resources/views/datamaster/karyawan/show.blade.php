@@ -62,19 +62,20 @@
                                 @endif
                             </ul>
                         </div>
-                        @if ($karyawan->status_aktif_karyawan === '1')
-                            <div class="text-center text-md-end mt-3 mt-md-0">
+                        <div class="text-center text-md-end mt-3 mt-md-0 d-flex flex-column align-items-md-end align-items-center gap-2">
+                            @if ($karyawan->status_aktif_karyawan === '1')
                                 <span class="badge bg-success fs-6 px-3 py-2 shadow-sm rounded-pill">
                                     <i class="ti ti-check me-1"></i> Aktif
                                 </span>
-                            </div>
-                        @else
-                            <div class="text-center text-md-end mt-3 mt-md-0">
+                            @else
                                 <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm rounded-pill">
                                     <i class="ti ti-x me-1"></i> Nonaktif
                                 </span>
-                            </div>
-                        @endif
+                            @endif
+                            <a href="{{ route('karyawan.export-pdf', Crypt::encrypt($karyawan->nik)) }}" class="btn btn-sm btn-danger shadow-sm rounded-pill mt-1" target="_blank">
+                                <i class="ti ti-file-type-pdf me-1"></i> Unduh PDF
+                            </a>
+                        </div>
 
                     </div>
                 </div>
@@ -170,6 +171,32 @@
             </div>
         </div>
         <!--/ User Account -->
+
+        <!-- Aset & Tiket IT -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <small class="card-text text-uppercase text-muted small">Aset & Tiket IT</small>
+                <ul class="list-unstyled mb-4 mt-3">
+                    <li class="d-flex align-items-center mb-3">
+                        <i class="ti ti-ticket text-heading"></i><span class="fw-medium mx-2 text-heading">Total Tiket Dibuat:</span>
+                        <span class="badge bg-primary">{{ $total_tickets }} Tiket</span>
+                    </li>
+                    <li class="d-flex align-items-start mb-3">
+                        <i class="ti ti-device-laptop text-heading mt-1"></i><span class="fw-medium mx-2 text-heading">Aset Dipegang:</span>
+                        <div>
+                            @if($assets->count() > 0)
+                                @foreach($assets as $asset)
+                                    <div class="mb-1"><span class="badge bg-label-info">{{ $asset->kode_asset }}</span> - {{ $asset->nama_asset }}</div>
+                                @endforeach
+                            @else
+                                <span class="text-muted">Tidak ada aset</span>
+                            @endif
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!--/ Aset & Tiket IT -->
 
     </div>
     <div class="col-xl-8 col-lg-7 col-md-7">

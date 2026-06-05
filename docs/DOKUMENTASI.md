@@ -2,7 +2,7 @@
 
 **Versi Aplikasi:** 3.0.6  
 **Framework:** Laravel 10.10 (PHP 8.1+)  
-**URL Produksi:** http://hris.didimax.online  
+**URL Produksi:** https://hris.didimax.online dan https://hris.didimax.id
 **Tanggal Dokumentasi:** 18 Mei 2026  
 
 ---

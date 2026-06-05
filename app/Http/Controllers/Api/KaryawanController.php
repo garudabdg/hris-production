@@ -19,7 +19,9 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class KaryawanController extends Controller
 {
@@ -40,17 +42,30 @@ class KaryawanController extends Controller
             'device_name' => 'nullable|string|max:100',
         ]);
 
+        $throttleKey = Str::transliterate(Str::lower($request->id_user) . '|' . $request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return response()->json([
+                'success' => false,
+                'message' => 'Terlalu banyak percobaan login. Silakan coba lagi dalam ' . ceil($seconds / 60) . ' menit.',
+            ], 429);
+        }
+
         // Cek apakah id_user berupa email atau username (sama seperti LoginRequest web)
         $field = filter_var($request->id_user, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
         $user = User::where($field, $request->id_user)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            RateLimiter::hit($throttleKey);
             return response()->json([
                 'success' => false,
                 'message' => 'Username/email atau password salah.',
             ], 401);
         }
+
+        RateLimiter::clear($throttleKey);
 
         if (!$user->hasRole('karyawan')) {
             return response()->json([

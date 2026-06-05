@@ -25,6 +25,9 @@
                     <h5 class="mb-1">
                         <code class="text-primary me-2">{{ $itTicket->nomor_tiket }}</code>
                         {{ $itTicket->judul }}
+                        @if($itTicket->nomor_urut)
+                            <span class="badge bg-label-primary ms-2" style="font-size: 14px;"><i class="ti ti-list-numbers me-1"></i>Antrean Hari Ini: #{{ $itTicket->nomor_urut }}</span>
+                        @endif
                     </h5>
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         {!! $itTicket->status_badge !!}
@@ -55,6 +58,10 @@
                     <div class="col-sm-4">
                         <small class="text-muted d-block">Cabang</small>
                         <span class="fw-semibold">{{ optional($itTicket->cabang)->nama_cabang ?? '-' }}</span>
+                    </div>
+                    <div class="col-sm-4">
+                        <small class="text-muted d-block">Lokasi Detail</small>
+                        <span class="fw-semibold">{{ $itTicket->lokasi ?? '-' }}</span>
                     </div>
                     <div class="col-sm-4">
                         <small class="text-muted d-block">Pemohon</small>
@@ -151,7 +158,6 @@
             </div>
 
                 {{-- Form Balas --}}
-                @if(!in_array($itTicket->status, ['closed']))
                     <div class="card-footer" id="reply-form-wrapper">
                         <h6 class="fw-semibold mb-3"><i class="ti ti-send me-2"></i>Tambah Balasan</h6>
                         <form id="formReply" autocomplete="off">
@@ -170,7 +176,6 @@
                             </button>
                         </form>
                     </div>
-                @endif
         </div>
     </div>
 
@@ -192,6 +197,23 @@
                             <option value="pending"     {{ $itTicket->status=='pending'     ?'selected':'' }}>Pending</option>
                             <option value="resolved"    {{ $itTicket->status=='resolved'    ?'selected':'' }}>Resolved</option>
                             <option value="closed"      {{ $itTicket->status=='closed'      ?'selected':'' }}>Closed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Prioritas</label>
+                        <select name="prioritas" class="form-select form-select-sm">
+                            <option value="low"      {{ $itTicket->prioritas=='low'      ?'selected':'' }}>Low</option>
+                            <option value="medium"   {{ $itTicket->prioritas=='medium'   ?'selected':'' }}>Medium</option>
+                            <option value="high"     {{ $itTicket->prioritas=='high'     ?'selected':'' }}>High</option>
+                            <option value="critical" {{ $itTicket->prioritas=='critical' ?'selected':'' }}>Critical</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Klasifikasi Data</label>
+                        <select name="klasifikasi_data" class="form-select form-select-sm">
+                            <option value="public"       {{ $itTicket->klasifikasi_data=='public'       ?'selected':'' }}>Public</option>
+                            <option value="internal"     {{ $itTicket->klasifikasi_data=='internal'     ?'selected':'' }}>Internal</option>
+                            <option value="confidential" {{ $itTicket->klasifikasi_data=='confidential' ?'selected':'' }}>Confidential</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -278,8 +300,7 @@ $(function () {
 
     const RESPOND_URL  = "{{ route('it-ticket.respond', $itTicket->id) }}";
     const POLL_URL     = "{{ route('it-ticket.responses', $itTicket->id) }}";
-    const CSRF_TOKEN   = "{{ csrf_token() }}";
-    const IS_CLOSED    = {{ in_array($itTicket->status, ['closed']) ? 'true' : 'false' }};
+    const TICKET_ID    = {{ $itTicket->id }};
 
     let lastResponseId = {{ $itTicket->responses->max('id') ?? 0 }};
     let isPolling      = false;
@@ -337,16 +358,8 @@ $(function () {
                     $container.scrollTop($container[0].scrollHeight);
                 }
 
-                // Jika status berubah ke closed
-                if (data.status === 'closed') {
-                    $('#reply-form-wrapper').fadeOut();
-                    stopPolling();
-                    // Update badge status di header
-                    $('.badge[data-status]').text('CLOSED').removeClass().addClass('badge bg-label-secondary');
-                }
-
-                // Dot hijau (koneksi ok)
-                $('#live-dot').css('background', '#28a745');
+                // Update tampilan badge status
+                $('.badge-status').html(data.status_badge);$('#live-dot').css('background', '#28a745');
             },
             error: function() {
                 $('#live-dot').css('background', '#dc3545');
@@ -358,16 +371,11 @@ $(function () {
     }
 
     function startPolling() {
-        if (IS_CLOSED) {
-            $('#live-indicator').hide();
-            return;
-        }
         pollInterval = setInterval(pollResponses, 4000);
     }
 
     function stopPolling() {
         clearInterval(pollInterval);
-        $('#live-indicator').html('<span class="text-muted" style="font-size:12px;">Tiket Closed</span>');
     }
 
     // ── AJAX Submit Form ───────────────────────────────────────────────────

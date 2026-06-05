@@ -75,6 +75,16 @@ use App\Http\Controllers\TamuController;
 |
 */
 
+Route::get('/debug-subdept', function () {
+    $dept = \App\Models\Departemen::where('kode_dept', 'BU')->first();
+    return response()->json([
+        'raw' => $dept->getAttributes()['sub_departemen'],
+        'casted' => $dept->sub_departemen,
+        'type_raw' => gettype($dept->getAttributes()['sub_departemen']),
+        'type_casted' => gettype($dept->sub_departemen)
+    ]);
+});
+
 Route::middleware('guest')->group(function () {
     Route::get('/', function () {
         $agent = new \Jenssegers\Agent\Agent();
@@ -252,6 +262,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/karyawan/{nik}', 'update')->name('karyawan.update')->can('karyawan.edit');
         Route::delete('/karyawan/{nik}', 'destroy')->name('karyawan.delete')->can('karyawan.delete');
         Route::get('/karyawan/{nik}/show', 'show')->name('karyawan.show')->can('karyawan.show');
+        Route::get('/karyawan/{nik}/export-pdf', 'exportPdf')->name('karyawan.export-pdf')->can('karyawan.show');
         Route::get('/karyawan/{nik}/setjamkerja', 'setjamkerja')->name('karyawan.setjamkerja')->can('karyawan.setjamkerja');
         Route::post('/karyawan/{nik}/storejamkerjabyday', 'storejamkerjabyday')->name('karyawan.storejamkerjabyday')->can('karyawan.setjamkerja');
         Route::get('/karyawan/{nik}/setcabang', 'setcabang')->name('karyawan.setcabang')->can('karyawan.setcabang');
@@ -745,6 +756,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/check-new',             'checkNew')->name('check-new');
         Route::get('/create',                'create')->name('create');
         Route::post('/',                     'store')->name('store');
+        Route::post('/bulk-update',          'bulkUpdate')->name('bulk-update');
         Route::get('/{itTicket}',            'show')->name('show');
         Route::post('/{itTicket}/respond',    'respond')->name('respond');
         Route::get('/{itTicket}/responses',  'getResponses')->name('responses');

@@ -28,7 +28,7 @@ use App\Exports\TemplateKaryawanExport;
 use App\Exports\KaryawanExport;
 use App\Jobs\SendWaMessage;
 use Maatwebsite\Excel\Facades\Excel;
-
+use Barryvdh\DomPDF\Facade\Pdf;
 class KaryawanController extends Controller
 {
     public function index(Request $request)
@@ -68,9 +68,21 @@ class KaryawanController extends Controller
                 $query->whereRaw('1 = 0');
             }
 
-            // Filter berdasarkan departemen yang diakses
-            if (!empty($userDepartemens)) {
-                $query->whereIn('karyawan.kode_dept', $userDepartemens);
+            // Filter berdasarkan departemen & sub-departemen yang diakses
+            $userDepartemenMap = $user->getDepartemenAccessMap();
+            
+            if (!empty($userDepartemenMap)) {
+                $query->where(function ($q) use ($userDepartemenMap) {
+                    foreach ($userDepartemenMap as $kodeDept => $subDepts) {
+                        $q->orWhere(function ($q2) use ($kodeDept, $subDepts) {
+                            $q2->where('karyawan.kode_dept', $kodeDept);
+                            // Jika ada batasan sub-departemen untuk departemen ini
+                            if (!empty($subDepts) && is_array($subDepts)) {
+                                $q2->whereIn('karyawan.sub_departemen', $subDepts);
+                            }
+                        });
+                    }
+                });
             } else {
                 // Jika tidak ada akses departemen, tidak tampilkan data
                 $query->whereRaw('1 = 0');
@@ -417,11 +429,65 @@ class KaryawanController extends Controller
             ->orderBy('tanggal_mutasi', 'desc')
             ->get();
             
+        // Get Assets assigned to this Karyawan
+        $assets = \App\Models\Asset::where('nik', $nik)->get();
+
+        // Get Total Tickets created by this Karyawan
+        $total_tickets = 0;
+        if ($user) {
+            $total_tickets = \App\Models\ItTicket::where('pemohon_id', $user->id)->count();
+        }
+            
         $data['karyawan'] = $karyawan;
         $data['user'] = $user;
         $data['karyawan_wajah'] = $karyawan_wajah;
         $data['mutasi'] = $mutasi;
+        $data['assets'] = $assets;
+        $data['total_tickets'] = $total_tickets;
         return view('datamaster.karyawan.show', $data);
+    }
+
+    public function exportPdf($nik)
+    {
+        $nik = Crypt::decrypt($nik);
+        $karyawan = Karyawan::with('pelatihan')->where('nik', $nik)
+            ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
+            ->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
+            ->join('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
+            ->join('status_kawin', 'karyawan.kode_status_kawin', '=', 'status_kawin.kode_status_kawin')
+            ->first();
+
+        if (!$karyawan) abort(404, 'Karyawan tidak ditemukan.');
+
+        $user_karyawan = Userkaryawan::where('nik', $nik)->first();
+        $user = $user_karyawan ? User::where('id', $user_karyawan->id_user)->first() : null;
+        
+        $mutasi = MutasiKaryawan::with(['cabangLama', 'cabangBaru', 'deptLama', 'deptBaru', 'jabatanLama', 'jabatanBaru'])
+            ->where('nik', $nik)
+            ->orderBy('tanggal_mutasi', 'desc')
+            ->get();
+            
+        $assets = \App\Models\Asset::where('nik', $nik)->get();
+
+        $total_tickets = 0;
+        if ($user) {
+            $total_tickets = \App\Models\ItTicket::where('pemohon_id', $user->id)->count();
+        }
+
+        $kontrak = \App\Models\Kontrak::where('nik', $nik)->orderBy('sampai', 'desc')->first();
+            
+        $data['karyawan'] = $karyawan;
+        $data['user'] = $user;
+        $data['mutasi'] = $mutasi;
+        $data['assets'] = $assets;
+        $data['total_tickets'] = $total_tickets;
+        $data['kontrak'] = $kontrak;
+
+        $pdf = Pdf::loadView('datamaster.karyawan.pdf_profile', $data);
+        $pdf->setPaper('a4', 'portrait');
+
+        $filename = 'Profil_Karyawan_' . str_replace(' ', '_', $karyawan->nama_karyawan) . '.pdf';
+        return $pdf->download($filename);
     }
 
 

@@ -2,6 +2,7 @@ class AppConstants {
   // API
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
+    // Bisa juga menggunakan: 'https://hris.didimax.id/api'
     defaultValue: 'https://hris.didimax.online/api',
   );
   

@@ -197,6 +197,14 @@
                 <label for="kategori">Kategori Masalah</label>
             </div>
 
+            {{-- Lokasi --}}
+            <div class="form-label-group">
+                <ion-icon name="location-outline" class="input-icon"></ion-icon>
+                <input type="text" name="lokasi" id="lokasi" placeholder=" " value="{{ old('lokasi') }}" required>
+                <label for="lokasi">Lokasi (Cth: Ruang Meeting Lt. 2)</label>
+            </div>
+
+            @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
             {{-- Prioritas --}}
             <p class="section-title">
                 <ion-icon name="flag-outline" style="font-size:14px;"></ion-icon>
@@ -206,10 +214,10 @@
             <div class="form-label-group">
                 <ion-icon name="flag-outline" class="input-icon"></ion-icon>
                 <select name="prioritas" id="prioritas" required>
-                    <option value="low"      {{ old('prioritas','medium')=='low'      ?'selected':'' }}>🟢 Low — Tidak mengganggu (SLA 14 hari)</option>
-                    <option value="medium"   {{ old('prioritas','medium')=='medium'   ?'selected':'' }}>🔵 Medium — Sedikit mengganggu (SLA 7 hari)</option>
-                    <option value="high"     {{ old('prioritas','medium')=='high'     ?'selected':'' }}>🟠 High — Mengganggu pekerjaan (SLA 3 hari)</option>
-                    <option value="critical" {{ old('prioritas','medium')=='critical' ?'selected':'' }}>🔴 Critical — Operasional terhenti (SLA 1 hari)</option>
+                    <option value="low"      {{ old('prioritas','medium')=='low'      ?'selected':'' }}>🟢 Low </option>
+                    <option value="medium"   {{ old('prioritas','medium')=='medium'   ?'selected':'' }}>🔵 Medium</option>
+                    <option value="high"     {{ old('prioritas','medium')=='high'     ?'selected':'' }}>🟠 High</option>
+                    <option value="critical" {{ old('prioritas','medium')=='critical' ?'selected':'' }}>🔴 Critical</option>
                 </select>
                 <ion-icon name="chevron-down-outline" class="select-chevron"></ion-icon>
                 <label for="prioritas">Prioritas</label>
@@ -226,6 +234,8 @@
                 <ion-icon name="chevron-down-outline" class="select-chevron"></ion-icon>
                 <label for="klasifikasi_data">Klasifikasi Data (ISO 27001)</label>
             </div>
+            @endif
+
 
             {{-- Dampak --}}
             <div class="form-label-group">
@@ -266,7 +276,7 @@
                 <ion-icon name="time-outline" style="font-size:18px;flex-shrink:0;margin-top:1px;"></ion-icon>
                 <div>
                     <div style="font-weight:700;margin-bottom:2px;">SLA Response Time</div>
-                    <div style="line-height:1.6;">🔴 Critical: 1 hari &nbsp;|&nbsp; 🟠 High: 3 hari &nbsp;|&nbsp; 🔵 Medium: 7 hari &nbsp;|&nbsp; 🟢 Low: 14 hari</div>
+                    <div style="line-height:1.6;">🔴 Critical &nbsp;|&nbsp; 🟠 High &nbsp;|&nbsp; 🔵 Medium &nbsp;|&nbsp; 🟢 Low</div>
                 </div>
             </div>
 
@@ -307,6 +317,7 @@
         const judul = document.getElementById('judul').value.trim();
         const deskripsi = document.getElementById('deskripsi').value.trim();
         const kategori = document.getElementById('kategori').value;
+        const lokasi = document.getElementById('lokasi').value.trim();
 
         if (!judul) {
             e.preventDefault();
@@ -321,6 +332,11 @@
         if (!kategori) {
             e.preventDefault();
             Swal.fire({ title: 'Oops!', text: 'Pilih kategori masalah!', icon: 'warning' });
+            return;
+        }
+        if (!lokasi) {
+            e.preventDefault();
+            Swal.fire({ title: 'Oops!', text: 'Lokasi Anda harus diisi!', icon: 'warning' });
             return;
         }
 

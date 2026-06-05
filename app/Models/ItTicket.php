@@ -8,14 +8,15 @@ use Illuminate\Support\Str;
 class ItTicket extends Model
 {
     protected $fillable = [
-        'nomor_tiket', 'pemohon_id', 'kode_cabang', 'judul', 'deskripsi',
+        'nomor_tiket', 'nomor_urut', 'pemohon_id', 'kode_cabang', 'lokasi', 'judul', 'deskripsi',
         'kategori', 'prioritas', 'klasifikasi_data', 'dampak', 'status',
-        'assigned_to', 'tanggal_target', 'resolved_at', 'resolved_by',
+        'assigned_to', 'assigned_at', 'tanggal_target', 'resolved_at', 'resolved_by',
         'catatan_resolusi', 'lampiran',
     ];
 
     protected $casts = [
         'tanggal_target' => 'date',
+        'assigned_at'    => 'datetime',
         'resolved_at'    => 'datetime',
     ];
 
@@ -98,6 +99,16 @@ class ItTicket extends Model
 
         $seq = $last ? ((int) substr($last, -4)) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate nomor urut antrean harian berdasarkan tanggal tiket dibuat
+     */
+    public static function generateNomorUrut(): int
+    {
+        $today = now()->toDateString();
+        $max = self::whereDate('created_at', $today)->max('nomor_urut');
+        return $max ? $max + 1 : 1;
     }
 
     /**

@@ -131,8 +131,9 @@ class ItTicketController extends Controller
             'judul'            => 'required|string|max:255',
             'deskripsi'        => 'required|string',
             'kategori'         => 'required|in:hardware,software,jaringan,keamanan,akses,data,lainnya',
-            'prioritas'        => 'required|in:critical,high,medium,low',
-            'klasifikasi_data' => 'required|in:confidential,internal,public',
+            'lokasi'           => 'required|string|max:255',
+            'prioritas'        => 'nullable|in:critical,high,medium,low',
+            'klasifikasi_data' => 'nullable|in:confidential,internal,public',
             'dampak'           => 'required|in:individu,departemen,cabang,perusahaan',
             'kode_cabang'      => 'nullable|exists:cabang,kode_cabang',
             'lampiran'         => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,xlsx,zip|max:5120',
@@ -148,9 +149,12 @@ class ItTicketController extends Controller
 
         $data = $request->except('lampiran');
         $data['nomor_tiket']    = ItTicket::generateNomor();
+        $data['nomor_urut']     = ItTicket::generateNomorUrut();
         $data['pemohon_id']     = $user->id;
         $data['status']         = 'open';
-        $data['tanggal_target'] = now()->addDays(ItTicket::slaDays($request->prioritas))->toDateString();
+        $data['prioritas']      = $request->prioritas ?? 'low';
+        $data['klasifikasi_data'] = $request->klasifikasi_data ?? 'internal';
+        $data['tanggal_target'] = now()->addDays(ItTicket::slaDays($data['prioritas']))->toDateString();
         
         // Auto-set cabang dari karyawan jika tidak diisi
         if (empty($data['kode_cabang'])) {
@@ -173,7 +177,7 @@ class ItTicketController extends Controller
         ItTicketResponse::create([
             'ticket_id' => $ticket->id,
             'user_id'   => $user->id,
-            'pesan'     => "Tiket dibuat oleh **{$user->name}** dengan prioritas **{$request->prioritas}**.",
+            'pesan'     => "Tiket dibuat oleh **{$user->name}**.",
             'tipe'      => 'status_change',
         ]);
 
@@ -297,6 +301,8 @@ class ItTicketController extends Controller
 
         $request->validate([
             'status'           => 'required|in:open,in_progress,pending,resolved,closed',
+            'prioritas'        => 'required|in:critical,high,medium,low',
+            'klasifikasi_data' => 'required|in:confidential,internal,public',
             'catatan_resolusi' => 'nullable|string',
         ]);
 
@@ -304,6 +310,10 @@ class ItTicketController extends Controller
         $newStatus = $request->status;
 
         $itTicket->status = $newStatus;
+        $itTicket->prioritas = $request->prioritas;
+        $itTicket->klasifikasi_data = $request->klasifikasi_data;
+        $itTicket->tanggal_target = now()->addDays(ItTicket::slaDays($request->prioritas))->toDateString();
+        
         if (in_array($newStatus, ['resolved', 'closed']) && !$itTicket->resolved_at) {
             $itTicket->resolved_at      = now();
             $itTicket->resolved_by      = $user->id;
@@ -338,6 +348,7 @@ class ItTicketController extends Controller
         if ($itTicket->status === 'open') {
             $itTicket->status = 'in_progress';
         }
+
         $itTicket->save();
 
         ItTicketResponse::create([
@@ -348,6 +359,37 @@ class ItTicketController extends Controller
         ]);
 
         return redirect()->route('it-ticket.show', $itTicket->id)->with('success', 'Tiket berhasil di-assign.');
+    }
+
+    // ── Bulk Update ────────────────────────────────────────────────────────────
+
+    public function bulkUpdate(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isSuperAdmin() && !$user->hasRole('it staff')) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'ticket_ids'       => 'required|array',
+            'ticket_ids.*'     => 'exists:it_tickets,id',
+            'prioritas'        => 'nullable|in:critical,high,medium,low',
+            'klasifikasi_data' => 'nullable|in:confidential,internal,public',
+        ]);
+
+        $updateData = [];
+        if ($request->filled('prioritas')) {
+            $updateData['prioritas'] = $request->prioritas;
+        }
+        if ($request->filled('klasifikasi_data')) {
+            $updateData['klasifikasi_data'] = $request->klasifikasi_data;
+        }
+
+        if (!empty($updateData)) {
+            ItTicket::whereIn('id', $request->ticket_ids)->update($updateData);
+        }
+
+        return redirect()->back()->with('success', count($request->ticket_ids) . ' tiket berhasil diperbarui.');
     }
 
     // ── Destroy ────────────────────────────────────────────────────────────────

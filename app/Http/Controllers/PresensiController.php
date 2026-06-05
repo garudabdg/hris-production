@@ -100,7 +100,6 @@ class PresensiController extends Controller
         // Filter berdasarkan akses cabang dan departemen jika bukan super admin
         if (!$user->isSuperAdmin()) {
             $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
             
             if (!empty($userCabangs)) {
                 $query->whereIn('karyawan.kode_cabang', $userCabangs);
@@ -108,8 +107,22 @@ class PresensiController extends Controller
                 $query->whereRaw('1 = 0');
             }
             
-            if (!empty($userDepartemens)) {
-                $query->whereIn('karyawan.kode_dept', $userDepartemens);
+            $deptAccessMap = $user->getDepartemenAccessMap();
+            if (!empty($deptAccessMap)) {
+                $query->where(function($q) use ($deptAccessMap) {
+                    foreach ($deptAccessMap as $deptCode => $subDepts) {
+                        if (empty($subDepts)) {
+                            // Full access ke departemen ini
+                            $q->orWhere('karyawan.kode_dept', $deptCode);
+                        } else {
+                            // Akses parsial (hanya sub-departemen tertentu)
+                            $q->orWhere(function($q2) use ($deptCode, $subDepts) {
+                                $q2->where('karyawan.kode_dept', $deptCode)
+                                   ->whereIn('karyawan.sub_departemen', $subDepts);
+                            });
+                        }
+                    }
+                });
             } else {
                 $query->whereRaw('1 = 0');
             }

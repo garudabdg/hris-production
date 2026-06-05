@@ -106,10 +106,43 @@
             </div>
         </form>
     </div>
+
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
+    <form id="formBulkUpdate" method="POST" action="{{ route('it-ticket.bulk-update') }}">
+        @csrf
+        <div class="bg-light p-2 border-bottom d-none align-items-center gap-2" id="bulkActionPanel">
+            <span class="fw-semibold ms-2"><span id="selectedCount">0</span> tiket terpilih:</span>
+            
+            <select name="prioritas" class="form-select form-select-sm w-auto">
+                <option value="">-- Ubah Prioritas --</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            
+            <select name="klasifikasi_data" class="form-select form-select-sm w-auto">
+                <option value="">-- Ubah Klasifikasi --</option>
+                <option value="public">Public</option>
+                <option value="internal">Internal</option>
+                <option value="confidential">Confidential</option>
+            </select>
+            
+            <button type="submit" class="btn btn-warning btn-sm" id="btnApplyBulk">
+                <i class="ti ti-check me-1"></i>Terapkan
+            </button>
+        </div>
+    @endif
+
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
+                        <th class="text-center" style="width: 40px;">
+                            <input class="form-check-input" type="checkbox" id="checkAllTickets">
+                        </th>
+                    @endif
                     <th>No. Tiket</th>
                     <th>Judul</th>
                     <th>Kategori</th>
@@ -127,6 +160,11 @@
             <tbody>
                 @forelse ($tickets as $t)
                     <tr class="{{ $t->isOverdue() ? 'table-danger' : '' }}">
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
+                            <td class="text-center">
+                                <input class="form-check-input ticket-checkbox" type="checkbox" name="ticket_ids[]" value="{{ $t->id }}">
+                            </td>
+                        @endif
                         <td>
                             <code class="text-primary">{{ $t->nomor_tiket }}</code>
                             @if($t->isOverdue())
@@ -195,6 +233,10 @@
             </tbody>
         </table>
     </div>
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
+    </form>
+    @endif
+
     @if($tickets->hasPages())
         <div class="card-footer">{{ $tickets->links() }}</div>
     @endif
@@ -230,6 +272,46 @@ $(function () {
                 $('#formDelete').attr('action', `{{ url('it-ticket') }}/${id}`).submit();
             }
         });
+    });
+
+    // Bulk Action Logic
+    const $checkAll = $('#checkAllTickets');
+    const $checkboxes = $('.ticket-checkbox');
+    const $bulkPanel = $('#bulkActionPanel');
+    const $selectedCount = $('#selectedCount');
+
+    function updateBulkPanel() {
+        const checkedCount = $('.ticket-checkbox:checked').length;
+        $selectedCount.text(checkedCount);
+        
+        if (checkedCount > 0) {
+            $bulkPanel.removeClass('d-none').addClass('d-flex');
+        } else {
+            $bulkPanel.addClass('d-none').removeClass('d-flex');
+        }
+    }
+
+    $checkAll.on('change', function() {
+        $checkboxes.prop('checked', $(this).prop('checked'));
+        updateBulkPanel();
+    });
+
+    $checkboxes.on('change', function() {
+        if (!$(this).prop('checked')) {
+            $checkAll.prop('checked', false);
+        } else if ($('.ticket-checkbox:checked').length === $checkboxes.length) {
+            $checkAll.prop('checked', true);
+        }
+        updateBulkPanel();
+    });
+
+    $('#formBulkUpdate').on('submit', function(e) {
+        const prio = $('select[name="prioritas"]').val();
+        const klas = $('select[name="klasifikasi_data"]').val();
+        if (!prio && !klas) {
+            e.preventDefault();
+            Swal.fire({ icon: 'warning', title: 'Pilih aksi', text: 'Pilih prioritas atau klasifikasi data yang ingin diubah.' });
+        }
     });
 
     // Real-time polling untuk tiket baru

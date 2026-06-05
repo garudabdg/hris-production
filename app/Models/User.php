@@ -59,7 +59,29 @@ class User extends Authenticatable implements MustVerifyEmail
     // Relasi dengan Departemen (Many to Many)
     public function departemens()
     {
-        return $this->belongsToMany(Departemen::class, 'user_departemen_access', 'user_id', 'kode_dept', 'id', 'kode_dept');
+        return $this->belongsToMany(Departemen::class, 'user_departemen_access', 'user_id', 'kode_dept', 'id', 'kode_dept')
+                    ->withPivot('sub_departemen');
+    }
+
+    /**
+     * Mendapatkan pemetaan hak akses departemen dan sub-departemen
+     * return array map [ 'kode_dept' => ['sub1', 'sub2'] ] atau [ 'kode_dept' => null ] jika akses penuh
+     */
+    public function getDepartemenAccessMap(): array
+    {
+        if ($this->isSuperAdmin()) {
+            return []; // Full access
+        }
+
+        $map = [];
+        foreach ($this->departemens as $dept) {
+            if (!empty($dept->pivot->sub_departemen)) {
+                $map[$dept->kode_dept] = json_decode($dept->pivot->sub_departemen, true) ?? [];
+            } else {
+                $map[$dept->kode_dept] = null; // Full akses untuk departemen ini
+            }
+        }
+        return $map;
     }
 
     /**
