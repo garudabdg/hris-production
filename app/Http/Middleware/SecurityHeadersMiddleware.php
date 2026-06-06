@@ -15,6 +15,10 @@ class SecurityHeadersMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // TEMPORARILY DISABLED: Returning response immediately without CSP or headers
+        return $next($request);
+
+        /*
         $response = $next($request);
 
         // Hanya terapkan header jika response memiliki method header() (seperti Illuminate\Http\Response)
@@ -39,7 +43,7 @@ class SecurityHeadersMiddleware
             $csp .= "object-src 'none'; ";
             $csp .= "base-uri 'self'; ";
             $csp .= "default-src 'self' https: data: blob: 'unsafe-inline'; "; // unsafe-inline fallback for styles
-            $csp .= "script-src 'self' 'nonce-{$nonce}' https: 'unsafe-eval' 'unsafe-inline'; ";
+            $csp .= "script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:; ";
             
             $response->header('Content-Security-Policy', $csp);
             
@@ -63,5 +67,6 @@ class SecurityHeadersMiddleware
         }
 
         return $response;
+        */
     }
 }

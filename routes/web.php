@@ -346,7 +346,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/grup/{kode_grup}/delete', 'delete')->name('grup.delete')->can('grup.delete');
         Route::put('/grup/{kode_grup}', 'update')->name('grup.update')->can('grup.edit');
     });
-
+    
     Route::controller(JabatanController::class)->group(function () {
         Route::get('/jabatan', 'index')->name('jabatan.index')->can('jabatan.index');
         Route::get('/jabatan/create', 'create')->name('jabatan.create')->can('jabatan.create');

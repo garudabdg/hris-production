@@ -194,10 +194,10 @@
             </div>
 
             <div class="action-buttons">
-                <form id="formRekamUlang" action="{{ route('facerecognition.karyawan.destroyAll') }}" method="POST" style="margin: 0;">
+                <form id="formRekamUlang" action="{{ route('facerecognition.karyawan.destroyAll') }}" method="POST" style="margin: 0;" onsubmit="return confirm('Mulai perekaman ulang? Data wajah yang sudah tersimpan akan dihapus secara permanen.');">
                     @csrf
                     @method('POST')
-                    <button type="button" class="btn-action btn-rekam" onclick="confirmRekamUlang()" style="width: 100%;">
+                    <button type="submit" class="btn-action btn-rekam" style="width: 100%;">
                         <ion-icon name="camera-outline"></ion-icon>
                         Mulai Perekaman Ulang
                     </button>
@@ -215,37 +215,10 @@
         @endif
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <script src="{{ asset('assets/external/js/sweetalert2@11.js') }}"></script>
     <script>
-        function confirmRekamUlang() {
-            Swal.fire({
-                title: 'Mulai Perekaman Ulang?',
-                text: 'Data wajah yang sudah tersimpan akan dihapus secara permanen, kemudian Anda akan diarahkan ke halaman perekaman baru.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#32745e',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Mulai Perekaman',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Tampilkan loading
-                    Swal.fire({
-                        title: 'Memproses...',
-                        text: 'Sedang menghapus data wajah lama',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    // Submit form
-                    document.getElementById('formRekamUlang').submit();
-                }
-            });
-        }
-
         // Tampilkan pesan sukses/error jika ada
         @if(session('success'))
             Swal.fire({

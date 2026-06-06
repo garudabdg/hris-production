@@ -21,8 +21,8 @@
 <script src="https://cdn.amcharts.com/lib/4/themes/animated.js" defer></script>
 <!-- Webcam - hanya digunakan di halaman tertentu -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.min.js" defer></script>
-<!-- SweetAlert2 - jQuery dependent tapi bisa defer karena tidak critical -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js" defer></script>
+<!-- SweetAlert2 - Local asset without defer to prevent Swal undefined errors on early clicks -->
+<script src="{{ asset('assets/external/js/sweetalert2@11.js') }}"></script>
 <!-- Materialize - hanya digunakan di beberapa halaman -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js" defer></script>
 <!-- MaskMoney - jQuery dependent -->

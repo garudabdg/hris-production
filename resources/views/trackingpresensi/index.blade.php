@@ -268,6 +268,16 @@
 
 <script>
 $(document).ready(function () {
+    
+    // Helper untuk memformat jam aman (menghindari Invalid Date JS crash)
+    function formatTime(timeStr) {
+        if (!timeStr) return '-';
+        var parts = timeStr.split(' ');
+        var timePart = parts.length > 1 ? parts[1] : parts[0];
+        var t = timePart.split(':');
+        if (t.length >= 2) return t[0] + ':' + t[1];
+        return timeStr;
+    }
 
     // ─── Flatpickr ───────────────────────────────────────────────
     $('.flatpickr-date').flatpickr({
@@ -440,8 +450,8 @@ $(document).ready(function () {
                 iconAnchor: [25, 50]
             });
 
-            var jamIn  = presensi.jam_in  ? new Date(presensi.jam_in).toLocaleTimeString('id-ID')  : '-';
-            var jamOut = presensi.jam_out ? new Date(presensi.jam_out).toLocaleTimeString('id-ID') : '-';
+            var jamIn  = presensi.jam_in  ? formatTime(presensi.jam_in)  : '-';
+            var jamOut = presensi.jam_out ? formatTime(presensi.jam_out) : '-';
 
             var marker = L.marker([presensi.latitude, presensi.longitude], { icon: customIcon })
                 .addTo(map)
@@ -464,8 +474,10 @@ $(document).ready(function () {
                                     </div>
                                     ${presensi.foto_in ? `
                                         <img src="/storage/uploads/absensi/${presensi.foto_in}"
+                                             class="presensi-foto-clickable"
+                                             data-src="/storage/uploads/absensi/${presensi.foto_in}"
+                                             data-title="Foto Masuk - ${presensi.nama_karyawan}"
                                              style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:3px solid #007bff;cursor:pointer;box-shadow:0 4px 8px rgba(0,123,255,0.3);"
-                                             onclick="showImageModal('/storage/uploads/absensi/${presensi.foto_in}','Foto Masuk - ${presensi.nama_karyawan}')"
                                              onerror="this.style.display='none';">
                                     ` : `
                                         <div style="width:90px;height:90px;background:#f8f9fa;border:2px dashed #dee2e6;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#6c757d;flex-direction:column;margin:0 auto;">
@@ -480,8 +492,10 @@ $(document).ready(function () {
                                     </div>
                                     ${presensi.foto_out ? `
                                         <img src="/storage/uploads/absensi/${presensi.foto_out}"
+                                             class="presensi-foto-clickable"
+                                             data-src="/storage/uploads/absensi/${presensi.foto_out}"
+                                             data-title="Foto Keluar - ${presensi.nama_karyawan}"
                                              style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:3px solid #28a745;cursor:pointer;box-shadow:0 4px 8px rgba(40,167,69,0.3);"
-                                             onclick="showImageModal('/storage/uploads/absensi/${presensi.foto_out}','Foto Keluar - ${presensi.nama_karyawan}')"
                                              onerror="this.style.display='none';">
                                     ` : `
                                         <div style="width:90px;height:90px;background:#f8f9fa;border:2px dashed #dee2e6;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#6c757d;flex-direction:column;margin:0 auto;">
@@ -552,8 +566,8 @@ $(document).ready(function () {
 
         tbody.html(slice.map(function (d, i) {
             var idx     = start + i;
-            var jamIn   = d.jam_in  ? new Date(d.jam_in).toLocaleTimeString('id-ID',  { hour:'2-digit', minute:'2-digit' }) : '-';
-            var jamOut  = d.jam_out ? new Date(d.jam_out).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : null;
+            var jamIn   = d.jam_in  ? formatTime(d.jam_in) : '-';
+            var jamOut  = d.jam_out ? formatTime(d.jam_out) : null;
             var overlap = d.marker_count > 1;
             var color   = getAvatarColor(d.nama_karyawan || '');
             var initial = (d.nama_karyawan || '?').charAt(0).toUpperCase();
@@ -585,9 +599,14 @@ $(document).ready(function () {
     <div class="d-flex align-items-center gap-2">
         ${d.foto_in
             ? `<img src="/storage/uploads/absensi/${d.foto_in}"
+                    class="presensi-foto-clickable"
+                    data-src="/storage/uploads/absensi/${d.foto_in}"
+                    data-title="Foto Masuk - ${d.nama_karyawan}"
                     style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid #3b82f6;cursor:pointer;flex-shrink:0;"
-                    onclick="event.stopPropagation();showImageModal('/storage/uploads/absensi/${d.foto_in}','Foto Masuk - ${d.nama_karyawan}')"
-                    onerror="this.style.display='none';">`
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+               <div style="display:none;width:32px;height:32px;border-radius:50%;background:#e2e8f0;align-items:center;justify-content:center;flex-shrink:0;">
+                   <i class="ti ti-photo-off" style="font-size:14px;color:#94a3b8;"></i>
+               </div>`
             : `<div style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                    <i class="ti ti-photo-off" style="font-size:14px;color:#94a3b8;"></i>
                </div>`
@@ -599,9 +618,14 @@ $(document).ready(function () {
     <div class="d-flex align-items-center gap-2">
         ${d.foto_out
             ? `<img src="/storage/uploads/absensi/${d.foto_out}"
+                    class="presensi-foto-clickable"
+                    data-src="/storage/uploads/absensi/${d.foto_out}"
+                    data-title="Foto Keluar - ${d.nama_karyawan}"
                     style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid #10b981;cursor:pointer;flex-shrink:0;"
-                    onclick="event.stopPropagation();showImageModal('/storage/uploads/absensi/${d.foto_out}','Foto Keluar - ${d.nama_karyawan}')"
-                    onerror="this.style.display='none';">`
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+               <div style="display:none;width:32px;height:32px;border-radius:50%;background:#e2e8f0;align-items:center;justify-content:center;flex-shrink:0;">
+                   <i class="ti ti-photo-off" style="font-size:14px;color:#94a3b8;"></i>
+               </div>`
             : `<div style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                    <i class="ti ti-photo-off" style="font-size:14px;color:#94a3b8;"></i>
                </div>`
@@ -681,12 +705,26 @@ $(document).ready(function () {
     };
 
     // ─── Image modal ─────────────────────────────────────────────
-    window.showImageModal = function (src, title) {
-        $('#imageModalTitle').text(title);
-        $('#modalImage').attr('src', src);
-        $('#downloadImage').attr('href', src);
-        $('#imageModal').modal('show');
-    };
+    $(document).on('click', '.presensi-foto-clickable', function(e) {
+        e.stopPropagation(); // Cegah propagasi agar baris tabel tidak ter-klik
+        var src = $(this).attr('data-src');
+        var title = $(this).attr('data-title');
+        
+        Swal.fire({
+            title: title,
+            imageUrl: src,
+            imageAlt: title,
+            showCloseButton: true,
+            showConfirmButton: false,
+            width: 'auto',
+            padding: '1em',
+            customClass: {
+                image: 'img-fluid rounded',
+                popup: 'rounded-3'
+            },
+            imageStyle: 'max-height: 70vh; max-width: 100%; object-fit: contain;'
+        });
+    });
 
     // ─── Copy to clipboard ───────────────────────────────────────
     window.copyToClipboard = function (text) {
@@ -905,8 +943,8 @@ $(document).ready(function () {
             d.nama_karyawan || '',
             d.nama_cabang || '',
             d.tanggal || '',
-            d.jam_in  ? new Date(d.jam_in).toLocaleTimeString('id-ID')  : '-',
-            d.jam_out ? new Date(d.jam_out).toLocaleTimeString('id-ID') : '-',
+            d.jam_in  ? formatTime(d.jam_in)  : '-',
+            d.jam_out ? formatTime(d.jam_out) : '-',
             `"${(d.lokasi_in || '').replace(/"/g, '""')}"`,
             d.original_latitude  || d.latitude  || '',
             d.original_longitude || d.longitude || '',

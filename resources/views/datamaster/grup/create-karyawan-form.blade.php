@@ -265,10 +265,11 @@
             `);
         }
 
-        // Handle tambah karyawan
-        $(document).on('click', '.btnTambahKaryawan', function() {
-            const nik = $(this).data('nik');
-            const nama = $(this).data('nama');
+        // Handle tambah karyawan (gunakan off untuk mencegah multiple binding saat modal dibuka berulang kali)
+        $(document).off('click', '.btnTambahKaryawan').on('click', '.btnTambahKaryawan', function() {
+            // Gunakan attr() bukan data() untuk mencegah jQuery mengubah string nik (misal: "0812") menjadi integer (812)
+            const nik = $(this).attr('data-nik');
+            const nama = $(this).attr('data-nama');
 
             Swal.fire({
                 title: 'Konfirmasi',

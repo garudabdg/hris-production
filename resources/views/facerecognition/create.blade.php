@@ -144,6 +144,7 @@
         display: flex;
         justify-content: center;
         pointer-events: auto;
+        z-index: 9999;
     }
 
     .btn-modern-start {
@@ -255,14 +256,16 @@
         </div>
     </div>
 
-    <!-- Bottom Actions -->
-    <div class="action-area" id="actionArea">
-        <button class="btn-modern-start" id="btnStart" onclick="startScanning()">
-            <div class="loading-spinner" id="btnSpinner"></div>
-            <i class="ti ti-face-id" id="btnIcon"></i>
-            <span id="btnText">Mulai Scan Wajah</span>
-        </button>
     </div>
+</div>
+
+<!-- Bottom Actions -->
+<div class="action-area" id="actionArea">
+    <button type="button" class="btn-modern-start" id="btnStart" style="position: relative; z-index: 999999; cursor: pointer; pointer-events: auto;">
+        <div class="loading-spinner" id="btnSpinner"></div>
+        <i class="ti ti-face-id" id="btnIcon"></i>
+        <span id="btnText">Mulai Scan Wajah</span>
+    </button>
 </div>
 
 <!-- Success Screen -->
@@ -273,11 +276,15 @@
 </div>
 
 <!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="{{ asset('assets/vendor/face-api.min.js') }}"></script>
 <!-- Assuming jQuery is already loaded by the admin layout. If not, uncomment next line -->
 <!-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> -->
 
 <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+        alert('JavaScript Error: ' + message + ' at line ' + lineno);
+    };
+
     // Configuration
     const TOTAL_IMAGES_NEEDED = 5;
     const CAPTURE_INTERVAL = 300; // ms between captures
@@ -304,6 +311,18 @@
     // Initialize
     // Using simple immediate execution or checking readiness
     (async function init() {
+        // Bind button click using EventListener
+        const btn = document.getElementById('btnStart');
+        if(btn) {
+            btn.addEventListener('click', function() {
+                startScanning();
+            });
+            btn.addEventListener('touchstart', function(e) {
+                e.preventDefault(); // Prevent double firing
+                startScanning();
+            }, {passive: false});
+        }
+
         await startCamera();
         await loadModels();
     })();
@@ -359,7 +378,15 @@
 
     // 3. User Clicks Start
     async function startScanning() {
-        if (!modelLoaded || !stream) return;
+        // alert('Debug: Tombol berhasil diklik!'); // Uncomment to debug if needed
+        if (!modelLoaded) {
+            alert('Model AI sedang dimuat, mohon tunggu sebentar...');
+            return;
+        }
+        if (!stream) {
+            alert('Kamera belum siap atau izin kamera ditolak. Pastikan Anda memberikan akses kamera pada browser.');
+            return;
+        }
         
         isScanning = true;
         imagesCaptured = []; // Reset

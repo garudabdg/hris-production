@@ -114,8 +114,8 @@
     <script src="{{ asset('assets/template/js/lib/bootstrap.min.js') }}"></script>
     <script src="{{ asset('assets/template/js/base.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('assets/vendor/libs/toastr/toastr.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js" defer></script>
+    <script src="{{ asset('assets/external/js/webcam.min.js') }}"></script>
+    <script src="{{ asset('assets/external/js/sweetalert2@11.js') }}"></script>
 
     {{-- Session Flash Notifications --}}
     <style>.toast-bottom-full-width { bottom: 5rem }</style>
