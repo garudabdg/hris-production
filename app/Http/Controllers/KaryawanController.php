@@ -139,6 +139,36 @@ class KaryawanController extends Controller
     }
 
 
+    public function generateNik()
+    {
+        try {
+            $tahun = date('y');
+            $bulan = date('m');
+            $prefix = $tahun . $bulan; // e.g., 2510
+
+            $last = Karyawan::where('nik', 'like', $prefix . '%')
+                ->orderBy('nik', 'desc')
+                ->first();
+
+            $lastNumber = 0;
+            if ($last) {
+                $lastNumber = (int)substr($last->nik, 4, 5);
+            }
+            $nextNumber = $lastNumber + 1;
+            $nikAuto = $prefix . str_pad((string)$nextNumber, 5, '0', STR_PAD_LEFT);
+
+            return response()->json([
+                'success' => true,
+                'nik' => $nikAuto
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function store(Request $request)
     {
         /** @var \App\Models\User $user */
@@ -153,7 +183,7 @@ class KaryawanController extends Controller
             'tanggal_lahir' => 'required',
             'alamat' => 'required',
             'jenis_kelamin' => 'required',
-            'no_hp' => 'required|string|max:20',
+            'no_hp' => 'required|string|regex:/^0[0-9]{9,12}$/',
             'kode_status_kawin' => 'required',
             'pendidikan_terakhir' => 'required',
             'kode_cabang' => 'required',
@@ -278,7 +308,7 @@ class KaryawanController extends Controller
             'tanggal_lahir' => 'required',
             'alamat' => 'required',
             'jenis_kelamin' => 'required',
-            'no_hp' => 'required|string|max:20',
+            'no_hp' => 'required|string|regex:/^0[0-9]{9,12}$/',
             'kode_status_kawin' => 'required',
             'pendidikan_terakhir' => 'required',
             'kode_cabang' => 'required',

@@ -11,10 +11,10 @@
     </div>
     <div class="row">
         <div class="col-lg-6 col-sm-12 col-md-12">
-            <x-input-with-icon icon="ti ti-calendar" label="Dari" name="dari" datepicker="flatpickr-date" />
+            <x-input-with-icon icon="ti ti-calendar" type="datetime-local" label="Dari" name="dari" />
         </div>
         <div class="col-lg-6 col-sm-12 col-md-12">
-            <x-input-with-icon icon="ti ti-calendar" label="Sampai" name="sampai" datepicker="flatpickr-date" />
+            <x-input-with-icon icon="ti ti-calendar" type="datetime-local" label="Sampai" name="sampai" />
         </div>
     </div>
 
@@ -29,13 +29,7 @@
 <script>
     $(function() {
         const form = $('#formIzin');
-        $(".flatpickr-date").flatpickr({
-            enableTime: true,
-            noCalendar: false,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true,
-            minuteIncrement: 1,
-        });
+
         const select2Nik = $('.select2Nik');
 
         if (select2Nik.length) {

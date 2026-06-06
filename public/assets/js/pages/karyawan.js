@@ -70,11 +70,15 @@
                             message: 'No. HP Harus Diisi'
                         },
                         stringLength: {
-                            max: 16,
-                            message: 'No. HP Maksimal 16 Karakter'
+                            min: 10,
+                            max: 13,
+                            message: 'No. HP Minimal 10 dan Maksimal 13 Karakter'
                         },
+                        regexp: {
+                            regexp: /^0[0-9]*$/,
+                            message: 'No. HP Wajib diawali angka 0 dan hanya berupa angka'
+                        }
                     },
-
                 },
 
                 kode_status_kawin: {

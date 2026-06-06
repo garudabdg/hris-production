@@ -261,6 +261,7 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
     Route::controller(KaryawanController::class)->group(function () {
         Route::get('/karyawan', 'index')->name('karyawan.index')->can('karyawan.index');
         Route::get('/karyawan/create', 'create')->name('karyawan.create')->can('karyawan.create');
+        Route::get('/karyawan/generate-nik', 'generateNik')->name('karyawan.generate-nik')->can('karyawan.create');
         Route::post('/karyawan', 'store')->name('karyawan.store')->can('karyawan.create');
         Route::get('/karyawan/import', 'import')->name('karyawan.import')->can('karyawan.create');
         Route::get('/karyawan/download-template', 'download_template')->name('karyawan.download_template')->can('karyawan.create');
