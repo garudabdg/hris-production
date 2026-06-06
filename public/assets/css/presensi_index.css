@@ -1,0 +1,185 @@
+/* ============================================
+   File  : presensi_index.css
+   Tujuan: Styling halaman Monitoring Presensi
+   Fleksibel untuk berbagai ukuran monitor
+   ============================================ */
+
+/* ── Card Karyawan ── */
+.presensi-card {
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    margin-bottom: 8px;
+    overflow: hidden; /* Cegah konten meluber */
+    min-width: 0;     /* Penting: flex child tidak overflow */
+}
+
+.presensi-card:hover {
+    box-shadow: 0 3px 16px rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-1px);
+}
+
+/* ── Layout baris utama ── */
+.presensi-row-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+/* ── Avatar Karyawan ── */
+.presensi-avatar {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 2px solid #e9ecef;
+}
+
+/* ── Nama & Info Karyawan ── */
+.presensi-info {
+    min-width: 0;
+    flex-shrink: 1;
+    flex-basis: 150px; /* Bisa menyusut */
+}
+
+.presensi-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.presensi-meta {
+    font-size: 0.68rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ── Divider vertikal antar kolom ── */
+.presensi-divider {
+    width: 1px;
+    height: 28px;
+    background: #e9ecef;
+    flex-shrink: 0;
+}
+
+/* ── Kolom info (Jadwal, Masuk, dst) ── */
+.presensi-col {
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+/* ── Label kolom ── */
+.presensi-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #adb5bd;
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ── Nilai kolom ── */
+.presensi-value {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #343a40;
+    white-space: nowrap;
+    display: block;
+}
+
+/* ── Area aksi (badge + tombol) selalu rata kanan ── */
+.presensi-actions {
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Badge Status ── */
+.presensi-status-badge {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ── Tombol Aksi ── */
+.presensi-action-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    font-size: 0.75rem;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.presensi-action-btn:hover {
+    transform: scale(1.1);
+}
+
+/* ──────────────────────────────────────────
+   Breakpoints: Sembunyikan kolom bertahap
+   sesuai lebar layar agar tidak overflow
+   ────────────────────────────────────────── */
+
+/* Layar < 1400px: Sembunyikan Denda & Potongan */
+@media (max-width: 1399px) {
+    .presensi-col-denda,
+    .presensi-col-potongan,
+    .presensi-divider-denda,
+    .presensi-divider-potongan {
+        display: none !important;
+    }
+}
+
+/* Layar < 1200px: Sembunyikan juga Jadwal */
+@media (max-width: 1199px) {
+    .presensi-col-jadwal,
+    .presensi-divider-jadwal {
+        display: none !important;
+    }
+}
+
+/* Layar < 992px: Sembunyikan Terlambat */
+@media (max-width: 991px) {
+    .presensi-col-terlambat,
+    .presensi-divider-terlambat {
+        display: none !important;
+    }
+}
+
+/* Layar < 576px: Sembunyikan badge status, tampilkan hanya nama + jam + aksi */
+@media (max-width: 575px) {
+    .presensi-status-badge {
+        display: none !important;
+    }
+    .presensi-meta {
+        display: none;
+    }
+    .presensi-name {
+        font-size: 0.78rem;
+    }
+}

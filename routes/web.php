@@ -62,6 +62,7 @@ use App\Http\Controllers\AssetTransactionController;
 use App\Http\Controllers\AssetPerawatanController;
 use App\Http\Controllers\ItTicketController;
 use App\Http\Controllers\TamuController;
+use App\Http\Controllers\Auth\AccountSetupController;
 
 
 /*
@@ -94,6 +95,8 @@ Route::middleware('guest')->group(function () {
         return view('auth.loginuser');
     })->name('loginuser');
 });
+
+
 
 // Face Recognition Presensi Routes (Public - No Login Required)
 Route::controller(FacerecognitionpresensiController::class)->group(function () {
@@ -131,15 +134,20 @@ Route::get('/download/app', function () {
     ]);
 })->name('download.apk');
 
-// API Routes for Dynamic Form Population (Authenticated)
+// Account Setup Routes (Authenticated but before setup)
 Route::middleware('auth')->group(function () {
+    Route::get('/account/setup', [AccountSetupController::class, 'showSetupForm'])->name('account.setup.form');
+    Route::post('/account/setup', [AccountSetupController::class, 'processSetup'])->name('account.setup.process');
+    Route::get('/account/verify-otp', [AccountSetupController::class, 'showOtpForm'])->name('account.setup.otp');
+    Route::post('/account/verify-otp', [AccountSetupController::class, 'verifyOtp'])->name('account.setup.verify');
+    Route::post('/account/resend-otp', [AccountSetupController::class, 'resendOtp'])->name('account.setup.resend');
 });
 
 // Route::get('/dashboard', function () {
 //     return view('dashboard');
 // })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'account.setup'])->group(function () {
     // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -832,7 +840,7 @@ Route::get('/createrolepermission', function () {
     }
 });
 
-Route::group(['middleware' => ['auth']], function () { // Removed userAkses:admin as it doesn't exist. Permissions handle access control.
+Route::group(['middleware' => ['auth', 'account.setup']], function () { // Removed userAkses:admin as it doesn't exist. Permissions handle access control.
     Route::group(['middleware' => ['permission:kpi.period.index']], function () {
         Route::get('/kpi/periods', [KpiPeriodController::class, 'index'])->name('kpi.periods.index');
         Route::get('/kpi/periods/create', [KpiPeriodController::class, 'create'])->name('kpi.periods.create');

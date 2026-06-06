@@ -671,7 +671,7 @@ class KaryawanController extends Controller
                 'name' => $karyawan->nama_karyawan,
                 'username' => $karyawan->nik,
                 'password' => Hash::make($karyawan->nik),
-                'email' => strtolower(removeTitik($karyawan->nik)) . '@' . $generalsetting->domain_email,
+                'email' => strtolower(removeTitik($karyawan->nik)) . '@belum.diset',
             ]);
 
             Userkaryawan::create([
@@ -688,11 +688,12 @@ class KaryawanController extends Controller
                 $apkUrl = route('download.apk');
                 $waMessage = "Halo *{$karyawan->nama_karyawan}*,\n\n"
                     . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
-                    . "🔐 *Informasi Login:*\n"
+                    . "🔐 *Informasi Login Sementara:*\n"
                     . "Username: *{$karyawan->nik}*\n"
                     . "Password: *{$karyawan->nik}*\n\n"
                     . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
-                    . "Harap segera login dan ganti email, password Anda.\n"
+                    . "⚠️ *PENTING:*\n"
+                    . "Silakan login sekarang juga untuk *melengkapi Profil Anda* (mengubah Username, Email aktif, dan Password baru).\n\n"
                     . "Terima kasih.";
                 SendWaMessage::dispatch($karyawan->no_hp, $waMessage, false, true, 'presensi');
             }
@@ -730,7 +731,7 @@ class KaryawanController extends Controller
                         'name' => $k->nama_karyawan,
                         'username' => $k->nik,
                         'password' => Hash::make($k->nik),
-                        'email' => strtolower(removeTitik($k->nik)) . '@' . $generalsetting->domain_email,
+                        'email' => strtolower(removeTitik($k->nik)) . '@belum.diset',
                     ]);
 
                     Userkaryawan::create([

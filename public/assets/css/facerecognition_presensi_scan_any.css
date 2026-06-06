@@ -1,0 +1,383 @@
+        /* Custom styles */
+        .gradient-bg {
+            background: #1e40af;
+            /* Warna biru solid yang konsisten dengan tema admin */
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .webcam-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            position: relative;
+        }
+
+        .webcam-container video {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+        }
+
+        .webcam-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 16px;
+        }
+
+        /* Loading animation */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+        }
+
+
+
+        .loading-content {
+            text-align: center;
+            color: white;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtext {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        /* Face landmark styles */
+        .landmark-point {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #00ff00;
+            border-radius: 50%;
+            border: 1px solid #ffffff;
+            z-index: 10;
+            box-shadow: 0 0 2px rgba(0, 255, 0, 0.8);
+        }
+
+        .landmark-line {
+            position: absolute;
+            background: #00ff00;
+            height: 1px;
+            z-index: 9;
+            box-shadow: 0 0 1px rgba(0, 255, 0, 0.5);
+        }
+
+        .face-landmarks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 15;
+            border-radius: 16px;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .camera-container {
+            display: none;
+        }
+
+        .canvas-container {
+            display: none;
+        }
+
+        .loading {
+            display: none;
+        }
+
+        .status-message {
+            display: none;
+        }
+
+        .employee-info {
+            display: none;
+        }
+
+
+
+
+
+        .liveness-status {
+            display: block;
+        }
+
+        .employee-info {
+            display: none;
+        }
+
+        .photo-preview-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .photo-preview-buttons button {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .photo-preview-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* SweetAlert custom styles for photo display */
+        .swal2-popup {
+            max-width: 500px !important;
+            border-radius: 16px !important;
+            padding: 2rem !important;
+        }
+
+        .swal2-title {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .swal2-html-container {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .employee-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .attendance-info {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .photo-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .photo-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        .captured-photo {
+            max-width: 180px;
+            max-height: 135px;
+            border-radius: 12px;
+            border: 3px solid #ffffff;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            object-fit: cover;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .photo-placeholder {
+            width: 180px;
+            height: 135px;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .message-text {
+            font-size: 0.875rem;
+            color: #64748b;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .success-icon {
+            animation: scaleIn 0.6s ease-out;
+        }
+
+        .employee-name {
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        .attendance-info {
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+
+        .photo-section {
+            animation: fadeInUp 0.6s ease-out 0.3s both;
+        }
+
+        .message-text {
+            animation: fadeInUp 0.6s ease-out 0.4s both;
+        }
+
+        /* Hover effects */
+        .captured-photo:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+
+        .attendance-info:hover {
+            transform: translateY(-2px);
+            transition: transform 0.3s ease;
+        }
+
+        /* Error styles */
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+            animation: scaleIn 0.6s ease-out;
+        }
+
+        .error-message {
+            font-size: 1rem;
+            color: #1f2937;
+            text-align: center;
+            line-height: 1.5;
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }

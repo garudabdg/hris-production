@@ -343,10 +343,15 @@ class FacerecognitionpresensiController extends Controller
             // Ambil jam kerja karyawan untuk hari ini
             $jamKerja = $this->getJamKerjaKaryawan($karyawan);
 
+            // Generate QR Code
+            $d = new \Milon\Barcode\DNS2D();
+            $qr_code = $d->getBarcodePNG($karyawan->nik, 'QRCODE');
+
             return response()->json([
                 'status' => true,
                 'karyawan' => $karyawan,
-                'jam_kerja' => $jamKerja
+                'jam_kerja' => $jamKerja,
+                'qr_code' => $qr_code
             ]);
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);

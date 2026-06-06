@@ -1,162 +1,8 @@
 @extends('layouts.mobile.app')
 @section('content')
-    <style>
-        :root {
-            --bg-body: #dff9fb;
-            --bg-nav: #ffffff;
-            --color-nav: #32745e;
-            --color-nav-active: #58907D;
-            --bg-indicator: #32745e;
-            --color-nav-hover: #283ebe;
-        }
-
-        body {
-            background: var(--bg-body);
-            background: linear-gradient(135deg, #dff9fb 0%, #c7ecee 100%);
-            min-height: 100vh;
-        }
-
-        .preview-container {
-            padding: 20px;
-            padding-bottom: 100px;
-        }
-
-        .header-info {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .header-info h2 {
-            color: #32745e;
-            margin: 0 0 10px 0;
-            font-size: 24px;
-            font-weight: 600;
-        }
-
-        .header-info p {
-            color: #666;
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        .info-badge {
-            display: inline-block;
-            background: #32745e;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-
-        .wajah-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .wajah-item {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            position: relative;
-            aspect-ratio: 3/4;
-        }
-
-        .wajah-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .wajah-item .wajah-label {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-            color: white;
-            padding: 10px;
-            font-size: 11px;
-            text-align: center;
-        }
-
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .btn-action {
-            padding: 16px 24px;
-            border-radius: 16px;
-            font-size: 16px;
-            font-weight: 600;
-            text-align: center;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-hapus {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            color: white;
-        }
-
-        .btn-hapus:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-        }
-
-        .btn-rekam {
-            background: linear-gradient(135deg, #32745e 0%, #58907D 100%);
-            color: white;
-        }
-
-        .btn-rekam:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(50, 116, 94, 0.4);
-            background: linear-gradient(135deg, #283ebe 0%, #58907D 100%);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            margin-bottom: 20px;
-        }
-
-        .empty-state ion-icon {
-            font-size: 64px;
-            color: #ccc;
-            margin-bottom: 15px;
-        }
-
-        .empty-state p {
-            color: #999;
-            font-size: 14px;
-        }
-
-        @media (max-width: 480px) {
-            .wajah-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-
-            .header-info h2 {
-                font-size: 20px;
-            }
-        }
-    </style>
+    @push('mystyle')
+        <link rel="stylesheet" href="{{ asset('assets/css/preview_karyawan.css') }}">
+    @endpush
 
     <div class="preview-container">
         <div class="header-info">
@@ -215,30 +61,15 @@
         @endif
     </div>
 
-
-
-    <script src="{{ asset('assets/external/js/sweetalert2@11.js') }}"></script>
-    <script>
-        // Tampilkan pesan sukses/error jika ada
-        @if(session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: '{{ session('success') }}',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        @endif
-
-        @if(session('error'))
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: '{{ session('error') }}',
-                timer: 3000,
-                showConfirmButton: true
-            });
-        @endif
-    </script>
 @endsection
 
+@push('myscript')
+    <script src="{{ asset('assets/external/js/sweetalert2@11.js') }}"></script>
+    <script>
+        window.PreviewKaryawanConfig = {
+            successMsg: {!! json_encode(session('success')) !!},
+            errorMsg: {!! json_encode(session('error')) !!}
+        };
+    </script>
+    <script src="{{ asset('assets/js/preview_karyawan.js') }}?v=1"></script>
+@endpush
