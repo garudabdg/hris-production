@@ -62,6 +62,8 @@ use App\Http\Controllers\AssetTransactionController;
 use App\Http\Controllers\AssetPerawatanController;
 use App\Http\Controllers\ItTicketController;
 use App\Http\Controllers\TamuController;
+use App\Http\Controllers\Auth\AccountSetupController;
+use App\Http\Controllers\WebviewController;
 
 
 /*
@@ -94,6 +96,8 @@ Route::middleware('guest')->group(function () {
         return view('auth.loginuser');
     })->name('loginuser');
 });
+
+
 
 // Face Recognition Presensi Routes (Public - No Login Required)
 Route::controller(FacerecognitionpresensiController::class)->group(function () {
@@ -131,15 +135,26 @@ Route::get('/download/app', function () {
     ]);
 })->name('download.apk');
 
-// API Routes for Dynamic Form Population (Authenticated)
+// WebView Auto Login Route (Flutter PWA Bridging)
+Route::get('/webview/auto-login', [WebviewController::class, 'autoLogin'])->name('webview.auto-login');
+Route::get('/webview/edit-password', [\App\Http\Controllers\ProfileController::class, 'editpasswordMobile'])
+    ->name('webview.editpassword')
+    ->middleware('auth');
+
+// Account Setup Routes (Authenticated but before setup)
 Route::middleware('auth')->group(function () {
+    Route::get('/account/setup', [AccountSetupController::class, 'showSetupForm'])->name('account.setup.form');
+    Route::post('/account/setup', [AccountSetupController::class, 'processSetup'])->middleware('throttle:3,1')->name('account.setup.process');
+    Route::get('/account/verify-otp', [AccountSetupController::class, 'showOtpForm'])->name('account.setup.otp');
+    Route::post('/account/verify-otp', [AccountSetupController::class, 'verifyOtp'])->middleware('throttle:5,1')->name('account.setup.verify');
+    Route::post('/account/resend-otp', [AccountSetupController::class, 'resendOtp'])->middleware('throttle:1,1')->name('account.setup.resend');
 });
 
 // Route::get('/dashboard', function () {
 //     return view('dashboard');
 // })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'account.setup'])->group(function () {
     // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -253,6 +268,7 @@ Route::middleware('auth')->group(function () {
     Route::controller(KaryawanController::class)->group(function () {
         Route::get('/karyawan', 'index')->name('karyawan.index')->can('karyawan.index');
         Route::get('/karyawan/create', 'create')->name('karyawan.create')->can('karyawan.create');
+        Route::get('/karyawan/generate-nik', 'generateNik')->name('karyawan.generate-nik')->can('karyawan.create');
         Route::post('/karyawan', 'store')->name('karyawan.store')->can('karyawan.create');
         Route::get('/karyawan/import', 'import')->name('karyawan.import')->can('karyawan.create');
         Route::get('/karyawan/download-template', 'download_template')->name('karyawan.download_template')->can('karyawan.create');
@@ -346,7 +362,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/grup/{kode_grup}/delete', 'delete')->name('grup.delete')->can('grup.delete');
         Route::put('/grup/{kode_grup}', 'update')->name('grup.update')->can('grup.edit');
     });
-
+    
     Route::controller(JabatanController::class)->group(function () {
         Route::get('/jabatan', 'index')->name('jabatan.index')->can('jabatan.index');
         Route::get('/jabatan/create', 'create')->name('jabatan.create')->can('jabatan.create');
@@ -832,7 +848,7 @@ Route::get('/createrolepermission', function () {
     }
 });
 
-Route::group(['middleware' => ['auth']], function () { // Removed userAkses:admin as it doesn't exist. Permissions handle access control.
+Route::group(['middleware' => ['auth', 'account.setup']], function () { // Removed userAkses:admin as it doesn't exist. Permissions handle access control.
     Route::group(['middleware' => ['permission:kpi.period.index']], function () {
         Route::get('/kpi/periods', [KpiPeriodController::class, 'index'])->name('kpi.periods.index');
         Route::get('/kpi/periods/create', [KpiPeriodController::class, 'create'])->name('kpi.periods.create');
@@ -890,7 +906,11 @@ Route::group(['middleware' => ['auth']], function () { // Removed userAkses:admi
     // Buku Tamu Routes
     Route::group(['middleware' => ['permission:bukutamu.index']], function () {
         Route::get('/tamu', [TamuController::class, 'index'])->name('tamu.index');
+        Route::get('/tamu/export-excel', [TamuController::class, 'exportExcel'])->name('tamu.exportExcel');
+        Route::get('/tamu/export-pdf', [TamuController::class, 'exportPdf'])->name('tamu.exportPdf');
+        Route::get('/tamu/search', [TamuController::class, 'search'])->name('tamu.search');
         Route::post('/tamu/store', [TamuController::class, 'store'])->name('tamu.store');
+        Route::put('/tamu/{id}', [TamuController::class, 'update'])->name('tamu.update');
         Route::put('/tamu/{id}/out', [TamuController::class, 'updateOut'])->name('tamu.updateOut');
         Route::delete('/tamu/{id}', [TamuController::class, 'destroy'])->name('tamu.destroy');
     });

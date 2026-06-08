@@ -433,7 +433,7 @@
 
 <body class="gradient-bg min-h-screen">
     <!-- Back Button -->
-    <button onclick="window.location.href='{{ route('facerecognition-presensi.index') }}'"
+    <button id="btnBackAny"
         class="fixed top-6 left-6 z-50 glass-effect text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200">
         <i class="ti ti-arrow-left mr-2"></i>Kembali
     </button>
@@ -584,6 +584,12 @@
 
                     <!-- Face Recognition Container -->
                     <div class="relative" style="min-height: 400px;">
+                        <div id="startCameraContainer" class="absolute inset-0 flex flex-col items-center justify-center z-20 bg-gray-900 rounded-xl">
+                            <button id="btnStartAutoCamera" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center">
+                                <i class="ti ti-camera text-2xl mr-2"></i> Mulai Scan Wajah
+                            </button>
+                            <p class="text-gray-300 mt-4 text-sm text-center px-4">Klik tombol di atas untuk mengaktifkan kamera<br><small>(Wajib untuk pengguna HP/Mobile)</small></p>
+                        </div>
                         <div id="facedetection" class="webcam-container">
                             <!-- Video will be inserted here -->
                         </div>
@@ -625,7 +631,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 gap-2">
-                            <button onclick="restartCamera()"
+                            <button id="btnRestartCamera"
                                 class="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center">
                                 <i class="ti ti-refresh mr-2"></i>Restart Camera
                             </button>
@@ -634,57 +640,27 @@
                                 <i class="ti ti-volume mr-2"></i>Test Suara
                             </button> --}}
                             <div class="grid grid-cols-2 gap-2">
-                                <button onclick="forceVideoDisplay()"
+                                <button id="btnForceVideo"
                                     class="bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center justify-center">
                                     <i class="ti ti-eye mr-1"></i>Force Video
                                 </button>
-                                <button onclick="toggleLandmarks()" id="landmarkToggle"
+                                <button id="landmarkToggle"
                                     class="bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center">
                                     <i class="ti ti-eye mr-1"></i>Landmark
                                 </button>
                             </div>
-                            <button onclick="resetLivenessDetection()"
+                            <button id="btnResetLiveness"
                                 class="bg-orange-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors flex items-center justify-center hidden">
                                 <i class="ti ti-refresh mr-1"></i>Reset Liveness
                             </button>
-                            <button onclick="resetCounter()"
+                            <button id="btnResetCounter"
                                 class="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center justify-center hidden">
                                 <i class="ti ti-rotate mr-1"></i>Reset Counter
                             </button>
-                            <button onclick="forceShowAbsenButtons()"
+                            <button id="btnForceShowAbsen"
                                 class="bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center justify-center hidden">
                                 <i class="ti ti-user-check mr-1"></i>Force Show Absen
                             </button>
-                            {{-- <button onclick="forcePhotoCapture()"
-                                class="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center">
-                                <i class="ti ti-camera mr-1"></i>Force Capture
-                            </button>
-                            <button onclick="testPhotoPreview()"
-                                class="bg-purple-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-purple-600 transition-colors flex items-center justify-center">
-                                <i class="ti ti-photo mr-1"></i>Test Preview
-                            </button>
-                            <button onclick="clearTestAndCapture()"
-                                class="bg-cyan-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-cyan-600 transition-colors flex items-center justify-center">
-                                <i class="ti ti-camera-plus mr-1"></i>Clear & Capture
-                            </button>
-                            <button onclick="toggleAutoSave()" id="autoSaveToggle"
-                                class="bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center">
-                                <i class="ti ti-device-floppy mr-1"></i>Auto Save: ON
-                            </button>
-                            <button onclick="toggleLivenessDetection()"
-                                class="bg-gray-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors flex items-center justify-center hidden">
-                                <i class="ti ti-toggle-right mr-1"></i>Disable Liveness
-                            </button>
-                            <div class="grid grid-cols-2 gap-2 hidden">
-                                <button onclick="adjustThreshold('lower')"
-                                    class="bg-purple-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-purple-600 transition-colors flex items-center justify-center">
-                                    <i class="ti ti-minus mr-1"></i>Lower Threshold
-                                </button>
-                                <button onclick="adjustThreshold('higher')"
-                                    class="bg-purple-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-purple-600 transition-colors flex items-center justify-center">
-                                    <i class="ti ti-plus mr-1"></i>Higher Threshold
-                                </button>
-                            </div> --}}
                         </div>
                     </div>
 
@@ -701,17 +677,13 @@
                             <div class="text-center">
                                 <p class="text-lg font-semibold text-gray-800 mb-4">Preview Foto Presensi</p>
                                 <div class="photo-preview-buttons">
-                                    <button onclick="savePhoto()"
+                                    <button id="btnSavePhoto"
                                         class="bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center text-sm">
                                         <i class="ti ti-check mr-2"></i>Simpan & Absen
                                     </button>
-                                    <button onclick="retakePhoto()"
+                                    <button id="btnRetakePhoto"
                                         class="bg-orange-500 text-white px-4 py-3 rounded-lg hover:bg-orange-600 transition-colors flex items-center text-sm">
                                         <i class="ti ti-refresh mr-2"></i>Ambil Ulang
-                                    </button>
-                                    <button onclick="forcePhotoCapture()"
-                                        class="bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center text-sm">
-                                        <i class="ti ti-camera mr-2"></i>Alternatif
                                     </button>
                                 </div>
                             </div>
@@ -751,6 +723,37 @@
         let autoSaveEnabled = true; // Flag untuk auto save
         let lastCapturedImageData = ''; // Store last captured image data
 
+        // ── Event Listeners ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnBackAny = document.getElementById('btnBackAny');
+            if(btnBackAny) btnBackAny.addEventListener('click', () => window.location.href='{{ route('facerecognition-presensi.index') }}');
+            
+            const btnRestartCamera = document.getElementById('btnRestartCamera');
+            if(btnRestartCamera) btnRestartCamera.addEventListener('click', restartCamera);
+            
+            const btnForceVideo = document.getElementById('btnForceVideo');
+            if(btnForceVideo) btnForceVideo.addEventListener('click', forceVideoDisplay);
+            
+            const landmarkToggle = document.getElementById('landmarkToggle');
+            if(landmarkToggle) landmarkToggle.addEventListener('click', toggleLandmarks);
+            
+            const btnResetLiveness = document.getElementById('btnResetLiveness');
+            if(btnResetLiveness) btnResetLiveness.addEventListener('click', resetLivenessDetection);
+            
+            const btnResetCounter = document.getElementById('btnResetCounter');
+            if(btnResetCounter) btnResetCounter.addEventListener('click', resetCounter);
+            
+            const btnForceShowAbsen = document.getElementById('btnForceShowAbsen');
+            if(btnForceShowAbsen) btnForceShowAbsen.addEventListener('click', forceShowAbsenButtons);
+            
+            const btnSavePhoto = document.getElementById('btnSavePhoto');
+            if(btnSavePhoto) btnSavePhoto.addEventListener('click', savePhoto);
+            
+            const btnRetakePhoto = document.getElementById('btnRetakePhoto');
+            if(btnRetakePhoto) btnRetakePhoto.addEventListener('click', retakePhoto);
+            
+        });
+
         // Loading overlay functions
         function showLoading(message) {
             const loadingOverlay = document.getElementById('loadingOverlay');
@@ -776,18 +779,8 @@
         function drawLandmarks(detections, videoElement) {
             const landmarksContainer = document.getElementById('faceLandmarks');
             if (!landmarksContainer || !detections || detections.length === 0 || !showLandmarks) {
-                console.log('Landmarks not drawn:', {
-                    hasContainer: !!landmarksContainer,
-                    hasDetections: !!detections,
-                    detectionsLength: detections?.length,
-                    showLandmarks: showLandmarks
-                });
                 return;
             }
-
-            console.log('Drawing landmarks for', detections.length, 'detections');
-            console.log('Landmarks container display:', landmarksContainer.style.display);
-            console.log('Landmarks container position:', landmarksContainer.getBoundingClientRect());
 
             // Clear previous landmarks
             landmarksContainer.innerHTML = '';
@@ -796,12 +789,6 @@
             const videoRect = videoElement.getBoundingClientRect();
             const videoWidth = videoElement.videoWidth;
             const videoHeight = videoElement.videoHeight;
-
-            console.log('Video dimensions:', {
-                videoWidth,
-                videoHeight,
-                videoRect
-            });
 
             detections.forEach(detection => {
                 if (detection.landmarks) {
@@ -924,18 +911,12 @@
                 previousMouthAspectRatio = mar;
                 mouthAspectRatio = mar;
                 isInitialized = true;
-                console.log('Liveness detection initialized with MAR:', mar.toFixed(3));
                 return false;
             }
 
             // Update previous MAR
             previousMouthAspectRatio = mouthAspectRatio;
             mouthAspectRatio = mar;
-
-            // Debug: Log MAR values more frequently
-            if (Math.random() < 0.3) { // Log 30% of the time
-                console.log(`MAR: ${mar.toFixed(3)}, Threshold: ${mouthOpenThreshold}, Previous: ${previousMouthAspectRatio.toFixed(3)}`);
-            }
 
             // Detect mouth open: MAR increases when mouth opens
             const now = Date.now();
@@ -946,9 +927,6 @@
 
             if (isMouthOpening) {
                 consecutiveDetections++;
-                console.log(
-                    `Potential mouth open detected! Consecutive: ${consecutiveDetections}, MAR: ${mar.toFixed(3)}, Increase: ${marIncrease.toFixed(3)}`
-                );
 
                 // Require at least 2 consecutive detections to confirm mouth open (dikurangi dari 3)
                 if (consecutiveDetections >= 2) {
@@ -957,21 +935,11 @@
                         if (mouthOpenCount < requiredMouthOpens) {
                             mouthOpenCount++;
                             lastMouthOpenTime = now;
-                            console.log(
-                                `Mouth open confirmed! Count: ${mouthOpenCount}/${requiredMouthOpens}, MAR: ${mar.toFixed(3)}, Increase: ${marIncrease.toFixed(3)}`
-                            );
 
                             // Update liveness status
                             if (mouthOpenCount >= requiredMouthOpens) {
                                 livenessDetected = true;
-                                console.log('Liveness detection completed!');
                                 showStatus('Liveness detection berhasil! Silakan pilih jenis absen.', 'success');
-
-                                // Instruksi suara saat liveness detection selesai dengan waktu
-                                const currentTime = getCurrentTimeForSpeech();
-                                //speakInstruction(`Liveness detection berhasil! Sekarang ${currentTime}. Silakan pilih jenis absen.`);
-
-
 
                                 // Force update UI and check for employee data
                                 setTimeout(() => {
@@ -1030,18 +998,12 @@
             const button = document.getElementById('landmarkToggle');
             const landmarksContainer = document.getElementById('faceLandmarks');
 
-            console.log('Toggle landmarks:', showLandmarks);
-            console.log('Landmarks container found:', !!landmarksContainer);
-
             if (showLandmarks) {
                 button.innerHTML = '<i class="ti ti-eye-off mr-1"></i>Sembunyikan';
                 button.className =
                     'bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center justify-center';
                 if (landmarksContainer) {
                     landmarksContainer.style.display = 'block';
-                    console.log('Landmarks container displayed');
-                } else {
-                    console.error('Landmarks container not found!');
                 }
             } else {
                 button.innerHTML = '<i class="ti ti-eye mr-1"></i>Landmark';
@@ -1049,9 +1011,6 @@
                     'bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center';
                 if (landmarksContainer) {
                     landmarksContainer.style.display = 'none';
-                    console.log('Landmarks container hidden');
-                } else {
-                    console.error('Landmarks container not found!');
                 }
             }
         }
@@ -1080,28 +1039,6 @@
         setInterval(updateTime, 1000);
         updateTime();
 
-        // Fungsi untuk mendapatkan waktu dalam format yang bisa digunakan untuk suara
-        function getCurrentTimeForSpeech() {
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-
-            // Format jam dalam bahasa Indonesia
-            let timeString = '';
-
-            if (hours < 12) {
-                timeString = `pukul ${hours} lewat ${minutes} menit pagi`;
-            } else if (hours < 15) {
-                timeString = `pukul ${hours} lewat ${minutes} menit siang`;
-            } else if (hours < 18) {
-                timeString = `pukul ${hours} lewat ${minutes} menit sore`;
-            } else {
-                timeString = `pukul ${hours} lewat ${minutes} menit malam`;
-            }
-
-            return timeString;
-        }
-
         // Initialize Face Recognition
         async function initFaceRecognition() {
             try {
@@ -1114,27 +1051,25 @@
 
                 // Load face recognition models
                 const modelLoadingPromise = isMobile ? Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-                    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.tinyFaceDetector.loadFromUri('{{ asset('models') }}'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('{{ asset('models') }}'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('{{ asset('models') }}'),
                 ]) : Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-                    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.ssdMobilenetv1.loadFromUri('{{ asset('models') }}'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('{{ asset('models') }}'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('{{ asset('models') }}'),
                 ]);
 
                 modelLoadingPromise.then(() => {
                     document.getElementById('faceStatus').textContent = 'Model siap, memulai deteksi...';
                     startFaceRecognition();
                 }).catch(err => {
-                    console.error("Error loading models:", err);
                     document.getElementById('faceStatus').textContent = 'Error memuat model';
                     document.getElementById('cameraError').textContent = err.message;
                     hideLoading();
                 });
 
             } catch (error) {
-                console.error('Error initializing face recognition:', error);
                 document.getElementById('cameraStatus').textContent = 'Error inisialisasi';
                 document.getElementById('cameraError').textContent = error.message;
                 hideLoading();
@@ -1173,15 +1108,6 @@
                 video.style.height = 'auto';
                 video.style.borderRadius = '16px';
 
-                // Event listener untuk memastikan video sudah siap
-                video.addEventListener('loadedmetadata', () => {
-                    console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-                });
-
-                video.addEventListener('canplay', () => {
-                    console.log('Video can play:', video.videoWidth, 'x', video.videoHeight);
-                });
-
                 // Tunggu video siap sebelum melanjutkan
                 await new Promise((resolve) => {
                     if (video.readyState >= 2) {
@@ -1194,7 +1120,6 @@
                 });
 
                 const facedetection = document.getElementById('facedetection');
-                // Clear only video elements, not the entire container
                 const existingVideos = facedetection.querySelectorAll('video');
                 existingVideos.forEach(video => video.remove());
                 facedetection.appendChild(video);
@@ -1202,7 +1127,6 @@
                 document.getElementById('cameraStatus').textContent = 'Kamera siap';
 
             } catch (error) {
-                console.error('Error accessing camera:', error);
                 document.getElementById('cameraStatus').textContent = 'Error akses kamera';
                 document.getElementById('cameraError').textContent = error.message;
                 throw error;
@@ -1220,7 +1144,6 @@
                 }
 
                 const data = await response.json();
-                console.log('All employee face data:', data);
 
                 // Ensure we return an array
                 if (Array.isArray(data)) {
@@ -1228,11 +1151,9 @@
                 } else if (data && Array.isArray(data.data)) {
                     return data.data;
                 } else {
-                    console.error('Unexpected data format:', data);
                     return [];
                 }
             } catch (error) {
-                console.error('Error getting employee face data:', error);
                 return [];
             }
         }
@@ -1241,21 +1162,16 @@
         async function getLabeledFaceDescriptions() {
             try {
                 const allEmployeeData = await getAllEmployeeFaceData();
-                console.log('Raw employee data:', allEmployeeData);
 
                 // Check if data is valid
                 if (!Array.isArray(allEmployeeData)) {
-                    console.error('Employee data is not an array:', allEmployeeData);
                     return [];
                 }
 
                 const labeledFaceDescriptors = [];
 
                 for (const employee of allEmployeeData) {
-                    console.log('Processing employee:', employee);
-
                     if (!employee.nik || !employee.nama_karyawan) {
-                        console.warn('Employee missing required fields:', employee);
                         continue;
                     }
 
@@ -1264,19 +1180,16 @@
 
                     // Process each face image for this employee
                     const wajahData = employee.wajah_data || [];
-                    console.log(`Processing ${wajahData.length} face images for ${label}`);
 
                     for (const faceData of wajahData) {
                         try {
                             if (!faceData.wajah) {
-                                console.warn('Face data missing wajah field:', faceData);
                                 continue;
                             }
 
                             // Get first name (nama depan)
                             const namaDepan = employee.nama_karyawan.toLowerCase().split(' ')[0];
                             const imagePath = `/storage/uploads/facerecognition/${employee.nik}-${namaDepan}/${faceData.wajah}?t=${Date.now()}`;
-                            console.log('Loading image:', imagePath);
 
                             const img = await faceapi.fetchImage(imagePath);
 
@@ -1284,8 +1197,8 @@
                             if (isMobile) {
                                 detections = await faceapi.detectSingleFace(
                                     img, new faceapi.TinyFaceDetectorOptions({
-                                        inputSize: 160,
-                                        scoreThreshold: 0.5
+                                        inputSize: 320,
+                                        scoreThreshold: 0.3
                                     })
                                 ).withFaceLandmarks().withFaceDescriptor();
                             } else {
@@ -1298,25 +1211,18 @@
 
                             if (detections) {
                                 descriptions.push(detections.descriptor);
-                                console.log(`Successfully processed face for ${label}`);
                             }
                         } catch (err) {
-                            console.error(`Error processing face for ${label}:`, err);
                         }
                     }
 
                     if (descriptions.length > 0) {
                         labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(label, descriptions));
-                        console.log(`Added ${descriptions.length} face descriptors for ${label}`);
-                    } else {
-                        console.warn(`No valid face descriptors found for ${label}`);
                     }
                 }
 
-                console.log(`Total labeled face descriptors: ${labeledFaceDescriptors.length}`);
                 return labeledFaceDescriptors;
             } catch (error) {
-                console.error('Error in getLabeledFaceDescriptions:', error);
                 return [];
             }
         }
@@ -1336,19 +1242,15 @@
                 const video = document.querySelector('#facedetection video');
 
                 if (!video) {
-                    console.error('Video element tidak ditemukan');
                     setTimeout(startFaceRecognition, 1000);
                     return;
                 }
 
                 // Wait for video to be ready
                 if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
-                    console.log('Video belum ready, waiting...');
                     setTimeout(startFaceRecognition, 500);
                     return;
                 }
-
-                console.log('Video ready:', video.videoWidth, 'x', video.videoHeight);
 
                 const canvas = faceapi.createCanvasFromMedia(video);
                 canvas.style.position = 'absolute';
@@ -1386,21 +1288,21 @@
                         if (isMobile) {
                             const detection = await faceapi.detectSingleFace(
                                 video, new faceapi.TinyFaceDetectorOptions({
-                                    inputSize: 160,
-                                    scoreThreshold: 0.4
+                                    inputSize: 416,
+                                    scoreThreshold: 0.3
                                 })
                             ).withFaceLandmarks().withFaceDescriptor();
                             return detection ? [detection] : [];
                         } else {
                             const detection = await faceapi.detectSingleFace(
-                                video, new faceapi.SsdMobilenetv1Options({
-                                    minConfidence: 0.5
+                                video, new faceapi.TinyFaceDetectorOptions({
+                                    inputSize: 416,
+                                    scoreThreshold: 0.4
                                 })
                             ).withFaceLandmarks().withFaceDescriptor();
                             return detection ? [detection] : [];
                         }
                     } catch (error) {
-                        console.error("Error dalam deteksi wajah:", error);
                         return [];
                     }
                 }
@@ -1445,7 +1347,7 @@
                                         // Ada data wajah untuk matching
                                         const match = faceMatcher.findBestMatch(detection.descriptor);
                                         const isUnknown = match.toString().includes("unknown");
-                                        const isNotRecognized = match.distance > 0.55;
+                                        const isNotRecognized = match.distance > 0.65; // Toleransi threshold standar
 
                                         if (isUnknown || isNotRecognized) {
                                             boxColor = '#FFC107';
@@ -1467,9 +1369,6 @@
                                             // Extract employee info from match
                                             const matchLabel = match.toString();
                                             const nik = matchLabel.split('-')[0];
-
-                                            console.log('Extracted NIK from match:', nik);
-                                            console.log('Full match label:', matchLabel);
 
                                             // Validate NIK before getting employee data
                                             if (nik && nik.trim() !== '') {
@@ -1496,21 +1395,8 @@
 
                                                         showStatus('Wajah dikenali! Silakan buka mulut 2 kali untuk verifikasi liveness.',
                                                             'info');
-
-                                                        // Instruksi suara otomatis untuk karyawan yang dikenali
-                                                        const employeeName = matchLabel.split('-').slice(1).join(' ');
-                                                        // Bersihkan nama dari angka dan karakter khusus
-                                                        const cleanEmployeeName = employeeName.replace(/[0-9().]/g, '').trim();
-                                                        //alert(cleanEmployeeName);
-                                                        speakInstruction(
-                                                            `Hi, ${cleanEmployeeName}. Silakan buka mulut 2 kali untuk melakukan presensi`
-                                                        );
-
                                                     }
                                                 }
-                                            } else {
-                                                console.error('Invalid NIK extracted:', nik);
-                                                showStatus('NIK tidak valid dari face recognition', 'error');
                                             }
                                         }
                                     } else {
@@ -1549,7 +1435,6 @@
                 updateCanvas();
 
             } catch (error) {
-                console.error('Error in startFaceRecognition:', error);
                 document.getElementById('faceStatus').textContent = 'Error face recognition';
                 document.getElementById('cameraError').textContent = error.message;
             }
@@ -1562,7 +1447,6 @@
 
             while (retryCount < maxRetries) {
                 try {
-                    console.log(`Getting employee data for NIK: ${nik} (attempt ${retryCount + 1})`);
                     const response = await fetch(`{{ route('facerecognition-presensi.generate', ['nik' => ':nik']) }}`.replace(':nik', nik));
 
                     if (!response.ok) {
@@ -1570,9 +1454,18 @@
                     }
 
                     const data = await response.json();
-                    console.log('Employee data response:', data);
 
                     if (data.status && data.karyawan) {
+                        if (!data.jam_kerja) {
+                            showStatus('Jadwal jam kerja Anda belum diatur untuk hari ini. Silakan hubungi HRD/Admin.', 'error');
+                            setTimeout(() => {
+                                faceRecognitionDetected = 0;
+                                resetLivenessDetection();
+                                resetUIForNewEmployee();
+                            }, 5000);
+                            return; // Exit retry loop and block process
+                        }
+
                         currentEmployee = data.karyawan;
                         currentJamKerja = data.jam_kerja;
                         showEmployeeInfo(data.karyawan, data.jam_kerja);
@@ -1583,7 +1476,6 @@
                         return; // Exit retry loop
                     }
                 } catch (error) {
-                    console.error(`Error getting employee data (attempt ${retryCount + 1}):`, error);
                     retryCount++;
 
                     if (retryCount >= maxRetries) {
@@ -1634,8 +1526,6 @@
 
             employeeInfo.style.display = 'block';
 
-
-
             // Hide liveness status after successful detection
             if (livenessStatus) {
                 livenessStatus.style.display = 'none';
@@ -1647,214 +1537,74 @@
             }, 1000);
         }
 
-
-
-        // Start absen process
-        function startAbsenProcess(status) {
-            currentStatus = status;
-
-
-
-            // Show camera for photo capture
-            startPhotoCapture();
-        }
-
-        // Start photo capture
-        async function startPhotoCapture() {
+        // Start photo capture process with delay
+        function startPhotoCapture() {
             try {
-                console.log('Starting photo capture...');
-
                 // Gunakan video element yang sudah ada di face recognition
                 const faceVideo = document.querySelector('#facedetection video');
-
-                if (!faceVideo) {
-                    console.error('Face recognition video tidak ditemukan');
-                    showStatus('Video face recognition tidak tersedia', 'error');
-                    return;
-                }
-
-                // Pastikan video ready
-                if (!faceVideo.videoWidth || !faceVideo.videoHeight || faceVideo.readyState < 2) {
-                    console.error('Video belum ready untuk capture');
-                    showStatus('Video belum siap. Silakan tunggu sebentar.', 'error');
-                    return;
-                }
-
-                console.log('Face video ready:', faceVideo.videoWidth, 'x', faceVideo.videoHeight);
+                if (!faceVideo || !faceVideo.videoWidth) return;
 
                 const canvas = document.getElementById('canvas');
                 const context = canvas.getContext('2d');
-
-                // Set canvas size sesuai video face recognition
                 canvas.width = faceVideo.videoWidth;
                 canvas.height = faceVideo.videoHeight;
-
-                console.log('Canvas size set to:', canvas.width, 'x', canvas.height);
-
-                // Clear canvas terlebih dahulu
                 context.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Capture foto langsung dari video face recognition yang sudah berjalan
                 context.drawImage(faceVideo, 0, 0);
 
-                console.log('Foto berhasil di-capture dari face video:', canvas.width, 'x', canvas.height);
-
-                // Tunggu sebentar agar drawing selesai
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-                // Verifikasi canvas tidak kosong dengan cek beberapa sample pixel
-                const imagePixelData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const pixels = imagePixelData.data;
-                let hasContent = false;
-                let coloredPixels = 0;
-                const sampleSize = Math.min(1000, pixels.length / 4); // Sample 1000 pixels atau semua jika kurang
-
-                // Cek beberapa sample pixel untuk memastikan ada konten visual
-                for (let i = 0; i < sampleSize * 4; i += 4) {
-                    // Pixel bukan hitam murni atau putih murni
-                    if (!((pixels[i] === 0 && pixels[i + 1] === 0 && pixels[i + 2] === 0) ||
-                            (pixels[i] === 255 && pixels[i + 1] === 255 && pixels[i + 2] === 255))) {
-                        coloredPixels++;
-                        if (coloredPixels > 10) { // Jika ada minimal 10 pixel berwarna
-                            hasContent = true;
-                            break;
-                        }
-                    }
-                }
-
-                console.log('Canvas has visual content:', hasContent, 'Colored pixels found:', coloredPixels);
-
-                // Debug: cek apakah canvas berisi data
-                const imageData = canvas.toDataURL('image/png');
-                console.log('Canvas image data length:', imageData.length);
-                console.log('Canvas image data preview:', imageData.substring(0, 100) + '...');
-
-                // Lebih toleran dalam validasi - jika imageData panjang dan ada beberapa pixel berwarna
-                if (!hasContent && imageData.length < 1000) {
-                    console.error('Canvas kemungkinan kosong - tidak ada konten visual yang cukup');
-                    showStatus('Foto terlihat kosong. Gunakan tombol "Alternatif" untuk metode lain.', 'error');
-
-                    // Tampilkan preview manual untuk troubleshooting
-                    const canvasContainer = document.querySelector('.canvas-container');
-                    if (canvasContainer) {
-                        canvasContainer.style.display = 'block';
-                        canvasContainer.style.visibility = 'visible';
-                        canvasContainer.style.opacity = '1';
-                    }
-                    showPhotoPreview(); // Manual confirmation for error cases
-                    return;
-                }
-
-                // Tampilkan canvas container dengan force
                 const canvasContainer = document.querySelector('.canvas-container');
                 if (canvasContainer) {
                     canvasContainer.style.display = 'block';
                     canvasContainer.style.visibility = 'visible';
-                    canvasContainer.style.opacity = '1';
-                    console.log('Canvas container forced to show');
-                } else {
-                    console.error('Canvas container not found!');
                 }
 
-                // Auto save after successful capture (if enabled)
                 if (autoSaveEnabled) {
                     autoSavePhoto();
                 } else {
-                    showPhotoPreview(); // Show manual confirmation if auto-save disabled
+                    showPhotoPreview();
                 }
-
             } catch (error) {
-                console.error('Error capturing photo:', error);
-                showStatus('Tidak dapat mengambil foto. Silakan coba lagi.', 'error');
+                showStatus('Tidak dapat mengambil foto.', 'error');
             }
         }
 
         // Show photo preview and confirmation buttons
         function showPhotoPreview() {
-            console.log('showPhotoPreview() called');
-
             const photoPreview = document.getElementById('photoPreview');
             const canvasContainer = document.querySelector('.canvas-container');
 
-            console.log('photoPreview element:', photoPreview);
-            console.log('canvasContainer element:', canvasContainer);
-
             if (photoPreview) {
-                // Force show preview dengan multiple metode
                 photoPreview.style.display = 'block';
                 photoPreview.style.visibility = 'visible';
                 photoPreview.style.opacity = '1';
-
-                console.log('photoPreview display set to block');
-                console.log('photoPreview computed style:', getComputedStyle(photoPreview).display);
-
-                // Check if this is a test capture or real capture
-                const canvas = document.getElementById('canvas');
-                const imageData = canvas ? canvas.toDataURL('image/png') : '';
-                const isTestCapture = imageData.includes('Test Preview') || imageData.length < 5000;
-
-                if (isTestCapture) {
-                    showStatus('Preview test ditampilkan. Gunakan "Alternatif" untuk capture foto real.', 'info');
-                } else {
-                    showStatus('Foto berhasil diambil! Silakan review dan konfirmasi untuk menyimpan.', 'success');
-                }
-
-                // Debug: Log canvas content
-                if (canvas) {
-                    console.log('Canvas final size:', canvas.width, 'x', canvas.height);
-                    console.log('Canvas data URL length:', canvas.toDataURL('image/png').length);
-                    console.log('Canvas display style:', getComputedStyle(canvas).display);
-                    console.log('Is test capture:', isTestCapture);
-                }
-            } else {
-                console.error('photoPreview element not found!');
-                showStatus('Error: Preview element not found', 'error');
+                showStatus('Foto berhasil diambil! Silakan review dan konfirmasi untuk menyimpan.', 'success');
             }
 
-            // Pastikan canvas container juga visible
             if (canvasContainer) {
                 canvasContainer.style.display = 'block';
                 canvasContainer.style.visibility = 'visible';
-                console.log('canvasContainer display set to block');
-                console.log('canvasContainer computed style:', getComputedStyle(canvasContainer).display);
-            } else {
-                console.error('canvasContainer element not found!');
             }
         }
 
         // Auto save photo after successful capture
         function autoSavePhoto() {
-            console.log('Auto saving photo...');
-            showStatus('✓ Foto berhasil diambil! Auto save aktif - memproses absen...', 'success');
+            showStatus('✓ Foto berhasil diambil! Memproses absen...', 'success');
 
-            // Store captured image data for SweetAlert display
             const canvas = document.getElementById('canvas');
             if (canvas && canvas.width > 0 && canvas.height > 0) {
                 try {
                     lastCapturedImageData = canvas.toDataURL('image/png');
-                    console.log('Stored captured image data length:', lastCapturedImageData.length);
-                } catch (error) {
-                    console.error('Error storing canvas data:', error);
-                }
+                } catch (error) {}
             }
 
-            // Hide any preview elements
             const photoPreview = document.getElementById('photoPreview');
             if (photoPreview) {
                 photoPreview.style.display = 'none';
             }
 
-            // Show brief preview of captured photo before saving
-            const canvasContainer = document.querySelector('.canvas-container');
-            if (canvasContainer) {
-                canvasContainer.style.display = 'block';
-                canvasContainer.style.visibility = 'visible';
-            }
-
             // Process absen directly after short preview
             setTimeout(() => {
                 processAbsen();
-            }, 1500); // Slightly longer delay to show captured photo briefly
+            }, 1500);
         }
 
         // Save photo and process absen (manual)
@@ -1886,133 +1636,49 @@
             }, 500);
         }
 
-        // Force capture with alternative method
-        async function forcePhotoCapture() {
-            try {
-                console.log('Force photo capture...');
-
-                // Method 1: Coba gunakan video face recognition yang ada
-                const faceVideo = document.querySelector('#facedetection video');
-
-                if (faceVideo && faceVideo.videoWidth > 0 && faceVideo.videoHeight > 0) {
-                    console.log('Using existing face video for force capture');
-
-                    const canvas = document.getElementById('canvas');
-                    const context = canvas.getContext('2d');
-
-                    // Set canvas size
-                    canvas.width = faceVideo.videoWidth;
-                    canvas.height = faceVideo.videoHeight;
-
-                    // Clear canvas
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-
-                    // Draw video
-                    context.drawImage(faceVideo, 0, 0);
-
-                    console.log('Force capture from face video berhasil:', canvas.width, 'x', canvas.height);
-
-                } else {
-                    console.log('Face video tidak tersedia, menggunakan stream langsung');
-
-                    // Method 2: Buat video element baru dengan stream
-                    if (!stream) {
-                        showStatus('Stream kamera tidak tersedia', 'error');
-                        return;
-                    }
-
-                    // Buat video element baru
-                    const captureVideo = document.createElement('video');
-                    captureVideo.srcObject = stream;
-                    captureVideo.autoplay = true;
-                    captureVideo.muted = true;
-                    captureVideo.playsInline = true;
-
-                    // Append ke DOM sementara untuk memastikan bisa diakses
-                    document.body.appendChild(captureVideo);
-
-                    // Tunggu video ready dengan timeout
-                    await Promise.race([
-                        new Promise((resolve) => {
-                            captureVideo.addEventListener('loadedmetadata', () => {
-                                console.log('Force capture video ready:', captureVideo.videoWidth, 'x', captureVideo.videoHeight);
-                                resolve();
-                            }, {
-                                once: true
-                            });
-                        }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout waiting for video')), 5000))
-                    ]);
-
-                    // Tunggu sebentar untuk stabilitas
-                    await new Promise(resolve => setTimeout(resolve, 500));
-
-                    const canvas = document.getElementById('canvas');
-                    const context = canvas.getContext('2d');
-
-                    // Set canvas size
-                    canvas.width = captureVideo.videoWidth || 640;
-                    canvas.height = captureVideo.videoHeight || 480;
-
-                    // Clear canvas
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-
-                    // Draw video
-                    context.drawImage(captureVideo, 0, 0);
-
-                    // Cleanup
-                    document.body.removeChild(captureVideo);
-                    captureVideo.srcObject = null;
-
-                    console.log('Force capture from new video berhasil:', canvas.width, 'x', canvas.height);
-                }
-
-                // Verify capture has content
-                const canvas = document.getElementById('canvas');
-                const imageData = canvas.toDataURL('image/png');
-
-                if (imageData.length < 1000) {
-                    throw new Error('Captured image appears to be empty');
-                }
-
-                // Force show canvas container
-                const canvasContainer = document.querySelector('.canvas-container');
-                if (canvasContainer) {
-                    canvasContainer.style.display = 'block';
-                    canvasContainer.style.visibility = 'visible';
-                    canvasContainer.style.opacity = '1';
-                }
-
-                // Auto save for force capture too (if enabled)
-                if (autoSaveEnabled) {
-                    autoSavePhoto();
-                } else {
-                    showPhotoPreview(); // Show manual confirmation if auto-save disabled
-                    showStatus('Force capture berhasil!', 'success');
-                }
-
-                console.log('Force capture berhasil');
-
-            } catch (error) {
-                console.error('Force capture error:', error);
-                showStatus('Gagal mengambil foto: ' + error.message, 'error');
-            }
-        }
-
         // Process absen
         async function processAbsen() {
-            const canvas = document.getElementById('canvas');
-            const imageData = canvas.toDataURL('image/png');
-
-            // Debug: cek apakah image data berisi data
-            console.log('Image data length:', imageData.length);
-            console.log('Image data preview:', imageData.substring(0, 100) + '...');
-
-            if (imageData.length < 100) {
-                console.error('Image data terlalu pendek, kemungkinan kosong');
-                showStatus('Gagal mengambil foto. Silakan coba lagi.', 'error');
+            if (!currentEmployee) {
+                showStatus('Error: Data karyawan tidak tersedia', 'error');
                 return;
             }
+
+            const canvas = document.getElementById('canvas');
+            const finalImageData = canvas.toDataURL('image/png', 0.8);
+            const imageData = finalImageData; // Alias for backward compatibility
+            
+            showStatus('Memverifikasi keamanan foto...', 'info');
+            
+            try {
+                // FINAL SECURITY CHECK: Pastikan foto yang diambil BENAR-BENAR berisi wajah
+                const img = new Image();
+                img.src = finalImageData;
+                await new Promise((resolve, reject) => { 
+                    img.onload = resolve; 
+                    img.onerror = reject;
+                });
+                
+                // Gunakan SsdMobilenetv1 untuk akurasi tinggi
+                const finalDetection = await faceapi.detectSingleFace(
+                    img, new faceapi.SsdMobilenetv1Options({
+                        minConfidence: 0.4
+                    })
+                );
+                
+                if (!finalDetection) {
+                    showStatus('Validasi Gagal: Wajah Anda tidak terlihat di hasil foto. Tolong jangan jauhkan wajah saat foto diambil.', 'error');
+                    
+                    // Force reset state
+                    faceRecognitionDetected = 0;
+                    resetLivenessDetection();
+                    resetUIForNewEmployee();
+                    return;
+                }
+            } catch (secError) {
+                console.warn('Final security check skipped due to error:', secError);
+            }
+            
+            showStatus('Mengirim data absen...', 'info');
 
             // Get location
             let location = '';
@@ -2045,7 +1711,7 @@
                         image: imageData,
                         lokasi: location,
                         lokasi_cabang: location,
-                        kode_jam_kerja: currentJamKerja.kode_jam_kerja
+                        kode_jam_kerja: currentJamKerja ? currentJamKerja.kode_jam_kerja : '0001'
                     })
                 });
 
@@ -2698,10 +2364,17 @@
             // Initialize liveness detection UI
             updateLivenessUI();
 
-            // Initialize with delay to ensure everything is ready
-            setTimeout(() => {
-                initFaceRecognition();
-            }, 1000);
+            // Require user interaction to start camera (fixes iOS Safari auto-play blocking)
+            const btnStartAutoCamera = document.getElementById('btnStartAutoCamera');
+            if (btnStartAutoCamera) {
+                const startCameraHandler = (e) => {
+                    e.preventDefault();
+                    document.getElementById('startCameraContainer').style.display = 'none';
+                    initFaceRecognition();
+                };
+                btnStartAutoCamera.addEventListener('click', startCameraHandler);
+                btnStartAutoCamera.addEventListener('touchstart', startCameraHandler, {passive: false});
+            }
         });
     </script>
 </body>

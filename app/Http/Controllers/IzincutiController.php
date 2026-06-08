@@ -281,6 +281,16 @@ class IzincutiController extends Controller
             ];
 
             Izincuti::create($dataizincuti);
+            
+            // --- NOTIFIKASI KE ADMIN ---
+            $karyawan_info = Karyawan::where('nik', $nik)->first();
+            if ($karyawan_info) {
+                $pesan = $karyawan_info->nama_karyawan . " mengajukan Izin Cuti mulai " . formatIndo($request->dari) . " s.d " . formatIndo($request->sampai) . ".";
+                $url = rtrim(env('APP_URL'), '/') . '/izincuti';
+                sendAdminNotification($karyawan_info->kode_cabang, $karyawan_info->kode_dept, "Pengajuan Izin Cuti", $pesan, $url);
+            }
+            // ---------------------------
+            
             DB::commit();
             if ($role == 'karyawan') {
                 return Redirect::route('pengajuanizin.index')->with(messageSuccess('Data Berhasil Disimpan'));

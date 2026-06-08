@@ -24,6 +24,9 @@
                     <div class="form-group mb-3">
                         <label for="">Password</label>
                         <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak ingin mengganti password">
+                        @if(!$user->hasRole('karyawan'))
+                        <small class="text-danger mt-1 d-block"><i class="ti ti-info-circle"></i> {{ \App\Helpers\PasswordHelper::getRequirementMessage(true) }}</small>
+                        @endif
                     </div>
                     <div class="form-group mb-3">
                         <label for="">Konfirmasi Password</label>

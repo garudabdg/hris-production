@@ -10,7 +10,7 @@
     <div class="col-12">
         <div class="card mb-4">
             <div class="user-profile-header-banner">
-                <div class="rounded-top" style="height: 250px; background-image: url('{{ asset('assets/img/bg-didimax.jpg') }}'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color: {{ $general_setting->theme_color_1 ?? '#005b9f' }};"></div>
+                <div class="rounded-top" style="height: 250px; background-image: url('{{ asset('bg-didimax.webp') }}'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color: {{ $general_setting->theme_color_1 ?? '#005b9f' }};"></div>
             </div>
             <div class="user-profile-header d-flex flex-column flex-sm-row text-sm-start text-center mb-4">
                 <div class="flex-shrink-0 mt-n2 mx-sm-0 mx-auto">

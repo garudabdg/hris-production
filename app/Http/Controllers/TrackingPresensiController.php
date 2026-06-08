@@ -169,7 +169,7 @@ class TrackingPresensiController extends Controller
             return $presensi;
         });
 
-        return $presensis;
+        return $presensis->values();
     }
 
     /**

@@ -3,274 +3,144 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Sistem Presensi QR Code</title>
+    <title>Sistem Presensi QR Code & Face Recognition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="Sistem Presensi QR Code" name="description" />
+    <meta content="Sistem Presensi Face Recognition" name="description" />
     <meta content="Coderthemes" name="author" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
     <!-- App favicon -->
     <link rel="shortcut icon" href="{{ asset('assets/img/favicon/favicon.ico') }}">
 
-    <!-- App css -->
-    <link href="{{ asset('assets/css/icons.min.css') }}" rel="stylesheet" type="text/css" />
-    <link href="{{ asset('assets/css/app.min.css') }}" rel="stylesheet" type="text/css" id="light-style" />
-    <link href="{{ asset('assets/css/app-dark.min.css') }}" rel="stylesheet" type="text/css" id="dark-style" />
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/iconfont/tabler-icons.min.css">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
-        .qr-container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            background: #667eea;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 40px;
-        }
-
-        .title {
-            color: #333;
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 16px;
-            margin-bottom: 30px;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .form-control {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 15px 30px;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 15px 30px;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s;
-            color: white;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
-            color: white;
-            text-decoration: none;
-        }
-
-        .qr-result {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            display: none;
-        }
-
-        .qr-code {
-            margin: 20px 0;
-        }
-
-        .qr-code img {
-            max-width: 200px;
-            border-radius: 10px;
-        }
-
-        .employee-info {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-
-        .error-message {
-            color: #dc3545;
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            border-radius: 5px;
-            padding: 10px;
-            margin-top: 10px;
-            display: none;
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
     </style>
 </head>
 
-<body>
-    <div class="qr-container">
-        <div class="logo">
-            <i class="ti ti-qrcode"></i>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 font-sans text-gray-800">
+    <div class="glass-card w-full max-w-4xl rounded-2xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-blue-700 text-white p-8 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="ti ti-qrcode text-5xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold mb-2">Portal Presensi Karyawan</h1>
+            <p class="text-blue-100 text-lg">Pilih metode presensi yang ingin Anda gunakan</p>
         </div>
 
-        <h1 class="title">Sistem Presensi QR Code</h1>
-        <p class="subtitle">Pilih opsi yang ingin Anda gunakan</p>
-
-        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin: 30px 0;">
-            <div style="text-align: center; flex: 1; min-width: 200px;">
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
-                    <i class="ti ti-qrcode" style="font-size: 40px; color: #667eea; margin-bottom: 10px;"></i>
-                    <h5>Generate QR Code</h5>
-                    <p style="color: #666; font-size: 14px;">Buat QR Code untuk karyawan tertentu</p>
-                </div>
-                <form id="qrForm">
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="nik" name="nik" placeholder="Masukkan NIK karyawan" maxlength="9"
-                            required>
+        <!-- Content -->
+        <div class="p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Generate QR Code Option -->
+                <div class="bg-gray-50 rounded-xl p-6 border border-gray-100 hover-lift flex flex-col justify-between">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="ti ti-qrcode text-3xl text-indigo-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Generate QR Code</h2>
+                        <p class="text-gray-500">Buat QR Code unik untuk absen masuk dan pulang karyawan.</p>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-qrcode me-2"></i>Generate QR Code
-                    </button>
-                </form>
-            </div>
 
-            <div style="text-align: center; flex: 1; min-width: 200px;">
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
-                    <i class="ti ti-user-check" style="font-size: 40px; color: #28a745; margin-bottom: 10px;"></i>
-                    <h5>Face Recognition</h5>
-                    <p style="color: #666; font-size: 14px;">Face Recognition untuk absen karyawan</p>
+                    <form id="qrForm" class="mt-auto">
+                        <div class="mb-4">
+                            <label for="nik" class="block text-sm font-medium text-gray-700 mb-1">NIK Karyawan</label>
+                            <input type="text" id="nik" name="nik" placeholder="Masukkan NIK 9 Digit" maxlength="9" required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="ti ti-qrcode mr-2"></i> Buat QR Code
+                        </button>
+                    </form>
                 </div>
-                <a href="{{ route('facerecognition-presensi.scan_any') }}" class="btn btn-success" style="width: 100%;">
-                    <i class="ti ti-user-check me-2"></i>Face Recognition
-                </a>
+
+                <!-- Face Recognition Option -->
+                <div class="bg-gray-50 rounded-xl p-6 border border-gray-100 hover-lift flex flex-col justify-between">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="ti ti-user-check text-3xl text-emerald-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Face Recognition</h2>
+                        <p class="text-gray-500">Gunakan deteksi wajah dan verifikasi liveness untuk absensi yang aman.</p>
+                    </div>
+
+                    <div class="mt-auto">
+                        <a href="{{ route('facerecognition-presensi.scan_any') }}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="ti ti-camera mr-2"></i> Mulai Scan Wajah
+                        </a>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="error-message" id="errorMessage"></div>
+            <!-- Result Section for QR Code -->
+            <div id="errorMessage" class="hidden mt-6 bg-red-50 text-red-600 p-4 rounded-lg text-center font-medium border border-red-200"></div>
 
-        <div class="qr-result" id="qrResult">
-            <h4>QR Code untuk Absen</h4>
-            <div class="qr-code" id="qrCode"></div>
-            <div class="employee-info" id="employeeInfo"></div>
-            <p class="text-muted mt-3">
-                <small>Scan QR code ini untuk melakukan absen masuk/pulang</small>
-            </p>
+            <div id="qrResult" class="hidden mt-8 text-center bg-gray-50 rounded-xl p-8 border border-gray-200 shadow-inner">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">QR Code Anda Sudah Siap</h3>
+                <div id="qrCode" class="bg-white p-4 inline-block rounded-xl shadow-sm mb-4 border border-gray-200"></div>
+                <div id="employeeInfo" class="text-gray-700 bg-white inline-block px-6 py-3 rounded-lg shadow-sm border border-gray-100 text-left"></div>
+                <p class="text-gray-500 mt-4 text-sm"><i class="ti ti-info-circle mr-1"></i> Scan QR code ini pada mesin absensi atau kios untuk melakukan presensi</p>
+            </div>
         </div>
     </div>
 
-    <!-- Vendor js -->
-    <script src="{{ asset('assets/js/vendor.min.js') }}"></script>
-
-    <!-- App js -->
-    <script src="{{ asset('assets/js/app.min.js') }}"></script>
-
+    <!-- Configuration for external JS -->
     <script>
-        document.getElementById('qrForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const nik = document.getElementById('nik').value.trim();
-            const errorMessage = document.getElementById('errorMessage');
-            const qrResult = document.getElementById('qrResult');
-
-            // Reset
-            errorMessage.style.display = 'none';
-            qrResult.style.display = 'none';
-
-            if (!nik) {
-                showError('NIK tidak boleh kosong');
-                return;
+        window.FaceRecogConfig = {
+            routes: {
+                generate: '{{ route("facerecognition-presensi.generate", ["nik" => ":nik"]) }}'
             }
-
-            if (nik.length !== 9) {
-                showError('NIK harus 9 digit');
-                return;
-            }
-
-            // Generate QR Code
-            generateQRCode(nik);
-        });
-
-        function generateQRCode(nik) {
-            fetch(`/facerecognition-presensi/generate/${nik}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status) {
-                        showQRCode(data);
-                    } else {
-                        showError(data.message);
-                    }
-                })
-                .catch(error => {
-                    showError('Terjadi kesalahan saat generate QR Code');
-                    console.error('Error:', error);
-                });
-        }
-
-        function showQRCode(data) {
-            const qrResult = document.getElementById('qrResult');
-            const qrCode = document.getElementById('qrCode');
-            const employeeInfo = document.getElementById('employeeInfo');
-
-            qrCode.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code">`;
-
-            employeeInfo.innerHTML = `
-                <h5>${data.karyawan.nama_karyawan}</h5>
-                <p class="mb-1"><strong>NIK:</strong> ${data.karyawan.nik}</p>
-                <p class="mb-0"><strong>Status:</strong> ${data.karyawan.status_aktif_karyawan == '1' ? 'Aktif' : 'Tidak Aktif'}</p>
-            `;
-
-            qrResult.style.display = 'block';
-        }
-
-        function showError(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-        }
+        };
     </script>
+    
+    <!-- Custom JS for this page -->
+    <script src="{{ asset('assets/js/facerecognition_presensi.js') }}?v=2"></script>
 </body>
 
 </html>

@@ -75,22 +75,9 @@
                                     $decoded = json_decode($rawSub, true);
                                     if (is_array($decoded)) {
                                         $subDepts = $decoded;
-                                    } else {
-                                        $decoded2 = json_decode($decoded, true);
-                                        if (is_array($decoded2)) {
-                                            $subDepts = $decoded2;
-                                        } elseif (strpos($rawSub, ',') !== false || strlen(trim($rawSub)) > 0) {
-                                            $subDepts = array_filter(array_map('trim', explode(',', $rawSub)));
-                                        }
                                     }
                                 }
                             }
-                            
-                            // Fallback jika kosong, tampilkan dummy untuk semua agar kita bisa debug UI
-                            if (empty($subDepts)) {
-                                $subDepts = ['Team Genta', 'Team Dandi', 'Team Lainnya (TEST)'];
-                            }
-                            
                             $isDeptChecked = ($isSuperAdmin || in_array($departemen->kode_dept, $userDepartemens ?? []));
                             $userSubDepts = [];
                             if (isset($user) && $user->departemens) {

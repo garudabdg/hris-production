@@ -51,12 +51,12 @@
             </div>
             <div class="row">
                 <div class="col">
-                    <x-input-with-icon icon="ti ti-clock" label="Jam Absen Masuk" name="jam_in" datepicker="flatpickr-date"
-                        value="{{ $presensi != null ? $presensi->jam_in : '' }}" />
+                    <x-input-with-icon icon="ti ti-clock" type="datetime-local" label="Jam Absen Masuk" name="jam_in"
+                        value="{{ $presensi != null && $presensi->jam_in ? date('Y-m-d\TH:i', strtotime($presensi->jam_in)) : '' }}" />
                 </div>
                 <div class="col">
-                    <x-input-with-icon icon="ti ti-clock" label="Jam Absen Pulang" name="jam_out" datepicker="flatpickr-date"
-                        value="{{ $presensi != null ? $presensi->jam_out : '' }}" />
+                    <x-input-with-icon icon="ti ti-clock" type="datetime-local" label="Jam Absen Pulang" name="jam_out"
+                        value="{{ $presensi != null && $presensi->jam_out ? date('Y-m-d\TH:i', strtotime($presensi->jam_out)) : '' }}" />
                 </div>
             </div>
             <div class="form-group">
@@ -66,13 +66,7 @@
     </div>
 </div>
 <script>
-    $("#jam_in,#jam_out").mask("0000-00-00 00:00");
-    $("#jam_in,#jam_out").flatpickr({
-        enableTime: true,
-        dateFormat: "Y-m-d H:i",
-        time_24hr: true,
-        allowInput: true,
-    })
+
     $("#status").change(function() {
         if ($(this).val() != 'h') {
             $("#jam_in,#jam_out").prop('disabled', true);

@@ -226,8 +226,9 @@
 
         <div class="jam-kerja-container">
             @foreach ($jamkerja as $item)
-                <div class="jam-kerja-card" onclick="pilihJamKerja('{{ $item->kode_jam_kerja }}')">
-                    <div class="jam-kerja-header">
+                <a href="/presensi/create?kode_jam_kerja={{ $item->kode_jam_kerja }}" style="text-decoration: none; color: inherit;">
+                    <div class="jam-kerja-card">
+                        <div class="jam-kerja-header">
                         <div class="jam-kerja-icon">
                             <ion-icon name="time-outline"></ion-icon>
                         </div>
@@ -256,6 +257,7 @@
                         @endif
                     </div>
                 </div>
+                </a>
             @endforeach
         </div>
     </div>
@@ -263,24 +265,6 @@
 
 @push('myscript')
     <script>
-        function pilihJamKerja(kode_jam_kerja) {
-            // Tampilkan loading atau animasi
-            Swal.fire({
-                title: 'Memproses...',
-                text: 'Sedang memuat halaman presensi',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Redirect ke halaman presensi dengan kode jam kerja
-            setTimeout(function() {
-                window.location.href = '/presensi/create?kode_jam_kerja=' + kode_jam_kerja;
-            }, 1000);
-        }
-
         // Tambahkan efek hover pada mobile
         $(document).ready(function() {
             $('.jam-kerja-card').on('touchstart', function() {

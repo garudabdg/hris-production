@@ -278,6 +278,14 @@ class RecruitmentController extends Controller
             \Log::warning('Gagal kirim notifikasi recruitment: ' . $e->getMessage());
         }
 
+        // --- NOTIFIKASI PUSH ONESIGNAL (ADMIN CABANG & SUPER ADMIN) ---
+        try {
+            $pesanPush = "Ada lamaran baru dari " . $recruitment->nama_lengkap . " untuk posisi " . $recruitment->posisi_dilamar . ".";
+            $urlPush = rtrim(env('APP_URL'), '/') . '/recruitment';
+            sendAdminNotification($recruitment->kode_cabang, $recruitment->kode_dept, "Lamaran Kerja Baru", $pesanPush, $urlPush);
+        } catch (\Exception $e) {}
+        // --------------------------------------------------------------
+
         return redirect()->route('recruitment.success')
             ->with('success', 'Lamaran berhasil dikirim! Kami akan menghubungi Anda segera.');
     }

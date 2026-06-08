@@ -1,0 +1,128 @@
+/* ============================================
+   Section: Base Styles & Typography
+   Keterangan: Set font global dan reset dasar
+   ============================================ */
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   Section: Dynamic Themes & Gradients
+   Keterangan: Menggunakan variabel CSS dari Blade
+   ============================================ */
+.bg-gradient {
+    background: linear-gradient(135deg, var(--theme-color-1) 0%, var(--theme-color-2) 100%);
+}
+
+.theme-text {
+    color: var(--theme-color-1);
+}
+
+.theme-text:hover {
+    color: var(--theme-color-2);
+}
+
+/* ============================================
+   Section: Components
+   Keterangan: Styling tombol dan OTP
+   ============================================ */
+.btn-primary {
+    background: linear-gradient(to right, var(--theme-color-1), var(--theme-color-2));
+    background-size: 200% auto;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover {
+    background-position: right center;
+}
+
+.otp-digit {
+    caret-color: var(--theme-color-1);
+}
+
+.otp-digit:focus {
+    border-color: var(--theme-color-1);
+}
+
+.otp-digit.filled {
+    border-color: var(--theme-color-1);
+    background-color: rgba(5, 59, 34, 0.03);
+}
+
+/* ============================================
+   Section: Animations & Shapes
+   Keterangan: Efek transisi masuk
+   ============================================ */
+.login-card {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert {
+    animation: slideDown 0.4s ease-out forwards;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.shape {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.5;
+    animation: float 10s infinite ease-in-out alternate;
+}
+
+.shape-1 {
+    width: 400px;
+    height: 400px;
+    background: rgba(255, 255, 255, 0.15);
+    top: -100px;
+    left: -100px;
+}
+
+.shape-2 {
+    width: 300px;
+    height: 300px;
+    background: rgba(0, 0, 0, 0.2);
+    bottom: -50px;
+    right: -50px;
+    animation-delay: -5s;
+}
+
+.shape-3 {
+    width: 250px;
+    height: 250px;
+    background: rgba(255, 255, 255, 0.1);
+    bottom: 20%;
+    left: 15%;
+    animation-delay: -2s;
+    animation-duration: 15s;
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, 30px) scale(1.1); }
+}

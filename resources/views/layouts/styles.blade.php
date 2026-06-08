@@ -139,6 +139,7 @@
      }
 
      .table-dark.table-hover>tbody>tr:hover>* {
-         background-color: rgba(255, 255, 255, 0.08) !important;
-     }
- </style>
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+</style>
+@stack('mystyle')

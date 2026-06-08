@@ -1,314 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verifikasi 2FA - HRIS</title>
-    <link rel="stylesheet" href="{{ asset('assets/login/css/style.css') }}" />
+    <title>Verifikasi 2FA - HRIS DIDIMAX V3</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/css/two_factor.css') }}">
+    
     <style>
         :root {
+            /* Dynamic Theme Colors */
             --theme-color-1: {{ optional(\App\Models\Pengaturanumum::first())->theme_color_1 ?? '#053b22' }};
             --theme-color-2: {{ optional(\App\Models\Pengaturanumum::first())->theme_color_2 ?? '#0b6a3a' }};
         }
-        .sign-btn { background-color: var(--theme-color-1) !important; cursor:pointer; }
-        .sign-btn:hover { background-color: var(--theme-color-2) !important; }
-        .bullets span.active { background-color: var(--theme-color-1) !important; }
-        .carousel { background: var(--theme-color-1) !important; }
-        .text-group h2 { color: #ffffff !important; }
-
-        /* Alert */
-        .alert { padding: 12px 16px; margin-bottom: 16px; border: 1px solid transparent; border-radius: 8px; font-size: 13px; animation: slideIn .4s ease; }
-        .alert-danger  { color: #842029; background: #f8d7da; border-color: #f5c2c7; }
-        .alert-success { color: #0f5132; background: #d1e7dd; border-color: #badbcc; }
-        @keyframes slideIn { from { transform:translateY(-8px); opacity:0; } to { transform:translateY(0); opacity:1; } }
-
-        /* Email hint */
-        .email-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #f0f7f3; border: 1px solid #b7dfc8;
-            border-radius: 20px; padding: 6px 14px;
-            font-size: 13px; color: #1a5c38; font-weight: 600;
-            margin-bottom: 18px;
-        }
-
-        /* OTP boxes */
-        .otp-group {
-            display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
-        }
-        .otp-digit {
-            width: 44px; height: 52px;
-            border: 2px solid #d1d5db; border-radius: 10px;
-            font-size: 22px; font-weight: 700; text-align: center;
-            color: var(--theme-color-1); background: #fff;
-            transition: border-color .2s, box-shadow .2s;
-            outline: none;
-        }
-        .otp-digit:focus {
-            border-color: var(--theme-color-1);
-            box-shadow: 0 0 0 3px rgba(5,59,34,.12);
-        }
-        .otp-digit.filled { border-color: var(--theme-color-1); background: #f0f7f3; }
-
-        /* Hidden input */
-        #two_factor_code { display:none; }
-
-        /* Trust checkbox */
-        .trust-row {
-            display: flex; align-items: center; gap: 9px;
-            background: #f8f9fa; border-radius: 8px;
-            padding: 10px 12px; margin-bottom: 16px;
-            border: 1px solid #e9ecef;
-        }
-        .trust-row input[type=checkbox] {
-            width: 17px; height: 17px; cursor: pointer;
-            accent-color: var(--theme-color-1); flex-shrink: 0;
-        }
-        .trust-row label { font-size: 13px; color: #555; cursor: pointer; margin: 0; position: static; transform: none; }
-
-        /* Resend */
-        .resend-btn {
-            background: none; border: none;
-            color: var(--theme-color-1); text-decoration: underline;
-            cursor: pointer; font-size: 13px; padding: 0; font-weight: 600;
-        }
-        .resend-btn:hover { color: var(--theme-color-2); }
-        #resendTimer { font-size: 13px; color: #888; font-style: italic; }
-
-        /* Timer ring (visual) */
-        .otp-timer-bar {
-            height: 3px; border-radius: 3px;
-            background: #e0e0e0; margin-bottom: 16px; overflow: hidden;
-        }
-        .otp-timer-bar-fill {
-            height: 100%; width: 100%;
-            background: var(--theme-color-1);
-            transition: width 1s linear;
-        }
-
-        .divider { display:flex; align-items:center; gap:10px; margin:10px 0; }
-        .divider::before,.divider::after { content:''; flex:1; height:1px; background:#e5e5e5; }
-        .divider span { font-size:12px; color:#aaa; }
-
-        /* Override login CSS agar muat 6 OTP box */
-        form#formTwoFactor {
-            max-width: 320px;
-        }
-        form#formTwoFactor .heading h2 {
-            font-size: 1.55rem;
-        }
-        /* forms-wrap perlu lebih lebar sedikit */
-        .forms-wrap {
-            width: 48%;
-        }
     </style>
 </head>
-<body>
-    <main>
-        <div class="box">
-            <div class="inner-box">
-                <div class="forms-wrap">
 
-                    <form id="formTwoFactor" action="{{ route('two-factor.verify') }}" method="POST" autocomplete="off">
-                        @csrf
+<body class="antialiased min-h-screen flex items-center justify-center relative overflow-hidden text-gray-800">
+    <!-- Background Gradient & Animated Shapes -->
+    <div class="absolute inset-0 z-0 bg-gradient"></div>
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
 
-                        {{-- Logo --}}
-                        <div class="logo">
-                            @php $gs = \App\Models\Pengaturanumum::first(); @endphp
-                            @if (!empty($gs->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists('logo/' . $gs->logo))
-                                <img src="{{ asset('storage/logo/' . $gs->logo) }}" alt="Logo" style="height:auto;width:75px;margin-bottom:16px;" />
-                            @else
-                                <img src="{{ asset('assets/login/images/logoweb-1.png') }}" alt="HRIS" />
-                            @endif
-                            <h4>{{ $gs->nama_perusahaan ?? 'HRIS' }}</h4>
-                        </div>
-
-                        {{-- Heading --}}
-                        <div class="heading">
-                            <h2>Verifikasi Dua Langkah</h2>
-                        </div>
-
-                        {{-- Alert --}}
-                        @if (session('status'))
-                            <div class="alert alert-success">✅ {{ session('status') }}</div>
-                        @endif
-                        @if ($errors->any())
-                            <div class="alert alert-danger">
-                                @foreach ($errors->all() as $error) {{ $error }}<br> @endforeach
-                            </div>
-                        @endif
-
-                        {{-- Email hint --}}
-                        <div style="text-align:center; margin-bottom:6px;">
-                            <span class="email-badge">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                                {{ $maskedEmail }}
-                            </span>
-                        </div>
-                        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:20px;">
-                            Masukkan kode 6 digit yang dikirim ke email Anda. Kode berlaku <strong>10 menit</strong>.
-                        </p>
-
-                        {{-- Timer bar --}}
-                        <div class="otp-timer-bar"><div class="otp-timer-bar-fill" id="timerBar"></div></div>
-
-                        <div class="actual-form">
-                            {{-- OTP 6 kotak --}}
-                            <div class="otp-group">
-                                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="0">
-                                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
-                                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
-                                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
-                                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="4">
-                                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="5">
-                            </div>
-                            {{-- Hidden input gabungan --}}
-                            <input type="hidden" name="two_factor_code" id="two_factor_code">
-
-                            {{-- Trust device --}}
-                            <div class="trust-row">
-                                <input type="checkbox" id="trust_device" name="trust_device" value="1">
-                                <label for="trust_device">
-                                    Percaya perangkat ini selama <strong>{{ \App\Http\Controllers\Auth\TwoFactorController::COOKIE_DAYS }} hari</strong>
-                                </label>
-                            </div>
-
-                            {{-- Submit --}}
-                            <input type="submit" value="Verifikasi" class="sign-btn" id="btnVerify">
-
-                            <div class="divider"><span>atau</span></div>
-
-                            {{-- Resend --}}
-                            <p class="text" style="text-align:center; margin:0 0 8px;">
-                                Tidak menerima kode?
-                                <button type="button" id="btnResend" class="resend-btn">Kirim ulang</button>
-                                <span id="resendTimer" style="display:none;"></span>
-                            </p>
-
-                            <p style="text-align:center; margin:0;">
-                                <a href="{{ route('login') }}" style="font-size:12px;color:#aaa;text-decoration:none;">
-                                    ← Kembali ke halaman login
-                                </a>
-                            </p>
-                        </div>
-                    </form>
-
-                    {{-- Form resend (terpisah, tidak nested) --}}
-                    <form id="formResend" action="{{ route('two-factor.resend') }}" method="POST" style="display:none;">
-                        @csrf
-                    </form>
-
+    <!-- Main Content -->
+    <main class="w-full max-w-md p-6 z-10 relative mx-auto">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden login-card p-8 border border-white/20">
+            <div class="text-center mb-6">
+                <div class="inline-block p-3 rounded-2xl bg-gray-50 shadow-sm mb-4 border border-gray-100">
+                    @php $gs = \App\Models\Pengaturanumum::first(); @endphp
+                    @if (!empty($gs->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists('logo/' . $gs->logo))
+                        <img src="{{ asset('storage/logo/' . $gs->logo) }}" alt="Company Logo" class="h-14 mx-auto object-contain" />
+                    @else
+                        <img src="{{ asset('assets/login/images/logoweb-1.png') }}" alt="HRIS Logo" class="h-14 mx-auto object-contain" />
+                    @endif
                 </div>
+                <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Verifikasi Dua Langkah</h1>
+                <p class="text-sm text-gray-500 mt-2">Amankan akun Anda dengan 2FA.</p>
+            </div>
 
-                <div class="carousel">
-                    <div class="images-wrapper">
-                        <img src="{{ asset('assets/login/img/image1.png') }}" class="image img-1 show" alt="" />
-                        <img src="{{ asset('assets/login/img/image2.png') }}" class="image img-2" alt="" />
-                        <img src="{{ asset('assets/login/img/image3.png') }}" class="image img-3" alt="" />
-                    </div>
-                    <div class="text-slider">
-                        <div class="text-wrap">
-                            <div class="text-group">
-                                <h2>Keamanan Akun Terjaga!</h2>
-                                <h2>Login Aman dengan 2FA!</h2>
-                                <h2>Verifikasi Dua Langkah Aktif!</h2>
-                            </div>
-                        </div>
-                        <div class="bullets">
-                            <span class="active" data-value="1"></span>
-                            <span data-value="2"></span>
-                            <span data-value="3"></span>
-                        </div>
+            @if (session('status'))
+                <div class="alert alert-success mb-5 p-4 rounded-xl bg-green-50 text-green-700 border border-green-100 text-sm flex items-start shadow-sm">
+                    <svg class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span class="font-medium">{{ session('status') }}</span>
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="alert alert-danger mb-5 p-4 rounded-xl bg-red-50 text-red-700 border border-red-100 text-sm flex items-start shadow-sm">
+                    <svg class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                    <div class="font-medium">
+                        @foreach ($errors->all() as $error)
+                            <p>{{ $error }}</p>
+                        @endforeach
                     </div>
                 </div>
+            @endif
+
+            <div class="text-center mb-6">
+                <span class="inline-flex items-center gap-2 bg-green-50/50 border border-green-200 text-green-800 rounded-full px-4 py-1.5 text-sm font-medium shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    {{ $maskedEmail ?? 'email@example.com' }}
+                </span>
+                <p class="text-xs text-gray-500 mt-3 leading-relaxed">Masukkan 6 digit kode yang dikirim ke email Anda.<br/>Kode berlaku <strong>10 menit</strong>.</p>
+            </div>
+
+            <!-- Timer Bar -->
+            <div class="h-1 bg-gray-100 rounded-full overflow-hidden mb-6">
+                <div id="timerBar" class="h-full w-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-1000 ease-linear"></div>
+            </div>
+
+            <form id="formTwoFactor" action="{{ route('two-factor.verify') }}" method="POST" autocomplete="off" class="space-y-6">
+                @csrf
+                <div class="flex gap-2 justify-center" id="otp-group">
+                    <input type="text" class="w-11 h-14 text-center text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:outline-none transition-all duration-200 otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="0">
+                    <input type="text" class="w-11 h-14 text-center text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:outline-none transition-all duration-200 otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
+                    <input type="text" class="w-11 h-14 text-center text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:outline-none transition-all duration-200 otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
+                    <input type="text" class="w-11 h-14 text-center text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:outline-none transition-all duration-200 otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
+                    <input type="text" class="w-11 h-14 text-center text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:outline-none transition-all duration-200 otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="4">
+                    <input type="text" class="w-11 h-14 text-center text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:outline-none transition-all duration-200 otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="5">
+                </div>
+                <input type="hidden" name="two_factor_code" id="two_factor_code">
+
+                <div class="flex items-center justify-center pt-2">
+                    <input type="checkbox" id="trust_device" name="trust_device" value="1" class="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer transition-colors accent-green-600" />
+                    <label for="trust_device" class="ml-2 block text-sm text-gray-600 cursor-pointer select-none">Percayai perangkat ini selama <strong>{{ \App\Http\Controllers\Auth\TwoFactorController::COOKIE_DAYS ?? 30 }} hari</strong></label>
+                </div>
+
+                <button type="submit" id="btnVerify" class="w-full py-3.5 px-4 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-xl btn-primary">
+                    Verifikasi Kode
+                </button>
+            </form>
+
+            <div class="relative flex py-5 items-center">
+                <div class="flex-grow border-t border-gray-100"></div>
+                <span class="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase tracking-wider">Atau</span>
+                <div class="flex-grow border-t border-gray-100"></div>
+            </div>
+
+            <div class="text-center space-y-4">
+                <p class="text-sm text-gray-600">
+                    Tidak menerima kode?
+                    <button type="button" id="btnResend" class="font-bold theme-text hover:underline transition-colors ml-1 focus:outline-none">Kirim ulang</button>
+                    <span id="resendTimer" class="font-medium text-gray-400 hidden ml-1"></span>
+                </p>
+
+                <p>
+                    <a href="{{ route('login') }}" class="text-sm text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        Kembali ke halaman login
+                    </a>
+                </p>
             </div>
         </div>
     </main>
 
-    <script src="{{ asset('assets/login/script/app.js') }}"></script>
+    <form id="formResend" action="{{ route('two-factor.resend') }}" method="POST" class="hidden">
+        @csrf
+    </form>
+
     <script>
-    (function () {
-        const digits   = document.querySelectorAll('.otp-digit');
-        const hidden   = document.getElementById('two_factor_code');
-        const btnResend  = document.getElementById('btnResend');
-        const timerEl    = document.getElementById('resendTimer');
-        const formResend = document.getElementById('formResend');
-        const timerBar   = document.getElementById('timerBar');
-
-        // ── OTP digit navigation ──────────────────────────────────────────
-        digits.forEach((el, i) => {
-            el.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace') {
-                    el.value = '';
-                    el.classList.remove('filled');
-                    syncHidden();
-                    if (i > 0) digits[i - 1].focus();
-                }
-            });
-
-            el.addEventListener('input', () => {
-                // only digits
-                el.value = el.value.replace(/\D/g, '').slice(-1);
-                el.classList.toggle('filled', el.value !== '');
-                syncHidden();
-                if (el.value && i < 5) digits[i + 1].focus();
-            });
-
-            el.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
-                pasted.split('').slice(0, 6).forEach((ch, j) => {
-                    if (digits[j]) {
-                        digits[j].value = ch;
-                        digits[j].classList.add('filled');
-                    }
-                });
-                syncHidden();
-                digits[Math.min(pasted.length, 5)].focus();
-            });
-        });
-
-        function syncHidden() {
-            hidden.value = Array.from(digits).map(d => d.value).join('');
-        }
-
-        // Auto-focus first digit
-        digits[0].focus();
-
-        // ── Timer bar (10 menit = 600 detik) ─────────────────────────────
-        let totalSecs = 600;
-        let elapsed   = 0;
-        const barInterval = setInterval(() => {
-            elapsed++;
-            const pct = Math.max(0, 100 - (elapsed / totalSecs * 100));
-            timerBar.style.width = pct + '%';
-            timerBar.style.background = pct > 30 ? 'var(--theme-color-1)' : '#dc3545';
-            if (elapsed >= totalSecs) clearInterval(barInterval);
-        }, 1000);
-
-        // ── Resend cooldown ───────────────────────────────────────────────
-        function startCooldown(seconds) {
-            let countdown = seconds;
-            btnResend.style.display = 'none';
-            timerEl.style.display   = 'inline';
-            timerEl.textContent     = 'Kirim ulang dalam ' + countdown + 's';
-            const iv = setInterval(() => {
-                countdown--;
-                timerEl.textContent = 'Kirim ulang dalam ' + countdown + 's';
-                if (countdown <= 0) {
-                    clearInterval(iv);
-                    timerEl.style.display   = 'none';
-                    btnResend.style.display = 'inline';
-                }
-            }, 1000);
-        }
-
-        btnResend.addEventListener('click', () => formResend.submit());
-
-        @if(session('status'))
-            startCooldown(60);
-        @endif
-    })();
+        window.TwoFactorConfig = {
+            hasStatus: {{ session('status') ? 'true' : 'false' }}
+        };
     </script>
+    <!-- Custom Javascript -->
+    <script src="{{ asset('assets/js/two_factor.js') }}"></script>
 </body>
 </html>

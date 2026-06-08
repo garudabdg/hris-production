@@ -37,6 +37,16 @@
                                 </div>
                                 <div class="row mt-2">
                                     <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="send_email" id="send_email" value="1" checked>
+                                            <label class="form-check-label" for="send_email" style="cursor:pointer">
+                                                Kirim notifikasi ke email karyawan
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
                                         <button class="btn btn-primary w-100">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-send"
                                                 width="24" height="24" viewBox="0 0 24 24" stroke-width="2"

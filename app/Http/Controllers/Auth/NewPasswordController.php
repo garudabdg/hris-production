@@ -29,10 +29,11 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $user = \App\Models\User::where('email', $request->email)->first();
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => \App\Helpers\PasswordHelper::getRules($user, null, false, true),
         ]);
 
         // Here we will attempt to reset the user's password. If it is successful we

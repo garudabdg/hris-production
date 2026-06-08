@@ -37,7 +37,7 @@
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Cabang</th>
                 <th colspan="{{ $jmlhari }}" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Tanggal</th>
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Denda</th>
-                <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Pot. Jam</th>
+
                 <th rowspan="3" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Lembur</th>
                 <th colspan="10" style="border: 1px solid #000000; background-color: #024a75; color: white; vertical-align: middle;">Rekap</th>
             </tr>
@@ -133,14 +133,8 @@
                                     $textcolor = '';
                                     $jml_hadir++;
 
-                                    $ket_nama_jam_kerja =
-                                        '<span style="font-weight:bold;">' . $d[$tanggal_presensi]['nama_jam_kerja'] . '</span><br>';
-                                    $ket_jadwal_kerja =
-                                        '<span style="color:blue">' .
-                                        date('H:i', strtotime($d[$tanggal_presensi]['jam_masuk'])) .
-                                        ' - ' .
-                                        date('H:i', strtotime($d[$tanggal_presensi]['jam_pulang'])) .
-                                        '</span><br>';
+                                    $ket_nama_jam_kerja = '';
+                                    $ket_jadwal_kerja = '';
                                     $jam_masuk = $tanggal_presensi . ' ' . $d[$tanggal_presensi]['jam_masuk'];
                                     $jam_in = !empty($d[$tanggal_presensi]['jam_in'])
                                         ? date('H:i', strtotime($d[$tanggal_presensi]['jam_in']))
@@ -157,24 +151,16 @@
                                         $color_jam_in .
                                         '">' .
                                         $jam_in .
-                                        '</span> -
-                                        <span style="color:' .
-                                        $color_jam_out .
-                                        '">' .
-                                        $jam_out .
                                         '</span><br>';
 
                                     $terlambat = hitungjamterlambat($d[$tanggal_presensi]['jam_in'], $jam_masuk);
 
                                     $color_terlambat = $terlambat != null ? $terlambat['color'] : '';
-                                    $ket_terlambat =
-                                        $terlambat != null
-                                            ? '<span style="color:' .
-                                                $color_terlambat .
-                                                '">' .
-                                                $terlambat['show_laporan'] .
-                                                '</span><br>'
-                                            : '';
+                                    $ket_terlambat = '';
+                                    if ($terlambat != null && ($terlambat['jamterlambat'] > 0 || $terlambat['menitterlambat'] > 0)) {
+                                        $total_menit = ($terlambat['jamterlambat'] * 60) + $terlambat['menitterlambat'];
+                                        $ket_terlambat = '<span style="color:red">' . $total_menit . ' Mnt</span><br>';
+                                    }
 
                                     // Cek apakah denda sudah dikunci (ada di database)
                                     $denda_dari_db =
@@ -243,8 +229,7 @@
                                     if ($pulangcepat != null) {
                                         $jml_pulangcepat++;
                                     }
-                                    $ket_pulang_cepat =
-                                        $pulangcepat != null ? '<span style="color:red">PC : ' . $pulangcepat . ' Jam </span><br>' : '';
+                                    $ket_pulang_cepat = '';
                                     $color_pulang_cepat = $pulangcepat != null ? 'red' : '';
                                     $potongan_tidak_absen_masuk_atau_pulang =
                                         empty($d[$tanggal_presensi]['jam_out']) || empty($d[$tanggal_presensi]['jam_in'])
@@ -254,9 +239,7 @@
                                         $potongan_tidak_absen_masuk_atau_pulang == 0
                                             ? $pulangcepat + $potongan_jam_terlambat
                                             : $potongan_tidak_absen_masuk_atau_pulang;
-                                    $ket_potongan_jam = !empty($potongan_jam)
-                                        ? '<span style="color:red">PJ: ' . formatAngkaDesimal($potongan_jam) . ' Jam</span><br>'
-                                        : '';
+                                    $ket_potongan_jam = '';
 
                                     $ket_jam_lembur =
                                         $jml_jam_lembur > 0
@@ -294,13 +277,7 @@
                                             : null;
                                     $denda = $denda_dari_db !== null ? $denda_dari_db : 0;
 
-                                    $ket =
-                                        '<span style="font-weight: bold;">IZIN</span><br><span>' .
-                                        $d[$tanggal_presensi]['keterangan_izin_absen'] .
-                                        '</span><br>
-                                        <span>PJ : ' .
-                                        formatAngkaDesimal($potongan_jam) .
-                                        ' Jam</span>';
+                                    $ket = '<span style="font-weight: bold;">IZIN</span>';
                                 @endphp
                             @elseif($d[$tanggal_presensi]['status'] == 's')
                                 @php
@@ -315,11 +292,7 @@
                                             : null;
                                     $denda = $denda_dari_db !== null ? $denda_dari_db : 0;
 
-                                    $ket =
-                                        '<span style="font-weight: bold;">SAKIT</span><br><span>' .
-                                        $d[$tanggal_presensi]['keterangan_izin_sakit'] .
-                                        '</span>
-                                        ';
+                                    $ket = '<span style="font-weight: bold;">SAKIT</span>';
                                 @endphp
                             @elseif($d[$tanggal_presensi]['status'] == 'c')
                                 @php
@@ -334,10 +307,7 @@
                                             : null;
                                     $denda = $denda_dari_db !== null ? $denda_dari_db : 0;
 
-                                    $ket =
-                                        '<span style="font-weight: bold;">CUTI</span><br><span>' .
-                                        $d[$tanggal_presensi]['keterangan_izin_cuti'] .
-                                        '</span>';
+                                    $ket = '<span style="font-weight: bold;">CUTI</span>';
                                 @endphp
                             @elseif($d[$tanggal_presensi]['status'] == 'a')
                                 @php
@@ -358,12 +328,7 @@
                                     $ket_denda_alpa =
                                         $denda != 0 ? '<br><span style="color:red">Denda : ' . formatAngka($denda) . '</span>' : '';
 
-                                    $ket =
-                                        '<span style="font-weight: bold;">Alpa</span><br>
-                                    <span>PJ : ' .
-                                        formatAngkaDesimal($potongan_jam) .
-                                        ' Jam</span>' .
-                                        $ket_denda_alpa;
+                                    $ket = '<span style="font-weight: bold;">ALPA</span>';
                                 @endphp
                             @endif
                         @else
@@ -409,11 +374,7 @@
                                         // Untuk alpa yang belum ada di database, denda = 0
                                         $denda = 0;
 
-                                        $ket =
-                                            '<span style="font-weight: bold;">Alpa</span><br>
-                                            <span>PJ : ' .
-                                            formatAngkaDesimal($potongan_jam) .
-                                            ' Jam</span>';
+                                        $ket = '<span style="font-weight: bold;">ALPA</span>';
                                     }
                                 }
 
@@ -450,7 +411,7 @@
                         @endphp
                     @endwhile
                     <td style="text-align: right; border: 1px solid #000000; vertical-align: middle;">{{ formatAngka($total_denda) }}</td>
-                    <td style="text-align: center; border: 1px solid #000000; vertical-align: middle;">{{ formatAngkaDesimal($total_potongan_jam) }}</td>
+
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ formatAngkaDesimal($total_jam_lembur) }}</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_hadir }}</td>
                     <td style="text-align:center; border: 1px solid #000000; vertical-align: middle;">{{ $jml_izin }}</td>
@@ -476,10 +437,7 @@
                 <td colspan="2" style="border: 1px solid #000000; text-align:center;">PC</td>
                 <td colspan="4" style="border: 1px solid #000000;">Pulang Cepat</td>
             </tr>
-            <tr>
-                <td colspan="2" style="border: 1px solid #000000; text-align:center;">PJ</td>
-                <td colspan="4" style="border: 1px solid #000000;">Potongan Jam</td>
-            </tr>
+
         </tbody>
     </table>
 </body>

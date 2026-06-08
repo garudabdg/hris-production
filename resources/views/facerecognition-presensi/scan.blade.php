@@ -370,7 +370,7 @@
 </head>
 
 <body>
-    <button class="back-button" onclick="window.location.href='{{ route('facerecognition-presensi.index') }}'">
+    <button class="back-button" id="btnBack">
         <i class="ti ti-arrow-left"></i> Kembali
     </button>
 
@@ -406,10 +406,10 @@
         </div>
 
         <div class="manual-buttons">
-            <button class="btn-absen btn-masuk" onclick="manualAbsen(1)">
+            <button class="btn-absen btn-masuk" id="btnAbsenMasuk">
                 <i class="ti ti-login me-2"></i>Absen Masuk Manual
             </button>
-            <button class="btn-absen btn-pulang" onclick="manualAbsen(0)">
+            <button class="btn-absen btn-pulang" id="btnAbsenPulang">
                 <i class="ti ti-logout me-2"></i>Absen Pulang Manual
             </button>
         </div>
@@ -441,7 +441,7 @@
         <div class="face-verify-progress">
             <div class="face-verify-progress-fill" id="faceVerifyProgress"></div>
         </div>
-        <button class="face-verify-cancel" onclick="cancelFaceVerify()">Batalkan</button>
+        <button class="face-verify-cancel" id="btnCancelFaceVerify">Batalkan</button>
     </div>
 
     <!-- Vendor js -->
@@ -460,9 +460,26 @@
         let faceModelsLoaded = false;
         let faceVerifyStream = null;
         let faceVerifyAborted = false;
-        const FACE_MATCH_THRESHOLD = 0.5; // jarak euclidean, makin kecil makin ketat
+        const FACE_MATCH_THRESHOLD = 0.6; // jarak euclidean, default face-api 0.6
         const FACE_API_MODELS_URL = '{{ asset("models") }}';
         const FACE_IMAGES_URL = '{{ route("facerecognition.face-images", $karyawan->nik) }}';
+
+        // ── Event Listeners ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnBack = document.getElementById('btnBack');
+            if (btnBack) btnBack.addEventListener('click', () => window.location.href='{{ route('facerecognition-presensi.index') }}');
+            
+            const btnAbsenMasuk = document.getElementById('btnAbsenMasuk');
+            if (btnAbsenMasuk) btnAbsenMasuk.addEventListener('click', () => manualAbsen(1));
+            
+            const btnAbsenPulang = document.getElementById('btnAbsenPulang');
+            if (btnAbsenPulang) btnAbsenPulang.addEventListener('click', () => manualAbsen(0));
+            
+            const btnCancelFaceVerify = document.getElementById('btnCancelFaceVerify');
+            if (btnCancelFaceVerify) btnCancelFaceVerify.addEventListener('click', () => cancelFaceVerify());
+            
+            initQRScanner();
+        });
 
         // ── Deteksi masker: cek apakah area mulut/hidung terhalang ──
         // Landmark 27-30: hidung bridge→tip, 48-67: area mulut

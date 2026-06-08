@@ -54,10 +54,15 @@ class PasswordOtpController extends Controller
                         ->from('hrd@didimax.online', 'HRIS DIDIMAX');
             });
             
+            // Check user role
+            $user = User::where('email', $email)->first();
+            $isAdmin = $user && !$user->hasRole('karyawan');
+            
             return response()->json([
                 'success' => true,
                 'message' => 'OTP sent to your email',
-                'token' => $token
+                'token' => $token,
+                'isAdmin' => $isAdmin
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -112,7 +117,6 @@ class PasswordOtpController extends Controller
         $request->validate([
             'token' => 'required',
             'otp' => 'required|digits:6',
-            'password' => 'required|min:8|confirmed'
         ]);
         
         // Verify OTP first
@@ -144,6 +148,11 @@ class PasswordOtpController extends Controller
                 'message' => 'User not found'
             ], 404);
         }
+
+        // Validate password based on user role
+        $request->validate([
+            'password' => \App\Helpers\PasswordHelper::getRules($user, null, false, true)
+        ]);
         
         $user->password = Hash::make($request->password);
         $user->save();

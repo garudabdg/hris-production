@@ -11,7 +11,7 @@
 @push('mystyle')
     <style>
         body {
-            background: #e6fcf5 !important;
+            background: #f0f8ff !important;
         }
 
         .form-container {
@@ -22,7 +22,7 @@
             position: relative;
             margin-bottom: 12px;
             background: transparent !important;
-            border: 1px solid #32745e;
+            border: 1px solid #024a75;
             border-radius: 12px;
             overflow: hidden;
             transition: all 0.2s ease;
@@ -33,7 +33,7 @@
             left: 15px;
             top: 15px;
             font-size: 24px;
-            color: #32745e;
+            color: #024a75;
             z-index: 10;
             pointer-events: none;
         }
@@ -45,7 +45,7 @@
             padding: 22px 15px 5px 52px !important;
             font-size: 16px;
             font-weight: 500;
-            color: #616eb5;
+            color: #1e293b;
             background: transparent !important;
             border: none !important;
             outline: none !important;
@@ -64,7 +64,7 @@
             top: 15px;
             left: 52px;
             font-size: 16px;
-            color: #32745e;
+            color: #024a75;
             opacity: 0.8;
             pointer-events: none;
             transition: all 0.2s ease-in-out;
@@ -79,13 +79,13 @@
             top: 5px;
             font-size: 11px;
             font-weight: 600;
-            color: #32745e;
+            color: #024a75;
         }
 
         .btn-submit-modern {
             width: 100%;
             height: 54px;
-            background: #32745e;
+            background: #024a75;
             color: #ffffff;
             border: none;
             border-radius: 12px;
@@ -100,8 +100,8 @@
         }
 
         .btn-submit-modern:active {
-            transform: scale(0.97);
-            background: #616eb5;
+            transform: scale(0.98);
+            background: #013352;
         }
     </style>
 @endpush
@@ -113,13 +113,13 @@
 
             <div class="form-label-group">
                 <ion-icon name="time-outline" class="input-icon"></ion-icon>
-                <input type="text" name="dari" id="dari" placeholder=" " required readonly>
+                <input type="datetime-local" name="dari" id="dari" placeholder=" " required>
                 <label for="dari">Dari Waktu</label>
             </div>
 
             <div class="form-label-group">
                 <ion-icon name="time-outline" class="input-icon"></ion-icon>
-                <input type="text" name="sampai" id="sampai" placeholder=" " required readonly>
+                <input type="datetime-local" name="sampai" id="sampai" placeholder=" " required>
                 <label for="sampai">Sampai Waktu</label>
             </div>
 
@@ -144,22 +144,8 @@
 @endsection
 
 @push('myscript')
-    <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.0/air-datepicker.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const localeIndo = {
-                days: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
-                daysShort: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-                daysMin: ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'],
-                months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-                today: 'Hari ini',
-                clear: 'Hapus',
-                dateFormat: 'yyyy-MM-dd',
-                timeFormat: 'HH:mm',
-                firstDay: 1
-            };
-
             function hitungJam(startDate, endDate) {
                 if (startDate && endDate) {
                     var start = new Date(startDate);
@@ -173,30 +159,14 @@
                 return 0;
             }
 
-            const dpDari = new AirDatepicker('#dari', {
-                locale: localeIndo,
-                autoClose: false,
-                isMobile: true,
-                timepicker: true,
-                buttons: ['today', 'clear'],
-                onSelect: ({date, formattedDate}) => {
-                    let sampai = document.getElementById('sampai').value;
-                    let jmljam = hitungJam(formattedDate, sampai);
-                    document.getElementById('jml_jam').value = jmljam;
-                }
+            document.getElementById('dari').addEventListener('change', function() {
+                let sampai = document.getElementById('sampai').value;
+                document.getElementById('jml_jam').value = hitungJam(this.value, sampai);
             });
 
-            const dpSampai = new AirDatepicker('#sampai', {
-                locale: localeIndo,
-                autoClose: false,
-                isMobile: true,
-                timepicker: true,
-                buttons: ['today', 'clear'],
-                onSelect: ({date, formattedDate}) => {
-                    let dari = document.getElementById('dari').value;
-                    let jmljam = hitungJam(dari, formattedDate);
-                    document.getElementById('jml_jam').value = jmljam;
-                }
+            document.getElementById('sampai').addEventListener('change', function() {
+                let dari = document.getElementById('dari').value;
+                document.getElementById('jml_jam').value = hitungJam(dari, this.value);
             });
 
             const form = document.getElementById('formLembur');

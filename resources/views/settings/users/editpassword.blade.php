@@ -150,6 +150,15 @@
                 <label for="konfirmasipassword">Konfirmasi Password</label>
             </div>
 
+            @if(!$user->hasRole('karyawan'))
+            <div class="px-2 mb-3">
+                <small class="text-red-500 font-semibold flex items-start gap-1">
+                    <ion-icon name="information-circle-outline" class="mt-0.5"></ion-icon>
+                    <span>{{ \App\Helpers\PasswordHelper::getRequirementMessage(true) }}</span>
+                </small>
+            </div>
+            @endif
+
             <div class="px-2 mb-4">
                 <div class="custom-control custom-checkbox flex items-center gap-2">
                     <input type="checkbox" class="w-4 h-4 accent-[#3b5998]" id="show-password" onclick="tooglePassword()">

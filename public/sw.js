@@ -1,4 +1,4 @@
-
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
 // Service Worker untuk E-Presensi GPS V2
 // TIDAK akan cache file apapun - semua data selalu fresh dari network

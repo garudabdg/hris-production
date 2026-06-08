@@ -94,7 +94,7 @@ class ProfileController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $user->id,
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => \App\Helpers\PasswordHelper::getRules($user, null, true, true),
         ]);
 
         try {
@@ -113,5 +113,12 @@ class ProfileController extends Controller
         } catch (\Exception $e) {
             return Redirect::back()->with(messageError('Gagal mengupdate profile. Silakan coba lagi.'));
         }
+    }
+
+    public function editpasswordMobile()
+    {
+        $user = auth()->user();
+        // Meminjam view dari settings/users yang sudah didesain rapi ala mobile
+        return view('settings.users.editpassword', compact('user'));
     }
 }

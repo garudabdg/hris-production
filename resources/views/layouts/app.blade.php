@@ -70,6 +70,66 @@
             });
         }
     </script>
+
+    @if(config('services.onesignal.app_id'))
+    <!-- OneSignal Web Push SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+                appId: "{{ config('services.onesignal.app_id') }}",
+                serviceWorkerParam: { scope: "/" },
+                serviceWorkerPath: "sw.js",
+                safari_web_id: "",
+                notifyButton: {
+                    enable: true,
+                    size: 'medium',
+                    theme: 'default',
+                    position: 'bottom-right',
+                    text: {
+                        'tip.state.unsubscribed': 'Berlangganan Notifikasi',
+                        'tip.state.subscribed': 'Anda berlangganan notifikasi',
+                        'tip.state.blocked': 'Anda memblokir notifikasi',
+                        'message.prenotify': 'Klik untuk menerima notifikasi pengumuman dari HRIS',
+                        'message.action.subscribed': 'Terima kasih telah berlangganan!',
+                        'message.action.resubscribed': 'Anda telah berlangganan kembali',
+                        'message.action.unsubscribed': 'Anda batal berlangganan notifikasi',
+                        'dialog.main.title': 'Kelola Notifikasi',
+                        'dialog.main.button.subscribe': 'BERLANGGANAN',
+                        'dialog.main.button.unsubscribe': 'BATAL BERLANGGANAN',
+                        'dialog.blocked.title': 'Buka Blokir Notifikasi',
+                        'dialog.blocked.message': 'Ikuti instruksi ini untuk menerima notifikasi:'
+                    }
+                },
+                promptOptions: {
+                    slidedown: {
+                        prompts: [
+                            {
+                                type: "push",
+                                autoPrompt: true,
+                                text: {
+                                    actionMessage: "Kami ingin mengirimkan notifikasi penting seperti Pengumuman dan Info Gaji.",
+                                    acceptButton: "Izinkan",
+                                    cancelButton: "Nanti"
+                                },
+                                delay: {
+                                    pageViews: 1,
+                                    timeDelay: 3
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+            
+            // Opsional: Hubungkan External ID dengan ID User Login
+            @auth
+            OneSignal.login("{{ auth()->user()->id }}");
+            @endauth
+        });
+    </script>
+    @endif
 </head>
 
 <body>

@@ -225,6 +225,8 @@
         </table>
     </div>
 
+    <div style="page-break-before: always;"></div>
+
     <div style="page-break-inside: avoid;">
         <div class="section-title">Aset & Dukungan IT</div>
         <table class="table-profile">
@@ -250,8 +252,6 @@
             </tr>
         </table>
     </div>
-
-    <div style="page-break-after: always;"></div>
 
     <div class="section-title">Riwayat Mutasi / Promosi / Demosi</div>
     @if($mutasi->count() > 0)
