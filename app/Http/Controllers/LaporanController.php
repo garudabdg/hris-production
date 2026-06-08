@@ -26,6 +26,12 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanController extends Controller
 {
+    protected $laporanService;
+
+    public function __construct(\App\Services\LaporanService $laporanService)
+    {
+        $this->laporanService = $laporanService;
+    }
     public function cuti()
     {
         $data['list_bulan'] = config('global.list_bulan');
@@ -137,38 +143,7 @@ class LaporanController extends Controller
         $user = User::where('id', Auth::user()->id)->first();
         $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
         $generalsetting = Pengaturanumum::where('id', 1)->first();
-        $periode_laporan_dari = $generalsetting->periode_laporan_dari;
-        $periode_laporan_sampai = $generalsetting->periode_laporan_sampai;
-        $periode_laporan_lintas_bulan = $generalsetting->periode_laporan_next_bulan;
-        if ($request->periode_laporan == 1) {
-            if ($periode_laporan_lintas_bulan == 1) {
-                if ($request->bulan == 1) {
-                    $bulan = 12;
-                    $tahun = $request->tahun - 1;
-                } else {
-                    $bulan = $request->bulan - 1;
-                    $tahun = $request->tahun;
-                }
-            } else {
-                $bulan = $request->bulan;
-                $tahun = $request->tahun;
-            }
-
-            // Menambahkan nol di depan bulan jika bulan kurang dari 10
-
-            $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
-            $periode_dari = $tahun . '-' . $bulan . '-' . $periode_laporan_dari;
-            $periode_sampai = $request->tahun . '-' . $request->bulan . '-' . $periode_laporan_sampai;
-        } elseif ($request->periode_laporan == 2) {
-            // Menambahkan nol di depan bulan jika bulan kurang dari 10
-
-            $bulan = str_pad($request->bulan, 2, '0', STR_PAD_LEFT);
-            $periode_dari = $request->tahun . '-' . $bulan . '-01';
-            $periode_sampai = date('Y-m-t', strtotime($periode_dari));
-        } else {
-            $periode_dari = $request->dari;
-            $periode_sampai = $request->sampai;
-        }
+        [$periode_dari, $periode_sampai] = $this->laporanService->resolvePeriodeLaporan($request, $generalsetting);
 
 
 
@@ -196,95 +171,11 @@ class LaporanController extends Controller
             )
             ->whereBetween('presensi.tanggal', [$periode_dari, $periode_sampai]);
 
-        /**
-         * Mapping jadwal kerja per karyawan dengan prioritas:
-         * 1. presensi_jamkerja_bydate (per karyawan per tanggal)
-         * 2. grup_jamkerja_bydate (berdasarkan grup karyawan)
-         * 3. presensi_jamkerja_byday (per karyawan per hari)
-         * 4. presensi_jamkerja_bydept_detail (per departemen & cabang per hari)
-         *
-         * Agar laporan tidak berat, semua jadwal diambil sekali di sini
-         * lalu dikonversi menjadi array PHP sederhana yang dipakai di view.
-         */
-
-        // 1) Jadwal by-date per karyawan
-        $jadwal_bydate = DB::table('presensi_jamkerja_bydate')
-            ->join('presensi_jamkerja', 'presensi_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'presensi_jamkerja_bydate.nik',
-                'presensi_jamkerja_bydate.tanggal',
-                'presensi_jamkerja.total_jam'
-            )
-            ->whereBetween('presensi_jamkerja_bydate.tanggal', [$periode_dari, $periode_sampai])
-            ->get()
-            ->groupBy('nik')
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->tanggal] = $row->total_jam;
-                }
-                return $result;
-            });
-
-        // 2) Jadwal grup by-date (grup_jamkerja_bydate)
-        $jadwal_grup_bydate = DB::table('grup_detail')
-            ->join('grup_jamkerja_bydate', 'grup_detail.kode_grup', '=', 'grup_jamkerja_bydate.kode_grup')
-            ->join('presensi_jamkerja', 'grup_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'grup_detail.nik',
-                'grup_jamkerja_bydate.tanggal',
-                'presensi_jamkerja.total_jam'
-            )
-            ->whereBetween('grup_jamkerja_bydate.tanggal', [$periode_dari, $periode_sampai])
-            ->get()
-            ->groupBy('nik')
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->tanggal] = $row->total_jam;
-                }
-                return $result;
-            });
-
-        // 3) Jadwal by-day per karyawan (presensi_jamkerja_byday)
-        $jadwal_byday = DB::table('presensi_jamkerja_byday')
-            ->join('presensi_jamkerja', 'presensi_jamkerja_byday.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'presensi_jamkerja_byday.nik',
-                'presensi_jamkerja_byday.hari',
-                'presensi_jamkerja.total_jam'
-            )
-            ->get()
-            ->groupBy('nik')
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->hari] = $row->total_jam;
-                }
-                return $result;
-            });
-
-        // 4) Jadwal by-day per departemen & cabang (presensi_jamkerja_bydept_detail)
-        $jadwal_bydept = DB::table('presensi_jamkerja_bydept_detail')
-            ->join('presensi_jamkerja_bydept', 'presensi_jamkerja_bydept_detail.kode_jk_dept', '=', 'presensi_jamkerja_bydept.kode_jk_dept')
-            ->join('presensi_jamkerja', 'presensi_jamkerja_bydept_detail.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'presensi_jamkerja_bydept.kode_dept',
-                'presensi_jamkerja_bydept.kode_cabang',
-                'presensi_jamkerja_bydept_detail.hari',
-                'presensi_jamkerja.total_jam'
-            )
-            ->get()
-            ->groupBy(function ($row) {
-                return $row->kode_dept . '|' . $row->kode_cabang;
-            })
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->hari] = $row->total_jam;
-                }
-                return $result;
-            });
+        $jadwalMapping = $this->laporanService->getJadwalMapping($periode_dari, $periode_sampai, false);
+        $jadwal_bydate = $jadwalMapping['bydate'];
+        $jadwal_grup_bydate = $jadwalMapping['grup_bydate'];
+        $jadwal_byday = $jadwalMapping['byday'];
+        $jadwal_bydept = $jadwalMapping['bydept'];
 
 
         $gaji_pokok = Gajipokok::select(
@@ -420,20 +311,7 @@ class LaporanController extends Controller
             $join->on('karyawan.nik', '=', 'penyesuaian_gaji.nik');
         });
 
-        if (!empty($request->kode_cabang)) {
-            $q_presensi->whereIn('karyawan.kode_cabang', (array) $request->kode_cabang);
-        }
-        if (!empty($request->kode_dept)) {
-            $q_presensi->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
-        }
-
-        if (!empty($request->sub_departemen)) {
-            $q_presensi->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
-        }
-
-        if (!empty($request->nik)) {
-            $q_presensi->whereIn('karyawan.nik', (array) $request->nik);
-        }
+        $this->laporanService->applyKaryawanFilters($q_presensi, $request, 'karyawan.nik');
 
         // Jangan filter jenis_upah untuk Laporan Presensi (format 1) — bisa bikin data kosong
         // kalau karyawan belum punya data gaji_pokok
@@ -583,306 +461,8 @@ class LaporanController extends Controller
     public function kunciLaporan(Request $request)
     {
         try {
-            $generalsetting = Pengaturanumum::where('id', 1)->first();
-            $periode_laporan_dari = $generalsetting->periode_laporan_dari;
-            $periode_laporan_sampai = $generalsetting->periode_laporan_sampai;
-            $periode_laporan_lintas_bulan = $generalsetting->periode_laporan_next_bulan;
-            
-            if ($request->periode_laporan == 1) {
-                if ($periode_laporan_lintas_bulan == 1) {
-                    if ($request->bulan == 1) {
-                        $bulan = 12;
-                        $tahun = $request->tahun - 1;
-                    } else {
-                        $bulan = $request->bulan - 1;
-                        $tahun = $request->tahun;
-                    }
-                } else {
-                    $bulan = $request->bulan;
-                    $tahun = $request->tahun;
-                }
-
-                $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
-                $periode_dari = $tahun . '-' . $bulan . '-' . $periode_laporan_dari;
-                $periode_sampai = $request->tahun . '-' . $request->bulan . '-' . $periode_laporan_sampai;
-            } else {
-                $bulan = str_pad($request->bulan, 2, '0', STR_PAD_LEFT);
-                $periode_dari = $request->tahun . '-' . $bulan . '-01';
-                $periode_sampai = date('Y-m-t', strtotime($periode_dari));
-            }
-
-            // Ambil mapping jadwal kerja (sama seperti di cetakpresensi)
-            // 1) Jadwal by-date per karyawan
-            $jadwal_bydate = DB::table('presensi_jamkerja_bydate')
-                ->join('presensi_jamkerja', 'presensi_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                ->select(
-                    'presensi_jamkerja_bydate.nik',
-                    'presensi_jamkerja_bydate.tanggal',
-                    'presensi_jamkerja.kode_jam_kerja',
-                    'presensi_jamkerja.total_jam'
-                )
-                ->whereBetween('presensi_jamkerja_bydate.tanggal', [$periode_dari, $periode_sampai])
-                ->get()
-                ->groupBy('nik')
-                ->map(function ($rows) {
-                    $result = [];
-                    foreach ($rows as $row) {
-                        $result[$row->tanggal] = [
-                            'kode_jam_kerja' => $row->kode_jam_kerja,
-                            'total_jam' => $row->total_jam
-                        ];
-                    }
-                    return $result;
-                });
-
-            // 2) Jadwal grup by-date
-            $jadwal_grup_bydate = DB::table('grup_detail')
-                ->join('grup_jamkerja_bydate', 'grup_detail.kode_grup', '=', 'grup_jamkerja_bydate.kode_grup')
-                ->join('presensi_jamkerja', 'grup_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                ->select(
-                    'grup_detail.nik',
-                    'grup_jamkerja_bydate.tanggal',
-                    'presensi_jamkerja.kode_jam_kerja',
-                    'presensi_jamkerja.total_jam'
-                )
-                ->whereBetween('grup_jamkerja_bydate.tanggal', [$periode_dari, $periode_sampai])
-                ->get()
-                ->groupBy('nik')
-                ->map(function ($rows) {
-                    $result = [];
-                    foreach ($rows as $row) {
-                        $result[$row->tanggal] = [
-                            'kode_jam_kerja' => $row->kode_jam_kerja,
-                            'total_jam' => $row->total_jam
-                        ];
-                    }
-                    return $result;
-                });
-
-            // 3) Jadwal by-day per karyawan
-            $jadwal_byday = DB::table('presensi_jamkerja_byday')
-                ->join('presensi_jamkerja', 'presensi_jamkerja_byday.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                ->select(
-                    'presensi_jamkerja_byday.nik',
-                    'presensi_jamkerja_byday.hari',
-                    'presensi_jamkerja.kode_jam_kerja',
-                    'presensi_jamkerja.total_jam'
-                )
-                ->get()
-                ->groupBy('nik')
-                ->map(function ($rows) {
-                    $result = [];
-                    foreach ($rows as $row) {
-                        $result[$row->hari] = [
-                            'kode_jam_kerja' => $row->kode_jam_kerja,
-                            'total_jam' => $row->total_jam
-                        ];
-                    }
-                    return $result;
-                });
-
-            // 4) Jadwal by-day per departemen & cabang
-            $jadwal_bydept = DB::table('presensi_jamkerja_bydept_detail')
-                ->join('presensi_jamkerja_bydept', 'presensi_jamkerja_bydept_detail.kode_jk_dept', '=', 'presensi_jamkerja_bydept.kode_jk_dept')
-                ->join('presensi_jamkerja', 'presensi_jamkerja_bydept_detail.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                ->select(
-                    'presensi_jamkerja_bydept.kode_dept',
-                    'presensi_jamkerja_bydept.kode_cabang',
-                    'presensi_jamkerja_bydept_detail.hari',
-                    'presensi_jamkerja.kode_jam_kerja',
-                    'presensi_jamkerja.total_jam'
-                )
-                ->get()
-                ->groupBy(function ($row) {
-                    return $row->kode_dept . '|' . $row->kode_cabang;
-                })
-                ->map(function ($rows) {
-                    $result = [];
-                    foreach ($rows as $row) {
-                        $result[$row->hari] = [
-                            'kode_jam_kerja' => $row->kode_jam_kerja,
-                            'total_jam' => $row->total_jam
-                        ];
-                    }
-                    return $result;
-                });
-
-            // Ambil data libur
-            $datalibur = getdatalibur($periode_dari, $periode_sampai);
-
-            // Ambil data presensi dalam periode dengan join ke karyawan untuk filter
-            $presensi_query = Presensi::join('presensi_jamkerja', 'presensi.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                ->leftJoin('karyawan', 'presensi.nik', '=', 'karyawan.nik')
-                ->select(
-                    'presensi.*',
-                    'presensi_jamkerja.jam_masuk',
-                    'presensi_jamkerja.jam_pulang'
-                )
-                ->whereBetween('presensi.tanggal', [$periode_dari, $periode_sampai])
-                ->where('presensi.status', 'h'); // Hanya presensi dengan status hadir
-
-            // Filter berdasarkan request
-            if (!empty($request->kode_cabang)) {
-                $presensi_query->whereIn('karyawan.kode_cabang', (array) $request->kode_cabang);
-            }
-
-            if (!empty($request->kode_dept)) {
-                $presensi_query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
-            }
-
-            if (!empty($request->sub_departemen)) {
-                $presensi_query->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
-            }
-
-            if (!empty($request->nik)) {
-                $presensi_query->whereIn('presensi.nik', (array) $request->nik);
-            }
-
-            $presensi_list_raw = $presensi_query->get();
-            $presensi_list = $presensi_list_raw->groupBy('nik');
-            $denda_list = Denda::all()->toArray();
-
-            // Ambil semua karyawan yang sesuai filter
-            $karyawan_query = Karyawan::query()
-                ->select('karyawan.nik', 'karyawan.kode_dept', 'karyawan.kode_cabang');
-
-            if (!empty($request->kode_cabang)) {
-                $karyawan_query->whereIn('karyawan.kode_cabang', (array) $request->kode_cabang);
-            }
-
-            if (!empty($request->kode_dept)) {
-                $karyawan_query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
-            }
-
-            if (!empty($request->sub_departemen)) {
-                $karyawan_query->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
-            }
-
-            if (!empty($request->nik)) {
-                $karyawan_query->whereIn('karyawan.nik', (array) $request->nik);
-            }
-
-            if (!empty($request->jenis_upah)) {
-                $karyawan_query->leftJoinSub($gaji_pokok, 'gaji_pokok', function ($join) {
-                    $join->on('karyawan.nik', '=', 'gaji_pokok.nik');
-                });
-                $karyawan_query->where('gaji_pokok.jenis_upah', $request->jenis_upah);
-            }
-
-            $karyawan_list = $karyawan_query->get();
-
-            $updated_count = 0;
-            $inserted_alpa_count = 0;
-
-            // Loop setiap karyawan
-            foreach ($karyawan_list as $karyawan) {
-                // Ambil presensi yang sudah ada untuk karyawan ini
-                $presensi_karyawan = $presensi_list[$karyawan->nik] ?? collect();
-                $presensi_by_tanggal = $presensi_karyawan->keyBy('tanggal');
-
-                // Loop setiap tanggal dalam periode
-                $tanggal_loop = $periode_dari;
-                while (strtotime($tanggal_loop) <= strtotime($periode_sampai)) {
-                    // Cek apakah sudah ada presensi untuk tanggal ini
-                    if ($presensi_by_tanggal->has($tanggal_loop)) {
-                        // Ada presensi, update denda
-                        $presensi = $presensi_by_tanggal[$tanggal_loop];
-                        $jam_masuk = $presensi->tanggal . ' ' . $presensi->jam_masuk;
-                        $terlambat = hitungjamterlambat($presensi->jam_in, $jam_masuk);
-
-                        if ($terlambat != null) {
-                            if ($terlambat['desimal_terlambat'] < 1) {
-                                $denda = hitungdenda($denda_list, $terlambat['menitterlambat']);
-                            }
-                        }
-
-                        // Update denda and status_potongan
-                        Presensi::where('id', $presensi->id)->update([
-                            'denda' => $denda,
-                            'status_potongan' => $generalsetting->status_potongan_jam
-                        ]);
-                        $updated_count++;
-                    } else {
-                        // Tidak ada presensi, cek apakah alpa
-                        $search = [
-                            'nik' => $karyawan->nik,
-                            'tanggal' => $tanggal_loop,
-                        ];
-                        
-                        $ceklibur = ceklibur($datalibur, $search);
-                        $nama_hari = getHari($tanggal_loop);
-
-                        // Jika bukan libur, cek jadwal kerja
-                        if (empty($ceklibur)) {
-                            // Cek jadwal dengan prioritas yang sama seperti di view
-                            $mapJadwalByDate = $jadwal_bydate[$karyawan->nik] ?? [];
-                            $mapJadwalGrupByDate = $jadwal_grup_bydate[$karyawan->nik] ?? [];
-                            $mapJadwalByDay = $jadwal_byday[$karyawan->nik] ?? [];
-                            
-                            $jadwal_info = null;
-                            $kode_jam_kerja = null;
-                            
-                            // 1) Cek jadwal by-date per karyawan
-                            if (isset($mapJadwalByDate[$tanggal_loop])) {
-                                $jadwal_info = $mapJadwalByDate[$tanggal_loop];
-                                $kode_jam_kerja = $jadwal_info['kode_jam_kerja'];
-                            }
-                            // 2) Cek jadwal grup by-date
-                            elseif (isset($mapJadwalGrupByDate[$tanggal_loop])) {
-                                $jadwal_info = $mapJadwalGrupByDate[$tanggal_loop];
-                                $kode_jam_kerja = $jadwal_info['kode_jam_kerja'];
-                            }
-                            // 3) Cek jadwal by-day per karyawan
-                            elseif (isset($mapJadwalByDay[$nama_hari])) {
-                                $jadwal_info = $mapJadwalByDay[$nama_hari];
-                                $kode_jam_kerja = $jadwal_info['kode_jam_kerja'];
-                            }
-                            // 4) Cek jadwal by-day per departemen & cabang
-                            else {
-                                $keyDeptCabang = $karyawan->kode_dept . '|' . $karyawan->kode_cabang;
-                                $mapDept = $jadwal_bydept[$keyDeptCabang] ?? [];
-                                if (isset($mapDept[$nama_hari])) {
-                                    $jadwal_info = $mapDept[$nama_hari];
-                                    $kode_jam_kerja = $jadwal_info['kode_jam_kerja'];
-                                }
-                            }
-
-                            // Jika ada jadwal tapi tidak ada presensi → Alpa
-                            if ($kode_jam_kerja !== null) {
-                                // Cek apakah sudah ada presensi dengan status lain (izin, sakit, cuti, alpa)
-                                $cek_presensi_existing = Presensi::where('nik', $karyawan->nik)
-                                    ->where('tanggal', $tanggal_loop)
-                                    ->first();
-
-                                if (!$cek_presensi_existing) {
-                                    // Insert presensi dengan status alpa
-                                    Presensi::create([
-                                        'nik' => $karyawan->nik,
-                                        'tanggal' => $tanggal_loop,
-                                        'kode_jam_kerja' => $kode_jam_kerja,
-                                        'status' => 'a', // Alpa
-                                        'jam_in' => null,
-                                        'jam_out' => null,
-                                        'denda' => null, // Alpa tidak ada denda, hanya potongan jam
-                                        'status_potongan' => $generalsetting->status_potongan_jam
-                                    ]);
-                                    $inserted_alpa_count++;
-                                }
-                            }
-                        }
-                    }
-
-                    // Increment tanggal
-                    $tanggal_loop = date('Y-m-d', strtotime('+1 day', strtotime($tanggal_loop)));
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => "Laporan berhasil dikunci. Total {$updated_count} presensi telah diupdate dengan denda, {$inserted_alpa_count} presensi alpa telah dibuat.",
-                'updated_count' => $updated_count,
-                'inserted_alpa_count' => $inserted_alpa_count
-            ]);
+            $result = $this->laporanService->prosesKunciLaporan($request);
+            return response()->json($result);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -894,121 +474,8 @@ class LaporanController extends Controller
     public function batalkanKunciLaporan(Request $request)
     {
         try {
-            $generalsetting = Pengaturanumum::where('id', 1)->first();
-            $periode_laporan_dari = $generalsetting->periode_laporan_dari;
-            $periode_laporan_sampai = $generalsetting->periode_laporan_sampai;
-            $periode_laporan_lintas_bulan = $generalsetting->periode_laporan_next_bulan;
-            
-            if ($request->periode_laporan == 1) {
-                if ($periode_laporan_lintas_bulan == 1) {
-                    if ($request->bulan == 1) {
-                        $bulan = 12;
-                        $tahun = $request->tahun - 1;
-                    } else {
-                        $bulan = $request->bulan - 1;
-                        $tahun = $request->tahun;
-                    }
-                } else {
-                    $bulan = $request->bulan;
-                    $tahun = $request->tahun;
-                }
-
-                $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
-                $periode_dari = $tahun . '-' . $bulan . '-' . $periode_laporan_dari;
-                $periode_sampai = $request->tahun . '-' . $request->bulan . '-' . $periode_laporan_sampai;
-            } else {
-                $bulan = str_pad($request->bulan, 2, '0', STR_PAD_LEFT);
-                $periode_dari = $request->tahun . '-' . $bulan . '-01';
-                $periode_sampai = date('Y-m-t', strtotime($periode_dari));
-            }
-
-            // Query untuk mendapatkan ID presensi yang akan diupdate
-            $presensi_query = Presensi::query()
-                ->select('presensi.id')
-                ->whereBetween('presensi.tanggal', [$periode_dari, $periode_sampai]);
-
-            // Filter berdasarkan request - perlu join dengan karyawan jika ada filter
-            if (!empty($request->kode_cabang) || !empty($request->kode_dept)) {
-                $presensi_query->leftJoin('karyawan', 'presensi.nik', '=', 'karyawan.nik');
-            }
-
-            if (!empty($request->kode_cabang)) {
-                $presensi_query->whereIn('karyawan.kode_cabang', (array) $request->kode_cabang);
-            }
-
-            if (!empty($request->kode_dept)) {
-                $presensi_query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
-            }
-
-            if (!empty($request->nik)) {
-                $presensi_query->whereIn('presensi.nik', (array) $request->nik);
-            }
-
-            if (!empty($request->jenis_upah)) {
-                $presensi_query->leftJoinSub($gaji_pokok, 'gaji_pokok', function ($join) {
-                    $join->on('presensi.nik', '=', 'gaji_pokok.nik');
-                });
-                $presensi_query->where('gaji_pokok.jenis_upah', $request->jenis_upah);
-            }
-
-            // Ambil ID presensi yang akan diupdate
-            $presensi_ids = $presensi_query->pluck('presensi.id')->toArray();
-
-            // Update denda menjadi null untuk membatalkan kunci
-            $updated_count = 0;
-            if (!empty($presensi_ids)) {
-                $updated_count = Presensi::whereIn('id', $presensi_ids)->update([
-                    'denda' => null,
-                    'status_potongan' => null
-                ]);
-            }
-
-            /**
-             * Hapus presensi ALPA yang dibuat otomatis saat kunci laporan
-             * Kriteria:
-             * - status = 'a'
-             * - tanggal dalam periode
-             * - sesuai filter cabang/dept/nik
-             */
-            $alpa_query = Presensi::query()
-                ->whereBetween('presensi.tanggal', [$periode_dari, $periode_sampai])
-                ->where('presensi.status', 'a');
-
-            if (!empty($request->kode_cabang) || !empty($request->kode_dept)) {
-                $alpa_query->leftJoin('karyawan', 'presensi.nik', '=', 'karyawan.nik');
-            }
-
-            if (!empty($request->kode_cabang)) {
-                $alpa_query->where('karyawan.kode_cabang', $request->kode_cabang);
-            }
-
-            if (!empty($request->kode_dept)) {
-                $alpa_query->where('karyawan.kode_dept', $request->kode_dept);
-            }
-
-            if (!empty($request->nik)) {
-                $alpa_query->where('presensi.nik', $request->nik);
-            }
-
-            if (!empty($request->jenis_upah)) {
-                $alpa_query->leftJoinSub($gaji_pokok, 'gaji_pokok', function ($join) {
-                    $join->on('presensi.nik', '=', 'gaji_pokok.nik');
-                });
-                $alpa_query->where('gaji_pokok.jenis_upah', $request->jenis_upah);
-            }
-
-            $alpa_ids = $alpa_query->pluck('presensi.id')->toArray();
-            $deleted_alpa_count = 0;
-            if (!empty($alpa_ids)) {
-                $deleted_alpa_count = Presensi::whereIn('id', $alpa_ids)->delete();
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => "Kunci laporan berhasil dibatalkan. Total {$updated_count} presensi telah diupdate, {$deleted_alpa_count} presensi alpa telah dihapus.",
-                'updated_count' => $updated_count,
-                'deleted_alpa_count' => $deleted_alpa_count
-            ]);
+            $result = $this->laporanService->prosesBatalkanKunciLaporan($request);
+            return response()->json($result);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1034,131 +501,18 @@ class LaporanController extends Controller
         $periode_dari = $request->dari;
         $periode_sampai = $request->sampai;
 
-        // 1) Jadwal by-date per karyawan
-        $jadwal_bydate = DB::table('presensi_jamkerja_bydate')
-            ->join('presensi_jamkerja', 'presensi_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'presensi_jamkerja_bydate.nik',
-                'presensi_jamkerja_bydate.tanggal',
-                'presensi_jamkerja.nama_jam_kerja',
-                'presensi_jamkerja.jam_masuk',
-                'presensi_jamkerja.jam_pulang',
-                'presensi_jamkerja.color'
-            )
-            ->whereBetween('presensi_jamkerja_bydate.tanggal', [$periode_dari, $periode_sampai])
-            ->get()
-            ->groupBy('nik')
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->tanggal] = [
-                        'nama_jam_kerja' => $row->nama_jam_kerja,
-                        'jam_masuk' => $row->jam_masuk,
-                        'jam_pulang' => $row->jam_pulang,
-                        'color' => $row->color,
-                    ];
-                }
-                return $result;
-            });
-
-        // 2) Jadwal grup by-date
-        $jadwal_grup_bydate = DB::table('grup_detail')
-            ->join('grup_jamkerja_bydate', 'grup_detail.kode_grup', '=', 'grup_jamkerja_bydate.kode_grup')
-            ->join('presensi_jamkerja', 'grup_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'grup_detail.nik',
-                'grup_jamkerja_bydate.tanggal',
-                'presensi_jamkerja.nama_jam_kerja',
-                'presensi_jamkerja.jam_masuk',
-                'presensi_jamkerja.jam_pulang',
-                'presensi_jamkerja.color'
-            )
-            ->whereBetween('grup_jamkerja_bydate.tanggal', [$periode_dari, $periode_sampai])
-            ->get()
-            ->groupBy('nik')
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->tanggal] = [
-                        'nama_jam_kerja' => $row->nama_jam_kerja,
-                        'jam_masuk' => $row->jam_masuk,
-                        'jam_pulang' => $row->jam_pulang,
-                        'color' => $row->color,
-                    ];
-                }
-                return $result;
-            });
-
-        // 3) Jadwal by-day per karyawan
-        $jadwal_byday = DB::table('presensi_jamkerja_byday')
-            ->join('presensi_jamkerja', 'presensi_jamkerja_byday.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'presensi_jamkerja_byday.nik',
-                'presensi_jamkerja_byday.hari',
-                'presensi_jamkerja.nama_jam_kerja',
-                'presensi_jamkerja.jam_masuk',
-                'presensi_jamkerja.jam_pulang',
-                'presensi_jamkerja.color'
-            )
-            ->get()
-            ->groupBy('nik')
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->hari] = [
-                        'nama_jam_kerja' => $row->nama_jam_kerja,
-                        'jam_masuk' => $row->jam_masuk,
-                        'jam_pulang' => $row->jam_pulang,
-                        'color' => $row->color,
-                    ];
-                }
-                return $result;
-            });
-
-        // 4) Jadwal by-day per departemen & cabang
-        $jadwal_bydept = DB::table('presensi_jamkerja_bydept_detail')
-            ->join('presensi_jamkerja_bydept', 'presensi_jamkerja_bydept_detail.kode_jk_dept', '=', 'presensi_jamkerja_bydept.kode_jk_dept')
-            ->join('presensi_jamkerja', 'presensi_jamkerja_bydept_detail.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-            ->select(
-                'presensi_jamkerja_bydept.kode_dept',
-                'presensi_jamkerja_bydept.kode_cabang',
-                'presensi_jamkerja_bydept_detail.hari',
-                'presensi_jamkerja.nama_jam_kerja',
-                'presensi_jamkerja.jam_masuk',
-                'presensi_jamkerja.jam_pulang',
-                'presensi_jamkerja.color'
-            )
-            ->get()
-            ->groupBy(function ($row) {
-                return $row->kode_dept . '|' . $row->kode_cabang;
-            })
-            ->map(function ($rows) {
-                $result = [];
-                foreach ($rows as $row) {
-                    $result[$row->hari] = [
-                        'nama_jam_kerja' => $row->nama_jam_kerja,
-                        'jam_masuk' => $row->jam_masuk,
-                        'jam_pulang' => $row->jam_pulang,
-                        'color' => $row->color,
-                    ];
-                }
-                return $result;
-            });
+        $jadwalMapping = $this->laporanService->getJadwalMapping($periode_dari, $periode_sampai, true);
+        $jadwal_bydate = $jadwalMapping['bydate'];
+        $jadwal_grup_bydate = $jadwalMapping['grup_bydate'];
+        $jadwal_byday = $jadwalMapping['byday'];
+        $jadwal_bydept = $jadwalMapping['bydept'];
 
         $q_karyawan = Karyawan::query();
         $q_karyawan->select('karyawan.nik', 'karyawan.nik_show', 'nama_karyawan', 'nama_jabatan', 'karyawan.kode_dept', 'nama_dept', 'karyawan.kode_cabang');
         $q_karyawan->leftJoin('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan');
         $q_karyawan->leftJoin('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
 
-        if (!empty($request->kode_cabang)) {
-            $q_karyawan->where('karyawan.kode_cabang', $request->kode_cabang);
-        }
-        if (!empty($request->kode_dept)) {
-            $q_karyawan->where('karyawan.kode_dept', $request->kode_dept);
-        }
-        if (!empty($request->nik)) {
-            $q_karyawan->where('karyawan.nik', $request->nik);
-        }
+        $this->laporanService->applyKaryawanFilters($q_karyawan, $request, 'karyawan.nik');
 
         $q_karyawan->orderBy('karyawan.nama_karyawan');
         $karyawan = $q_karyawan->get();
@@ -1238,15 +592,7 @@ class LaporanController extends Controller
             }
         }
 
-        if (!empty($request->kode_cabang)) {
-            $q_lembur->whereIn('karyawan.kode_cabang', (array)$request->kode_cabang);
-        }
-        if (!empty($request->kode_dept)) {
-            $q_lembur->whereIn('karyawan.kode_dept', (array)$request->kode_dept);
-        }
-        if (!empty($request->nik)) {
-            $q_lembur->whereIn('karyawan.nik', (array)$request->nik);
-        }
+        $this->laporanService->applyKaryawanFilters($q_lembur, $request, 'karyawan.nik');
         if ($status !== null && $status !== '') {
             $q_lembur->where('lembur.status', $status);
         }

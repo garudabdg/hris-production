@@ -141,27 +141,9 @@ class AssetTransactionController extends Controller
             'foto_bukti'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        // Jika pembelian → buat asset baru terlebih dahulu
         if ($request->kategori_transaksi === 'pembelian') {
-            // Generate kode_asset baru
-            $lastAsset = Asset::orderByDesc('id')->first();
-            $kodeAsset = buatkode($lastAsset?->kode_asset ?? '', 'AST', 5);
-
-            $asset = Asset::create([
-                'kode_asset'       => $kodeAsset,
-                'nama_asset'       => $request->nama_asset_baru,
-                'category_id'      => $request->category_id_baru ?: null,
-                'kode_cabang'      => $request->kode_cabang ?: null,
-                'merk'             => $request->merk_baru ?: null,
-                'no_seri'          => $request->no_seri_baru ?: null,
-                'nilai_perolehan'  => $request->nilai_perolehan_baru ?: null,
-                'tanggal_perolehan'=> $request->tanggal_transaksi,
-                'kondisi'          => 'baik',
-                'status'           => 'tersedia',
-                'jumlah_stok'      => 0, // akan di-increment setelah transaksi
-            ]);
-
-            $request->merge(['kode_asset' => $kodeAsset]);
+            $asset = $this->handleAssetPembelian($request);
+            $request->merge(['kode_asset' => $asset->kode_asset]);
         } else {
             $asset = Asset::where('kode_asset', $request->kode_asset)->firstOrFail();
         }
@@ -189,14 +171,7 @@ class AssetTransactionController extends Controller
             ->first();
         $kode_transaksi = buatkode($last?->kode_transaksi ?? '', $prefix, 4);
 
-        // Upload foto
-        $fotoPath = null;
-        if ($request->hasFile('foto_bukti')) {
-            $file = $request->file('foto_bukti');
-            $filename = 'trx_' . Str::random(12) . '.' . $file->extension();
-            $file->storeAs('asset-transaksi', $filename, 'public');
-            $fotoPath = $filename;
-        }
+        $fotoPath = $this->handleFotoUpload($request);
 
         DB::beginTransaction();
         try {
@@ -281,5 +256,36 @@ class AssetTransactionController extends Controller
             DB::rollBack();
             return Redirect::back()->with(messageError($e->getMessage()));
         }
+    }
+
+    private function handleAssetPembelian(Request $request)
+    {
+        $lastAsset = Asset::orderByDesc('id')->first();
+        $kodeAsset = buatkode($lastAsset?->kode_asset ?? '', 'AST', 5);
+
+        return Asset::create([
+            'kode_asset'       => $kodeAsset,
+            'nama_asset'       => $request->nama_asset_baru,
+            'category_id'      => $request->category_id_baru ?: null,
+            'kode_cabang'      => $request->kode_cabang ?: null,
+            'merk'             => $request->merk_baru ?: null,
+            'no_seri'          => $request->no_seri_baru ?: null,
+            'nilai_perolehan'  => $request->nilai_perolehan_baru ?: null,
+            'tanggal_perolehan'=> $request->tanggal_transaksi,
+            'kondisi'          => 'baik',
+            'status'           => 'tersedia',
+            'jumlah_stok'      => 0,
+        ]);
+    }
+
+    private function handleFotoUpload(Request $request)
+    {
+        if ($request->hasFile('foto_bukti')) {
+            $file = $request->file('foto_bukti');
+            $filename = 'trx_' . Str::random(12) . '.' . $file->extension();
+            $file->storeAs('asset-transaksi', $filename, 'public');
+            return $filename;
+        }
+        return null;
     }
 }

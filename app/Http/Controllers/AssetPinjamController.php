@@ -33,33 +33,9 @@ class AssetPinjamController extends Controller
             ->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
 
-        if (!$user->isSuperAdmin()) {
-            $userCabangs     = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            if (!empty($userCabangs)) {
-                $q->whereIn('karyawan.kode_cabang', $userCabangs);
-            } else {
-                $q->whereRaw('1 = 0');
-            }
-            if (!empty($userDepartemens)) {
-                $q->whereIn('karyawan.kode_dept', $userDepartemens);
-            } else {
-                $q->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($q, $user, 'karyawan.kode_cabang', 'karyawan.kode_dept');
 
-        if ($request->filled('nama_karyawan')) {
-            $q->where('karyawan.nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
-        }
-        if ($request->filled('kode_cabang')) {
-            $q->where('karyawan.kode_cabang', $request->kode_cabang);
-        }
-        if ($request->filled('kode_asset')) {
-            $q->where('asset_pinjam.kode_asset', $request->kode_asset);
-        }
-        if ($request->status !== null && $request->status !== '') {
-            $q->where('asset_pinjam.status', $request->status);
-        }
+        $this->applySearchFilters($q, $request);
 
         $q->select(
             'asset_pinjam.*',
@@ -81,15 +57,7 @@ class AssetPinjamController extends Controller
         $pinjam = $q->paginate(15);
         $pinjam->appends($request->all());
 
-        // Resolve waiting_role
-        $approvalService = app(ApprovalService::class);
-        foreach ($pinjam as $item) {
-            $item->waiting_role = null;
-            if ($item->status == 0 && $item->approval_step) {
-                $layer = $approvalService->getLayer('PINJAM', $item->approval_step, $item->kode_dept, $item->kode_jabatan, $item->kode_cabang);
-                $item->waiting_role = $layer?->role_name;
-            }
-        }
+        $this->resolveWaitingRole($pinjam);
 
         $data['pinjam']   = $pinjam;
         $data['assets']   = Asset::where('status', 'tersedia')->orWhereIn('kode_asset', $pinjam->pluck('kode_asset'))->get();
@@ -107,20 +75,14 @@ class AssetPinjamController extends Controller
         // Karyawan yang bisa dipilih sesuai akses cabang
         $qKaryawan = Karyawan::query()->where('status_aktif_karyawan', 1);
         if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            if (!empty($userCabangs)) {
-                $qKaryawan->whereIn('kode_cabang', $userCabangs);
-            }
+            $this->filterQueryByAccess($qKaryawan, $user, 'kode_cabang', null);
         }
         $data['karyawan_list'] = $qKaryawan->orderBy('nama_karyawan')->get(['nik', 'nama_karyawan', 'kode_cabang', 'kode_dept']);
 
         // Asset tersedia sesuai akses cabang
         $qAsset = Asset::query()->where('status', 'tersedia');
         if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            if (!empty($userCabangs)) {
-                $qAsset->whereIn('kode_cabang', $userCabangs);
-            }
+            $this->filterQueryByAccess($qAsset, $user, 'kode_cabang', null);
         }
         $data['assets'] = $qAsset->orderBy('nama_asset')->get();
 
@@ -150,10 +112,7 @@ class AssetPinjamController extends Controller
         $last = AssetPinjam::orderByDesc('id')->first();
         $kode_pinjam = buatkode($last?->kode_pinjam ?? '', 'AP' . date('ym'), 4);
 
-        $fotoPath = null;
-        if ($request->hasFile('foto_kondisi_pinjam')) {
-            $fotoPath = $request->file('foto_kondisi_pinjam')->store('asset-pinjam', 'public');
-        }
+        $fotoPath = $this->handleFotoUpload($request, 'foto_kondisi_pinjam');
 
         DB::beginTransaction();
         try {
@@ -241,15 +200,7 @@ class AssetPinjamController extends Controller
             return Redirect::back()->with(messageError('Pengajuan ini sudah diproses.'));
         }
 
-        // Cek akses cabang/dept
-        if (!$user->isSuperAdmin()) {
-            $accessUser      = $user->getApprovalAdmin() ?? $user;
-            $userCabangs     = $accessUser->getCabangCodes();
-            $userDepartemens = $accessUser->getDepartemenCodes();
-            if (!in_array($pinjam->kode_cabang, $userCabangs) || !in_array($pinjam->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke pengajuan ini.');
-            }
-        }
+        $this->checkAccess($user, $pinjam);
 
         $userRole        = $user->getRoleNames()->first();
         $currentStep     = $pinjam->approval_step;
@@ -385,13 +336,7 @@ class AssetPinjamController extends Controller
         $id = Crypt::decrypt($id);
         $pinjam = AssetPinjam::where('id', $id)->where('status', 1)->firstOrFail();
 
-        $fotoPath = $pinjam->foto_kondisi_kembali;
-        if ($request->hasFile('foto_kondisi_kembali')) {
-            if ($fotoPath) {
-                Storage::disk('public')->delete($fotoPath);
-            }
-            $fotoPath = $request->file('foto_kondisi_kembali')->store('asset-pinjam', 'public');
-        }
+        $fotoPath = $this->handleFotoUpload($request, 'foto_kondisi_kembali', $pinjam->foto_kondisi_kembali);
 
         DB::beginTransaction();
         try {
@@ -446,5 +391,77 @@ class AssetPinjamController extends Controller
             DB::rollBack();
             return Redirect::back()->with(messageError($e->getMessage()));
         }
+    }
+
+    protected function filterQueryByAccess($query, $user, $colCabang, $colDept)
+    {
+        $userCabangs = $user->getCabangCodes();
+        if (!empty($userCabangs)) {
+            $query->whereIn($colCabang, $userCabangs);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+        
+        if ($colDept) {
+            $userDepartemens = $user->getDepartemenCodes();
+            if (!empty($userDepartemens)) {
+                $query->whereIn($colDept, $userDepartemens);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+    }
+
+    private function applySearchFilters($query, $request)
+    {
+        if ($request->filled('nama_karyawan')) {
+            $query->where('karyawan.nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
+        }
+        if ($request->filled('kode_cabang')) {
+            $query->where('karyawan.kode_cabang', $request->kode_cabang);
+        }
+        if ($request->filled('kode_asset')) {
+            $query->where('asset_pinjam.kode_asset', $request->kode_asset);
+        }
+        if ($request->status !== null && $request->status !== '') {
+            $query->where('asset_pinjam.status', $request->status);
+        }
+    }
+
+    private function resolveWaitingRole($items)
+    {
+        $approvalService = app(ApprovalService::class);
+        foreach ($items as $item) {
+            $item->waiting_role = null;
+            if ($item->status == 0 && $item->approval_step) {
+                $layer = $approvalService->getLayer('PINJAM', $item->approval_step, $item->kode_dept, $item->kode_jabatan, $item->kode_cabang);
+                $item->waiting_role = $layer?->role_name;
+            }
+        }
+    }
+
+    private function checkAccess($user, $pinjam)
+    {
+        if (!$user->isSuperAdmin()) {
+            $accessUser = $user->getApprovalAdmin() ?? $user;
+            $userCabangs = $accessUser->getCabangCodes();
+            $userDepartemens = $accessUser->getDepartemenCodes();
+            
+            if (!in_array($pinjam->kode_cabang, $userCabangs) || !in_array($pinjam->kode_dept, $userDepartemens)) {
+                abort(403, 'Anda tidak memiliki akses ke pengajuan ini.');
+            }
+        }
+    }
+
+    private function handleFotoUpload(Request $request, $fieldName, $oldFotoPath = null)
+    {
+        $fotoPath = $oldFotoPath;
+        if ($request->hasFile($fieldName)) {
+            if ($fotoPath) {
+                Storage::disk('public')->delete($fotoPath);
+            }
+            $fotoPath = $request->file($fieldName)->store('asset-pinjam', 'public');
+        }
+        return $fotoPath;
     }
 }

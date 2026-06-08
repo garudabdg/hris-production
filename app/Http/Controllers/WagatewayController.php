@@ -54,20 +54,7 @@ class WagatewayController extends Controller
                 'urlwebhook' => null
             ];
 
-            // Ambil domain dari general setting
-            $domain = $generalsetting->domain_wa_gateway;
-            if (!$domain) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Domain WA Gateway belum dikonfigurasi'
-                ], 400);
-            }
-
-            // Gunakan protokol yang sudah ada di domain_wa_gateway, jika tidak ada default ke http://
-            if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
-                $domain = 'http://' . $domain;
-            }
-            $apiUrl = rtrim($domain, '/') . '/create-device';
+            $apiUrl = $this->getApiUrl($generalsetting, '/create-device');
 
             // Kirim request ke API
             $response = Http::timeout(30)->post($apiUrl, $apiData);
@@ -166,20 +153,7 @@ class WagatewayController extends Controller
                 'force' => true
             ];
 
-            // Ambil domain dari general setting
-            $domain = $generalsetting->domain_wa_gateway;
-            if (!$domain) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Domain WA Gateway belum dikonfigurasi'
-                ], 400);
-            }
-
-            // Gunakan protokol yang sudah ada di domain_wa_gateway, jika tidak ada default ke http://
-            if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
-                $domain = 'http://' . $domain;
-            }
-            $apiUrl = rtrim($domain, '/') . '/generate-qr';
+            $apiUrl = $this->getApiUrl($generalsetting, '/generate-qr');
 
             // Kirim request ke API dengan JSON body (seperti di Postman)
             $response = Http::timeout(60)
@@ -299,13 +273,7 @@ class WagatewayController extends Controller
     private function getDeviceInfo($deviceNumber, $generalsetting)
     {
         try {
-            // Ambil domain dari general setting
-            $domain = $generalsetting->domain_wa_gateway;
-            // Gunakan protokol yang sudah ada di domain_wa_gateway, jika tidak ada default ke http://
-            if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
-                $domain = 'http://' . $domain;
-            }
-            $apiUrl = rtrim($domain, '/') . '/info-device';
+            $apiUrl = $this->getApiUrl($generalsetting, '/info-device');
 
             // Siapkan data untuk API
             $apiData = [
@@ -373,9 +341,7 @@ class WagatewayController extends Controller
             }
 
             $provider = $generalsetting->provider_wa ?? 'ig';
-            $domain   = $generalsetting->domain_wa_gateway ?? 'http://127.0.0.1:3000';
-            if (!str_starts_with($domain, 'http')) $domain = 'http://' . $domain;
-            $apiUrl  = rtrim($domain, '/') . '/send-message';
+            $apiUrl = $this->getApiUrl($generalsetting, '/send-message');
             $apiKey  = $generalsetting->wa_api_key;
 
             // ── Local Gateway ────────────────────────────────────────────────
@@ -489,12 +455,7 @@ class WagatewayController extends Controller
                 ], 400);
             }
 
-            // Buat URL API
-            $domain = $generalsetting->domain_wa_gateway;
-            if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
-                $domain = 'http://' . $domain;
-            }
-            $apiUrl = $domain . '/logout-device';
+            $apiUrl = $this->getApiUrl($generalsetting, '/logout-device');
 
             // Data untuk API
             $apiData = [
@@ -553,9 +514,7 @@ class WagatewayController extends Controller
         try {
             $setting = Pengaturanumum::first();
             $apiKey  = $setting->wa_api_key ?? 'hris-wa-gateway-secret';
-            $domain  = $setting->domain_wa_gateway ?? 'http://127.0.0.1:3000';
-            if (!str_starts_with($domain, 'http')) $domain = 'http://' . $domain;
-            $url = rtrim($domain, '/') . '/status';
+            $url = $this->getApiUrl($setting, '/status');
 
             $response = Http::timeout(5)->withHeaders(['X-Api-Key' => $apiKey])->get($url);
             return response()->json($response->json());
@@ -572,9 +531,7 @@ class WagatewayController extends Controller
         try {
             $setting = Pengaturanumum::first();
             $apiKey  = $setting->wa_api_key ?? 'hris-wa-gateway-secret';
-            $domain  = $setting->domain_wa_gateway ?? 'http://127.0.0.1:3000';
-            if (!str_starts_with($domain, 'http')) $domain = 'http://' . $domain;
-            $url = rtrim($domain, '/') . '/qr';
+            $url = $this->getApiUrl($setting, '/qr');
 
             $response = Http::timeout(10)->withHeaders(['X-Api-Key' => $apiKey])->get($url);
             return response()->json($response->json());
@@ -591,9 +548,7 @@ class WagatewayController extends Controller
         try {
             $setting = Pengaturanumum::first();
             $apiKey  = $setting->wa_api_key ?? 'hris-wa-gateway-secret';
-            $domain  = $setting->domain_wa_gateway ?? 'http://127.0.0.1:3000';
-            if (!str_starts_with($domain, 'http')) $domain = 'http://' . $domain;
-            $url = rtrim($domain, '/') . '/disconnect';
+            $url = $this->getApiUrl($setting, '/disconnect');
 
             $response = Http::timeout(10)->withHeaders(['X-Api-Key' => $apiKey])->asJson()->post($url);
             return response()->json($response->json());
@@ -662,12 +617,7 @@ class WagatewayController extends Controller
                 ], 400);
             }
 
-            // Buat URL API
-            $domain = $generalsetting->domain_wa_gateway;
-            if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
-                $domain = 'http://' . $domain;
-            }
-            $apiUrl = $domain . '/fetch-contact-group';
+            $apiUrl = $this->getApiUrl($generalsetting, '/fetch-contact-group');
 
             // Data untuk API
             $apiData = [
@@ -739,11 +689,7 @@ class WagatewayController extends Controller
             // Coba disconnect device dari WA Gateway API jika terhubung
             if ($generalsetting && $generalsetting->domain_wa_gateway) {
                 try {
-                    $domain = $generalsetting->domain_wa_gateway;
-                    if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
-                        $domain = 'http://' . $domain;
-                    }
-                    $apiUrl = $domain . '/logout-device';
+                    $apiUrl = $this->getApiUrl($generalsetting, '/logout-device');
 
                     $apiData = [
                         'api_key' => $generalsetting->wa_api_key,
@@ -786,5 +732,14 @@ class WagatewayController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function getApiUrl($generalsetting, $endpoint)
+    {
+        $domain = $generalsetting->domain_wa_gateway ?? 'http://127.0.0.1:3000';
+        if (!str_starts_with($domain, 'http://') && !str_starts_with($domain, 'https://')) {
+            $domain = 'http://' . $domain;
+        }
+        return rtrim($domain, '/') . $endpoint;
     }
 }

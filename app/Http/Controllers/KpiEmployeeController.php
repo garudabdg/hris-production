@@ -323,52 +323,46 @@ class KpiEmployeeController extends Controller
          return $score;
     }
 
+    private function getPresensiCache($nik, $start, $end) {
+        static $cache = [];
+        $key = "{$nik}_{$start}_{$end}";
+        if (!isset($cache[$key])) {
+            // Join dengan presensi_jamkerja karena kita butuh jam_masuk untuk 'attendance_terlambat'
+            $cache[$key] = Presensi::leftJoin('presensi_jamkerja', 'presensi.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
+                ->where('nik', $nik)
+                ->whereBetween('tanggal', [$start, $end])
+                ->select('presensi.*', 'presensi_jamkerja.jam_masuk')
+                ->get();
+        }
+        return $cache[$key];
+    }
+
     private function calculateAutomatedRealization($kpi_employee, $metric_source) {
         $nik = $kpi_employee->nik;
         $start = $kpi_employee->period->start_date;
         $end = $kpi_employee->period->end_date;
         
-        // Gunakan model Presensi yang kita tahu ada
-        // Perlu memastikan kita mengimpor Presensi di bagian atas file (sudah diimpor)
+        $presensiList = $this->getPresensiCache($nik, $start, $end);
         
         switch ($metric_source) {
             case 'attendance_sakit':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 's')
-                    ->count();
+                return $presensiList->where('status', 's')->count();
             case 'attendance_izin':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'i')
-                    ->count();
+                return $presensiList->where('status', 'i')->count();
             case 'attendance_alpa':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'a')
-                    ->count();
+                return $presensiList->where('status', 'a')->count();
             case 'attendance_cuti':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'c')
-                    ->count();
+                return $presensiList->where('status', 'c')->count();
             case 'attendance_hadir':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'h')
-                    ->count();
+                return $presensiList->where('status', 'h')->count();
             case 'attendance_terlambat':
-                $presensi = Presensi::join('presensi_jamkerja', 'presensi.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                    ->where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'h')
-                    ->select('presensi.*', 'presensi_jamkerja.jam_masuk')
-                    ->get();
-                
+                $hadirList = $presensiList->where('status', 'h');
                 $total_late_minutes = 0;
-                foreach ($presensi as $p) {
+                
+                foreach ($hadirList as $p) {
+                    if (!$p->jam_masuk) continue; // Skip jika tidak ada jadwal jam_masuk
+                    
                     $jam_masuk = $p->tanggal . ' ' . $p->jam_masuk;
-                    // hitungjamterlambat adalah fungsi pembantu
                     $terlambat = hitungjamterlambat($p->jam_in, $jam_masuk);
                     
                     if ($terlambat && isset($terlambat['jamterlambat'])) {

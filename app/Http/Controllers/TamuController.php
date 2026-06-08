@@ -237,7 +237,8 @@ class TamuController extends Controller
     public function search(Request $request)
     {
         $search = $request->q;
-        $tamus = Tamu::where('nama_tamu', 'like', "%$search%")
+        $tamus = Tamu::select('nama_tamu', 'no_telp', 'plat_nomor', 'foto_wajah', 'foto_ktp')
+            ->where('nama_tamu', 'like', "%$search%")
             ->orWhere('no_telp', 'like', "%$search%")
             ->orderBy('created_at', 'desc')
             ->limit(20)

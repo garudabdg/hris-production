@@ -50,15 +50,18 @@ class PengajuanizinController extends Controller
 
         // Resolve nama approver yang sedang menunggu (untuk status pending)
         $karyawan = Karyawan::where('nik', $userkaryawan->nik)->first();
+        $approvalLayers = ApprovalLayer::where('feature', 'IZIN')->get(); // Ambil sekali (Fix N+1)
+        
         foreach ($pengajuan_izin as $item) {
             $item->waiting_role = null;
             if ($item->status_izin == 0 && $item->approval_step) {
-                $layer = ApprovalLayer::where('feature', 'IZIN')
-                    ->where('level', $item->approval_step)
-                    ->where(function ($q) use ($karyawan) {
-                        $q->where('kode_dept', $karyawan->kode_dept)->orWhereNull('kode_dept');
+                $layer = $approvalLayers->where('level', $item->approval_step)
+                    ->filter(function ($l) use ($karyawan) {
+                        return $l->kode_dept === $karyawan->kode_dept || is_null($l->kode_dept);
                     })
-                    ->orderByRaw('CASE WHEN kode_dept IS NOT NULL THEN 0 ELSE 1 END')
+                    ->sortBy(function ($l) {
+                        return !is_null($l->kode_dept) ? 0 : 1;
+                    })
                     ->first();
                 $item->waiting_role = $layer?->role_name;
             }

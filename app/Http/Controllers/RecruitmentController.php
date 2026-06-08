@@ -30,34 +30,7 @@ class RecruitmentController extends Controller
         $query = Recruitment::with(['cabang', 'departemen', 'jabatan'])
             ->orderByDesc('tanggal_melamar');
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
-                  ->orWhere('kode_recruitment', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%')
-                  ->orWhere('no_hp', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('kode_cabang')) {
-            $query->where('kode_cabang', $request->kode_cabang);
-        }
-
-        if ($request->filled('kode_dept')) {
-            $query->where('kode_dept', $request->kode_dept);
-        }
-
-        // Batasi akses berdasarkan cabang user
-        if (!$user->isSuperAdmin()) {
-            $allowedCabang = $user->getCabangCodes();
-            if (!empty($allowedCabang)) {
-                $query->whereIn('kode_cabang', $allowedCabang);
-            }
-        }
+        $this->applyIndexFilters($query, $request, $user);
 
         $recruitments = $query->paginate(20)->withQueryString();
 
@@ -67,22 +40,7 @@ class RecruitmentController extends Controller
             $allQuery = Recruitment::with(['cabang', 'departemen', 'jabatan'])
                 ->orderByDesc('tanggal_melamar');
 
-            $allowedCabang = $user->getCabangCodes();
-            if (!empty($allowedCabang)) {
-                $allQuery->whereIn('kode_cabang', $allowedCabang);
-            }
-
-            if ($request->filled('search')) {
-                $allQuery->where(function ($q) use ($request) {
-                    $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
-                      ->orWhere('kode_recruitment', 'like', '%' . $request->search . '%')
-                      ->orWhere('email', 'like', '%' . $request->search . '%')
-                      ->orWhere('no_hp', 'like', '%' . $request->search . '%');
-                });
-            }
-            if ($request->filled('status')) {
-                $allQuery->where('status', $request->status);
-            }
+            $this->applyIndexFilters($allQuery, $request, $user);
 
             $recruitmentsByCabang = $allQuery->get()->groupBy('kode_cabang');
         }
@@ -602,5 +560,33 @@ class RecruitmentController extends Controller
         })->orderBy('nama_jabatan')->get();
 
         return response()->json($jabatan);
+    }
+
+    private function applyIndexFilters($query, Request $request, User $user)
+    {
+        if (!$user->isSuperAdmin()) {
+            $allowedCabang = $user->getCabangCodes();
+            if (!empty($allowedCabang)) {
+                $query->whereIn('kode_cabang', $allowedCabang);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
+                  ->orWhere('kode_recruitment', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%')
+                  ->orWhere('no_hp', 'like', '%' . $request->search . '%');
+            });
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('kode_cabang')) {
+            $query->where('kode_cabang', $request->kode_cabang);
+        }
+        if ($request->filled('kode_dept')) {
+            $query->where('kode_dept', $request->kode_dept);
+        }
     }
 }

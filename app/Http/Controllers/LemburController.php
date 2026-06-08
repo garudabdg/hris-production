@@ -26,114 +26,109 @@ class LemburController extends Controller
         /** @var \App\Models\User $user */
         $user = auth()->user();
         
+        $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
+        $karyawan = $userkaryawan ? Karyawan::where('nik', $userkaryawan->nik)->first() : null;
+
         // Cek jika user adalah karyawan departemen BU (Business), tampilkan error
-        $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
-        if ($userkaryawan) {
-            $karyawan = Karyawan::where('nik', $userkaryawan->nik)->first();
-            if ($karyawan && $karyawan->kode_dept == 'BU') {
-                return redirect()->route('dashboard.index')->with('error', 'Fitur lembur tidak tersedia untuk departemen Business.');
-            }
+        if ($karyawan && $karyawan->kode_dept == 'BU') {
+            return redirect()->route('dashboard.index')->with('error', 'Fitur lembur tidak tersedia untuk departemen Business.');
         }
         
-        $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
-        $qlembur = Lembur::query();
-        $qlembur->join('karyawan', 'lembur.nik', '=', 'karyawan.nik');
-        $qlembur->join('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan');
-        $qlembur->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
-        $qlembur->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
+        $qlembur = Lembur::query()
+            ->join('karyawan', 'lembur.nik', '=', 'karyawan.nik')
+            ->join('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
+            ->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
+            ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
         
-        // Filter berdasarkan akses cabang dan departemen jika bukan super admin dan bukan karyawan
-        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qlembur->whereIn('karyawan.kode_cabang', $userCabangs);
-            } else {
-                $qlembur->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qlembur->whereIn('karyawan.kode_dept', $userDepartemens);
-            } else {
-                $qlembur->whereRaw('1 = 0');
-            }
-        }
-        
-        if (!empty($request->dari) && !empty($request->sampai)) {
-            $qlembur->whereBetween('lembur.tanggal', [$request->dari, $request->sampai]);
-        }
-        if (!empty($request->nama_karyawan)) {
-            $qlembur->where('karyawan.nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
-        }
-        if (!empty($request->kode_cabang)) {
-            $qlembur->where('karyawan.kode_cabang', $request->kode_cabang);
-        }
+        $this->applyAccessFilters($qlembur, $user);
+        $this->applySearchFilters($qlembur, $request);
 
-        if (!empty($request->kode_dept)) {
-            $qlembur->where('karyawan.kode_dept', $request->kode_dept);
-        }
-
-        if (!empty($request->status) || $request->status === '0') {
-            $qlembur->where('lembur.status', $request->status);
-        }
-
-        if ($user->hasRole('karyawan')) {
+        if ($user->hasRole('karyawan') && $userkaryawan) {
             $qlembur->where('lembur.nik', $userkaryawan->nik);
         }
 
-        $qlembur->orderBy('lembur.status');
-        $qlembur->orderBy('lembur.tanggal', 'desc');
-        $qlembur->select(
-            'lembur.*',
-            'karyawan.nama_karyawan',
-            'karyawan.foto',
-            'karyawan.kode_dept',
-            'karyawan.kode_cabang',
-            'karyawan.kode_jabatan',
-            'jabatan.nama_jabatan',
-            'departemen.nama_dept',
-            'cabang.nama_cabang'
-        );
-        $lembur = $qlembur->paginate(15);
-        $lembur->appends($request->all());
+        $lembur = $qlembur->orderBy('lembur.status')
+            ->orderBy('lembur.tanggal', 'desc')
+            ->select(
+                'lembur.*',
+                'karyawan.nama_karyawan',
+                'karyawan.foto',
+                'karyawan.kode_dept',
+                'karyawan.kode_cabang',
+                'karyawan.kode_jabatan',
+                'jabatan.nama_jabatan',
+                'departemen.nama_dept',
+                'cabang.nama_cabang'
+            )
+            ->paginate(15)
+            ->appends($request->all());
 
-        $approvalService = app(\App\Services\ApprovalService::class);
-
-        // Resolve waiting_role untuk karyawan (tampil di mobile view)
-        if ($user->hasRole('karyawan') && $karyawan) {
-            foreach ($lembur as $item) {
-                $item->waiting_role = null;
-                if ($item->status == 0 && $item->approval_step) {
-                    $layer = $approvalService->getLayer('IZIN', $item->approval_step, $karyawan->kode_dept, $karyawan->kode_jabatan, $karyawan->kode_cabang);
-                    $item->waiting_role = $layer?->role_name;
-                }
-            }
-        } else {
-            // Admin/HRD view: resolve waiting_role per item berdasarkan dept+cabang masing-masing
-            foreach ($lembur as $item) {
-                $item->waiting_role = null;
-                if ($item->status == 0 && $item->approval_step) {
-                    $layer = $approvalService->getLayer('IZIN', $item->approval_step, $item->kode_dept, $item->kode_jabatan, $item->kode_cabang);
-                    $item->waiting_role = $layer?->role_name;
-                }
-            }
-        }
+        $this->resolveWaitingRoles($lembur, $user, $karyawan);
 
         $data['lembur'] = $lembur;
         
         if ($user->hasRole('karyawan')) {
             $data['cabang'] = collect();
             $data['departemen'] = collect();
+            return view('lembur.index-karyawan', $data);
         } else {
             $data['cabang'] = $user->getCabang();
             $data['departemen'] = $user->getDepartemen();
-        }
-
-        if ($user->hasRole('karyawan')) {
-            return view('lembur.index-karyawan', $data);
-        } else {
             return view('lembur.index', $data);
+        }
+    }
+
+    private function applyAccessFilters($query, $user) {
+        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+            
+            if (!empty($userCabangs)) {
+                $query->whereIn('karyawan.kode_cabang', $userCabangs);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+            
+            if (!empty($userDepartemens)) {
+                $query->whereIn('karyawan.kode_dept', $userDepartemens);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+    }
+
+    private function applySearchFilters($query, $request) {
+        $query->when(!empty($request->dari) && !empty($request->sampai), function($q) use ($request) {
+            $q->whereBetween('lembur.tanggal', [$request->dari, $request->sampai]);
+        });
+        $query->when(!empty($request->nama_karyawan), function($q) use ($request) {
+            $q->where('karyawan.nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
+        });
+        $query->when(!empty($request->kode_cabang), function($q) use ($request) {
+            $q->where('karyawan.kode_cabang', $request->kode_cabang);
+        });
+        $query->when(!empty($request->kode_dept), function($q) use ($request) {
+            $q->where('karyawan.kode_dept', $request->kode_dept);
+        });
+        $query->when($request->filled('status'), function($q) use ($request) {
+            $q->where('lembur.status', $request->status);
+        });
+    }
+
+    private function resolveWaitingRoles($lembur, $user, $karyawan) {
+        $approvalService = app(\App\Services\ApprovalService::class);
+        $isKaryawan = $user->hasRole('karyawan');
+
+        foreach ($lembur as $item) {
+            $item->waiting_role = null;
+            if ($item->status == 0 && $item->approval_step) {
+                if ($isKaryawan && $karyawan) {
+                    $layer = $approvalService->getLayer('IZIN', $item->approval_step, $karyawan->kode_dept, $karyawan->kode_jabatan, $karyawan->kode_cabang);
+                } else {
+                    $layer = $approvalService->getLayer('IZIN', $item->approval_step, $item->kode_dept, $item->kode_jabatan, $item->kode_cabang);
+                }
+                $item->waiting_role = $layer?->role_name;
+            }
         }
     }
 
@@ -226,16 +221,7 @@ class LemburController extends Controller
             ->join('karyawan', 'lembur.nik', '=', 'karyawan.nik')
             ->first();
         
-        // Cek akses jika bukan super admin dan bukan karyawan
-        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
-            $karyawanData = Karyawan::where('nik', $lembur->nik)->first();
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($karyawanData->kode_cabang, $userCabangs) || !in_array($karyawanData->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke data lembur ini.');
-            }
-        }
+        $this->authorizeLembur($lembur, $user);
         
         $qkaryawan = Karyawan::query();
         $qkaryawan->select('karyawan.nik', 'karyawan.nama_karyawan');
@@ -312,15 +298,7 @@ class LemburController extends Controller
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
             ->first();
         
-        // Cek akses jika bukan super admin dan bukan karyawan
-        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($lembur->kode_cabang, $userCabangs) || !in_array($lembur->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke data lembur ini.');
-            }
-        }
+        $this->authorizeLembur($lembur, $user);
 
         // Load approval history with user relationship (sama seperti cuti)
         $approvals = Approval::where('approvable_type', 'App\Models\Lembur')
@@ -347,16 +325,7 @@ class LemburController extends Controller
             ->select('lembur.*', 'karyawan.kode_dept', 'karyawan.kode_cabang', 'karyawan.kode_jabatan')
             ->first();
 
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $accessUser = $user->getApprovalAdmin() ?? $user;
-            $userCabangs = $accessUser->getCabangCodes();
-            $userDepartemens = $accessUser->getDepartemenCodes();
-
-            if (!in_array($lembur->kode_cabang, $userCabangs) || !in_array($lembur->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke data lembur ini.');
-            }
-        }
+        $this->authorizeLembur($lembur, $user);
 
         $kode_dept     = $lembur->kode_dept;
         $kode_jabatan  = $lembur->kode_jabatan;
@@ -433,15 +402,7 @@ class LemburController extends Controller
             ->select('lembur.*', 'karyawan.kode_dept', 'karyawan.kode_cabang')
             ->first();
 
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-
-            if (!in_array($lembur->kode_cabang, $userCabangs) || !in_array($lembur->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke data lembur ini.');
-            }
-        }
+        $this->authorizeLembur($lembur, $user);
 
         DB::beginTransaction();
         try {
@@ -563,15 +524,7 @@ class LemburController extends Controller
             ->join('karyawan', 'lembur.nik', '=', 'karyawan.nik')
             ->first();
         
-        // Cek akses jika bukan super admin dan bukan karyawan
-        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($lembur->kode_cabang, $userCabangs) || !in_array($lembur->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke data lembur ini.');
-            }
-        }
+        $this->authorizeLembur($lembur, $user);
         
         try {
             Lembur::where('id', $id)->delete();
@@ -723,6 +676,23 @@ class LemburController extends Controller
                         return response()->json(['status' => false, 'message' => $e->getMessage()], 400);
                     }
                 }
+            }
+        }
+    }
+
+    private function authorizeLembur($lembur, $user = null)
+    {
+        $user = $user ?? auth()->user();
+        if (!$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
+            $accessUser = $user->getApprovalAdmin() ?? $user;
+            $userCabangs = $accessUser->getCabangCodes();
+            $userDepartemens = $accessUser->getDepartemenCodes();
+            
+            $kode_cabang = $lembur->kode_cabang ?? Karyawan::where('nik', $lembur->nik)->value('kode_cabang');
+            $kode_dept = $lembur->kode_dept ?? Karyawan::where('nik', $lembur->nik)->value('kode_dept');
+
+            if (!in_array($kode_cabang, $userCabangs) || !in_array($kode_dept, $userDepartemens)) {
+                abort(403, 'Anda tidak memiliki akses ke data lembur ini.');
             }
         }
     }

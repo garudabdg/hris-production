@@ -55,39 +55,7 @@ class KaryawanController extends Controller
         });
 
         // Filter berdasarkan akses cabang dan departemen jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            // Ambil kode cabang dan departemen yang diakses user
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-
-            // Filter berdasarkan cabang yang diakses
-            if (!empty($userCabangs)) {
-                $query->whereIn('karyawan.kode_cabang', $userCabangs);
-            } else {
-                // Jika tidak ada akses cabang, tidak tampilkan data
-                $query->whereRaw('1 = 0');
-            }
-
-            // Filter berdasarkan departemen & sub-departemen yang diakses
-            $userDepartemenMap = $user->getDepartemenAccessMap();
-            
-            if (!empty($userDepartemenMap)) {
-                $query->where(function ($q) use ($userDepartemenMap) {
-                    foreach ($userDepartemenMap as $kodeDept => $subDepts) {
-                        $q->orWhere(function ($q2) use ($kodeDept, $subDepts) {
-                            $q2->where('karyawan.kode_dept', $kodeDept);
-                            // Jika ada batasan sub-departemen untuk departemen ini
-                            if (!empty($subDepts) && is_array($subDepts)) {
-                                $q2->whereIn('karyawan.sub_departemen', $subDepts);
-                            }
-                        });
-                    }
-                });
-            } else {
-                // Jika tidak ada akses departemen, tidak tampilkan data
-                $query->whereRaw('1 = 0');
-            }
-        }
+        $query->accessFilter($user);
 
         if (!empty($request->kode_cabang)) {
             $query->where('karyawan.kode_cabang', $request->kode_cabang);
@@ -754,24 +722,20 @@ class KaryawanController extends Controller
         try {
             $count = 0;
             foreach ($karyawan as $k) {
-                // Check if user already exists (double check)
-                $existingUser = Userkaryawan::where('nik', $k->nik)->first();
-                if (!$existingUser) {
-                    $user = User::create([
-                        'name' => $k->nama_karyawan,
-                        'username' => $k->nik,
-                        'password' => Hash::make($k->nik),
-                        'email' => strtolower(removeTitik($k->nik)) . '@belum.diset',
-                    ]);
+                $user = User::create([
+                    'name' => $k->nama_karyawan,
+                    'username' => $k->nik,
+                    'password' => Hash::make($k->nik),
+                    'email' => strtolower(removeTitik($k->nik)) . '@belum.diset',
+                ]);
 
-                    Userkaryawan::create([
-                        'nik' => $k->nik,
-                        'id_user' => $user->id
-                    ]);
+                Userkaryawan::create([
+                    'nik' => $k->nik,
+                    'id_user' => $user->id
+                ]);
 
-                    $user->assignRole('karyawan');
-                    $count++;
-                }
+                $user->assignRole('karyawan');
+                $count++;
             }
 
             DB::commit();
@@ -870,22 +834,7 @@ class KaryawanController extends Controller
         $user = auth()->user();
         $query = Karyawan::query();
 
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-
-            if (!empty($userCabangs)) {
-                $query->whereIn('kode_cabang', $userCabangs);
-            } else {
-                $query->whereRaw('1 = 0');
-            }
-
-            if (!empty($userDepartemens)) {
-                $query->whereIn('kode_dept', $userDepartemens);
-            } else {
-                $query->whereRaw('1 = 0');
-            }
-        }
+        $query->accessFilter($user);
 
         if (!empty($request->kode_cabang)) {
             $query->where('kode_cabang', $request->kode_cabang);

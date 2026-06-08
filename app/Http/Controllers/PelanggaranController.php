@@ -31,31 +31,7 @@ class PelanggaranController extends Controller
         $qpelanggaran->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
 
         // Filter berdasarkan akses
-        if ($user->hasRole('karyawan')) {
-            // Jika role karyawan, hanya tampilkan data dia sendiri
-            if ($userkaryawan) {
-                $qpelanggaran->where('pelanggaran.nik', $userkaryawan->nik);
-            } else {
-                 // Fallback if no linked karyawan found but has role
-                 $qpelanggaran->whereRaw('1 = 0');
-            }
-        } elseif (!$user->isSuperAdmin()) {
-            // Logic existing untuk admin cabang/dept
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qpelanggaran->whereIn('karyawan.kode_cabang', $userCabangs);
-            } else {
-                $qpelanggaran->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qpelanggaran->whereIn('karyawan.kode_dept', $userDepartemens);
-            } else {
-                $qpelanggaran->whereRaw('1 = 0');
-            }
-        }
+        $this->applyAccessFilters($qpelanggaran, $user, $userkaryawan);
 
         // Filter by date range
         if (!empty($request->dari) && !empty($request->sampai)) {
@@ -272,14 +248,7 @@ class PelanggaranController extends Controller
         }
 
         // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($pelanggaran->kode_cabang, $userCabangs) || !in_array($pelanggaran->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke pelanggaran ini.');
-            }
-        }
+        $this->authorizePelanggaran($user, $pelanggaran);
 
         $karyawans = $this->getKaryawansByAccess($user);
         
@@ -314,14 +283,7 @@ class PelanggaranController extends Controller
         }
 
         // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($pelanggaran->kode_cabang, $userCabangs) || !in_array($pelanggaran->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke pelanggaran ini.');
-            }
-        }
+        $this->authorizePelanggaran($user, $pelanggaran);
 
         // Validasi jika NIK berubah
         if ($request->nik !== $pelanggaran->nik) {
@@ -382,14 +344,7 @@ class PelanggaranController extends Controller
         }
 
         // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($pelanggaran->kode_cabang, $userCabangs) || !in_array($pelanggaran->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke pelanggaran ini.');
-            }
-        }
+        $this->authorizePelanggaran($user, $pelanggaran);
 
         try {
             Pelanggaran::where('no_sp', $no_sp)->delete();
@@ -427,5 +382,43 @@ class PelanggaranController extends Controller
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->stream('SP_' . $pelanggaran->no_sp . '_' . $pelanggaran->nik . '.pdf');
+    }
+
+    private function applyAccessFilters($query, User $user, $userkaryawan)
+    {
+        if ($user->hasRole('karyawan')) {
+            if ($userkaryawan) {
+                $query->where('pelanggaran.nik', $userkaryawan->nik);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } elseif (!$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+            
+            if (!empty($userCabangs)) {
+                $query->whereIn('karyawan.kode_cabang', $userCabangs);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+            
+            if (!empty($userDepartemens)) {
+                $query->whereIn('karyawan.kode_dept', $userDepartemens);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+    }
+
+    private function authorizePelanggaran(User $user, $pelanggaran)
+    {
+        if (!$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+            
+            if (!in_array($pelanggaran->kode_cabang, $userCabangs) || !in_array($pelanggaran->kode_dept, $userDepartemens)) {
+                abort(403, 'Anda tidak memiliki akses ke pelanggaran ini.');
+            }
+        }
     }
 }

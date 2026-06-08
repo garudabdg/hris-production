@@ -40,23 +40,7 @@ class IzinabsenController extends Controller
         $qizin->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
         $qizin->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
 
-        // Filter berdasarkan akses cabang dan departemen jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qizin->whereIn('karyawan.kode_cabang', $userCabangs);
-            } else {
-                $qizin->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qizin->whereIn('karyawan.kode_dept', $userDepartemens);
-            } else {
-                $qizin->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($qizin, $user, 'karyawan');
 
         if (!empty($request->dari) && !empty($request->sampai)) {
             $qizin->whereBetween('presensi_izinabsen.tanggal', [$request->dari, $request->sampai]);
@@ -111,23 +95,7 @@ class IzinabsenController extends Controller
         $qkaryawan = Karyawan::query();
         $qkaryawan->select('karyawan.nik', 'karyawan.nama_karyawan');
         
-        // Filter karyawan berdasarkan akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qkaryawan->whereIn('kode_cabang', $userCabangs);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qkaryawan->whereIn('kode_dept', $userDepartemens);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($qkaryawan, $user, 'kode_cabang', 'kode_dept');
         
         $karyawan = $qkaryawan->get();
 
@@ -145,37 +113,12 @@ class IzinabsenController extends Controller
             ->join('karyawan', 'presensi_izinabsen.nik', '=', 'karyawan.nik')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $karyawanData = Karyawan::where('nik', $izinabsen->nik)->first();
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($karyawanData->kode_cabang, $userCabangs) || !in_array($karyawanData->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
-            }
-        }
+        $this->checkAccess($user, $izinabsen);
         
         $qkaryawan = Karyawan::query();
         $qkaryawan->select('karyawan.nik', 'karyawan.nama_karyawan');
         
-        // Filter karyawan berdasarkan akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qkaryawan->whereIn('kode_cabang', $userCabangs);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qkaryawan->whereIn('kode_dept', $userDepartemens);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($qkaryawan, $user, 'kode_cabang', 'kode_dept');
         
         $karyawan = $qkaryawan->get();
         $data['karyawan'] = $karyawan;
@@ -297,15 +240,7 @@ class IzinabsenController extends Controller
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($izinabsen->kode_cabang, $userCabangs) || !in_array($izinabsen->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
-            }
-        }
+        $this->checkAccess($user, $izinabsen);
 
         // Load approval history with user relationship
         $approvals = \App\Models\Approval::where('approvable_type', 'App\Models\Izinabsen')
@@ -330,17 +265,7 @@ class IzinabsenController extends Controller
             ->select('presensi_izinabsen.*', 'karyawan.kode_cabang', 'karyawan.kode_dept', 'karyawan.kode_jabatan')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            // Untuk delegasi, gunakan cabang/dept admin
-            $accessUser = $user->getApprovalAdmin() ?? $user;
-            $userCabangs = $accessUser->getCabangCodes();
-            $userDepartemens = $accessUser->getDepartemenCodes();
-            
-            if (!in_array($izinabsen->kode_cabang, $userCabangs) || !in_array($izinabsen->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
-            }
-        }
+        $this->checkAccess($user, $izinabsen);
         $dari = $izinabsen->dari;
         $sampai = $izinabsen->sampai;
         $nik = $izinabsen->nik;
@@ -408,48 +333,7 @@ class IzinabsenController extends Controller
                     ));
                 }
 
-                while (strtotime($dari) <= strtotime($sampai)) {
-
-                    //Cek Jadwal Pada Setiap tanggal
-                    $namahari = getnamaHari(date('D', strtotime($dari)));
-
-                    $jamkerja = Setjamkerjabydate::join('presensi_jamkerja', 'presensi_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                        ->where('nik', $izinabsen->nik)
-                        ->where('tanggal', $dari)
-                        ->first();
-                    if ($jamkerja == null) {
-                        $jamkerja = Setjamkerjabyday::join('presensi_jamkerja', 'presensi_jamkerja_byday.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                            ->where('nik', $izinabsen->nik)->where('hari', $namahari)
-                            ->first();
-                    }
-
-                    if ($jamkerja == null) {
-                        $jamkerja = Detailsetjamkerjabydept::join('presensi_jamkerja_bydept', 'presensi_jamkerja_bydept_detail.kode_jk_dept', '=', 'presensi_jamkerja_bydept.kode_jk_dept')
-                            ->join('presensi_jamkerja', 'presensi_jamkerja_bydept_detail.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                            ->where('kode_dept', $kode_dept)
-                            ->where('kode_cabang', $izinabsen->kode_cabang)
-                            ->where('hari', $namahari)->first();
-                    }
-
-                    if ($jamkerja == null) {
-                        $error .= 'Jam Kerja pada Tanggal ' . $dari . ' Belum Di Set! <br>';
-                    } else {
-                        $presensi = Presensi::create([
-                            'nik' => $nik,
-                            'tanggal' => $dari,
-                            'kode_jam_kerja' => $jamkerja->kode_jam_kerja,
-                            'status' => 'i',
-                        ]);
-
-                        Approveizinabsen::create([
-                            'id_presensi' => $presensi->id,
-                            'kode_izin' => $kode_izin,
-                        ]);
-                    }
-
-
-                    $dari = date('Y-m-d', strtotime($dari . ' +1 day'));
-                }
+                $error .= $this->generatePresensiIzin($dari, $sampai, $nik, $kode_dept, $izinabsen->kode_cabang, $kode_izin);
             } else {
                 // REJECTION
                 Approval::create([
@@ -502,15 +386,7 @@ class IzinabsenController extends Controller
             ->select('presensi_izinabsen.*', 'karyawan.kode_cabang', 'karyawan.kode_dept')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($izinabsen->kode_cabang, $userCabangs) || !in_array($izinabsen->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
-            }
-        }
+        $this->checkAccess($user, $izinabsen);
         
         DB::beginTransaction();
         try {
@@ -612,22 +488,7 @@ class IzinabsenController extends Controller
             ->join('karyawan', 'presensi_izinabsen.nik', '=', 'karyawan.nik')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            // Cek apakah user adalah pemilik izin (untuk karyawan)
-            $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
-            $isOwner = $userkaryawan && $userkaryawan->nik == $izinabsen->nik;
-            
-            // Jika bukan pemilik, cek akses cabang/dept
-            if (!$isOwner) {
-                $userCabangs = $user->getCabangCodes();
-                $userDepartemens = $user->getDepartemenCodes();
-                
-                if (!in_array($izinabsen->kode_cabang, $userCabangs) || !in_array($izinabsen->kode_dept, $userDepartemens)) {
-                    abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
-                }
-            }
-        }
+        $this->checkAccess($user, $izinabsen, true);
         
         try {
             Izinabsen::where('kode_izin', $kode_izin)->delete();
@@ -677,15 +538,7 @@ class IzinabsenController extends Controller
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($izinabsen->kode_cabang, $userCabangs) || !in_array($izinabsen->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
-            }
-        }
+        $this->checkAccess($user, $izinabsen);
 
         // Load approval history with user relationship
         $approvals = \App\Models\Approval::where('approvable_type', 'App\Models\Izinabsen')
@@ -698,5 +551,80 @@ class IzinabsenController extends Controller
         $data['approvals'] = $approvals;
         $data['encryptedKode'] = Crypt::encrypt($kode_izin);
         return view('izinabsen.show', $data);
+    }
+
+    private function checkAccess($user, $izinabsen, $allowOwner = false)
+    {
+        if ($user->isSuperAdmin()) return;
+
+        if ($allowOwner) {
+            $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
+            if ($userkaryawan && $userkaryawan->nik == $izinabsen->nik) return;
+        }
+
+        $accessUser = $user->getApprovalAdmin() ?? $user;
+        $userCabangs = $accessUser->getCabangCodes();
+        $userDepartemens = $accessUser->getDepartemenCodes();
+        
+        $karyawanCabang = $izinabsen->kode_cabang ?? Karyawan::where('nik', $izinabsen->nik)->value('kode_cabang');
+        $karyawanDept = $izinabsen->kode_dept ?? Karyawan::where('nik', $izinabsen->nik)->value('kode_dept');
+
+        if (!in_array($karyawanCabang, $userCabangs) || !in_array($karyawanDept, $userDepartemens)) {
+            abort(403, 'Anda tidak memiliki akses ke izin absen ini.');
+        }
+    }
+
+    private function filterQueryByAccess($query, $user, $colCabang = 'karyawan.kode_cabang', $colDept = 'karyawan.kode_dept')
+    {
+        if (!$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+            
+            if (!empty($userCabangs)) {
+                $query->whereIn($colCabang, $userCabangs);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+            
+            if (!empty($userDepartemens)) {
+                $query->whereIn($colDept, $userDepartemens);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+    }
+
+    private function generatePresensiIzin($dari, $sampai, $nik, $kode_dept, $kode_cabang, $kode_izin)
+    {
+        $error = '';
+        while (strtotime($dari) <= strtotime($sampai)) {
+            $namahari = getnamaHari(date('D', strtotime($dari)));
+
+            $jamkerja = \App\Models\Setjamkerjabydate::join('presensi_jamkerja', 'presensi_jamkerja_bydate.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
+                ->where('nik', $nik)->where('tanggal', $dari)->first()
+                ?? \App\Models\Setjamkerjabyday::join('presensi_jamkerja', 'presensi_jamkerja_byday.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
+                ->where('nik', $nik)->where('hari', $namahari)->first()
+                ?? \App\Models\Detailsetjamkerjabydept::join('presensi_jamkerja_bydept', 'presensi_jamkerja_bydept_detail.kode_jk_dept', '=', 'presensi_jamkerja_bydept.kode_jk_dept')
+                ->join('presensi_jamkerja', 'presensi_jamkerja_bydept_detail.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
+                ->where('kode_dept', $kode_dept)->where('kode_cabang', $kode_cabang)
+                ->where('hari', $namahari)->first();
+
+            if ($jamkerja == null) {
+                $error .= 'Jam Kerja pada Tanggal ' . $dari . ' Belum Di Set! <br>';
+            } else {
+                $presensi = \App\Models\Presensi::create([
+                    'nik' => $nik,
+                    'tanggal' => $dari,
+                    'kode_jam_kerja' => $jamkerja->kode_jam_kerja,
+                    'status' => 'i',
+                ]);
+                \App\Models\Approveizinabsen::create([
+                    'id_presensi' => $presensi->id,
+                    'kode_izin' => $kode_izin,
+                ]);
+            }
+            $dari = date('Y-m-d', strtotime($dari . ' +1 day'));
+        }
+        return $error;
     }
 }

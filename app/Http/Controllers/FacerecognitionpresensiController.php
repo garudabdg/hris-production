@@ -24,6 +24,13 @@ use Milon\Barcode\DNS1D;
 
 class FacerecognitionpresensiController extends Controller
 {
+    protected $presensiService;
+
+    public function __construct(\App\Services\PresensiService $presensiService)
+    {
+        $this->presensiService = $presensiService;
+    }
+
     public function index()
     {
         return view('facerecognition-presensi.index');
@@ -100,67 +107,25 @@ class FacerecognitionpresensiController extends Controller
 
         // Get Lokasi Kantor
         $cabang = Cabang::where('kode_cabang', $karyawan->kode_cabang)->first();
-        $lokasi_kantor = $request->lokasi_cabang ?? ($cabang ? $cabang->lokasi_cabang : '0,0');
+        $timezone = $cabang->timezone ?? $generalsetting->timezone ?? config('app.timezone');
 
-        $koordinat_kantor = explode(",", $lokasi_kantor);
-        $latitude_kantor = $koordinat_kantor[0];
-        $longitude_kantor = $koordinat_kantor[1];
+        // Resolusi tanggal presensi (lintas hari)
+        $resolved = $this->presensiService->resolvePresensiDate($karyawan->nik, $kode_jam_kerja, $timezone, $generalsetting->batas_presensi_lintashari);
+        $tanggal_presensi = $resolved['tanggal_presensi'];
+        $tanggal_pulang   = $resolved['tanggal_pulang'];
+        $jam_kerja_pulang = $resolved['jam_kerja_pulang'];
+        $jam_kerja        = $resolved['jam_kerja'];
 
-        $jarak = hitungjarak($latitude_kantor, $longitude_kantor, $latitude_user, $longitude_user);
-        $radius = round($jarak["meters"]);
-
-        $in_out = $status == 1 ? "in" : "out";
-        $image = $request->image;
-        $folderPath = "public/uploads/absensi/";
-
-        $jam_kerja = Jamkerja::where('kode_jam_kerja', $kode_jam_kerja)->first();
-        $jam_presensi = $tanggal_sekarang . " " . $jam_sekarang;
-
-        $batas_jam_absen = $generalsetting->batas_jam_absen * 60;
-        $batas_jam_absen_pulang = $generalsetting->batas_jam_absen_pulang * 60;
-
-        // Jika Kemarin Melakukan Presensi
-        if ($presensi_kemarin != null) {
-            // Jika Presensi Kemarin Lintas Hari
-            if ($presensi_kemarin->lintashari == 1) {
-                // Jika Jam Sekarang Lebih Besar dari batas_presensi_lintashari
-                if ($jam_sekarang > $generalsetting->batas_presensi_lintashari) {
-                    $tanggal_pulang = $tanggal_besok;
-                    $jam_kerja_pulang = $jam_kerja->jam_pulang;
-                    $tanggal_presensi = $tanggal_sekarang;
-                } else {
-                    $tanggal_pulang = $tanggal_sekarang;
-                    $jam_kerja_pulang = $presensi_kemarin->jam_pulang;
-                    $tanggal_presensi = $tanggal_kemarin;
-                }
-            } else {
-                if ($jam_kerja->lintashari == 1) {
-                    $tanggal_pulang = $tanggal_besok;
-                    $jam_kerja_pulang = $jam_kerja->jam_pulang;
-                    $tanggal_presensi = $tanggal_sekarang;
-                } else {
-                    $tanggal_pulang = $tanggal_sekarang;
-                    $jam_kerja_pulang = $jam_kerja->jam_pulang;
-                    $tanggal_presensi = $tanggal_sekarang;
-                }
-            }
-        } else {
-            if ($jam_kerja->lintashari == 1) {
-                $tanggal_pulang = $tanggal_besok;
-                $jam_kerja_pulang = $jam_kerja->jam_pulang;
-                $tanggal_presensi = $tanggal_sekarang;
-            } else {
-                $tanggal_pulang = $tanggal_sekarang;
-                $jam_kerja_pulang = $jam_kerja->jam_pulang;
-                $tanggal_presensi = $tanggal_sekarang;
-            }
+        if (!$jam_kerja) {
+            return response()->json(['status' => false, 'message' => 'Jadwal kerja tidak ditemukan'], 400);
         }
 
-        $formatName = $karyawan->nik . "-" . $tanggal_presensi . "-" . $in_out;
-        $image_parts = explode(";base64", $image);
-        $image_base64 = base64_decode($image_parts[1]);
-        $fileName = $formatName . ".png";
-        $file = $folderPath . $fileName;
+        $in_out = $status == 1 ? "in" : "out";
+        $fileName = $this->presensiService->simpanFotoPresensi($request, $karyawan->nik, $tanggal_presensi, $in_out);
+
+        $jam_presensi = date("Y-m-d H:i");
+        $batas_jam_absen = $generalsetting->batas_jam_absen * 60;
+        $batas_jam_absen_pulang = $generalsetting->batas_jam_absen_pulang * 60;
 
         $jam_masuk = $tanggal_presensi . " " . date('H:i', strtotime($jam_kerja->jam_masuk));
         // Jam Mulai Absen adalah 60 Menit Sebelum Jam Masuk
@@ -170,15 +135,9 @@ class FacerecognitionpresensiController extends Controller
 
         $jam_mulai_pulang = date('Y-m-d H:i', strtotime('-' . $batas_jam_absen_pulang . ' minutes', strtotime($jam_pulang)));
 
-
-
-
-
         $presensi_hariini = Presensi::where('nik', $karyawan->nik)
             ->where('tanggal', $tanggal_presensi)
             ->first();
-
-        // Cek Radius
 
         if ($status == 1) {
             if ($presensi_hariini && $presensi_hariini->jam_in != null) {
@@ -189,42 +148,13 @@ class FacerecognitionpresensiController extends Controller
                 return response()->json(['status' => false, 'message' => 'Maaf Waktu Absen Masuk Sudah Habis ', 'notifikasi' => 'notifikasi_akhirabsen'], 400);
             } else {
                 try {
-                    if ($presensi_hariini != null) {
-                        Presensi::where('id', $presensi_hariini->id)->update([
-                            'jam_in' => $jam_presensi,
-                            'lokasi_in' => $lokasi,
-                            'foto_in' => $fileName
-                        ]);
-                    } else {
-                        Presensi::create([
-                            'nik' => $karyawan->nik,
-                            'tanggal' => $tanggal_presensi,
-                            'jam_in' => $jam_presensi,
-                            'jam_out' => null,
-                            'lokasi_in' => $lokasi,
-                            'lokasi_out' => null,
-                            'foto_in' => $fileName,
-                            'foto_out' => null,
-                            'kode_jam_kerja' => $kode_jam_kerja,
-                            'status' => 'h'
-                        ]);
-                    }
-                    Storage::put($file, $image_base64);
+                    $this->presensiService->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'in', [
+                        'jam_in'         => $jam_presensi,
+                        'lokasi_in'      => $lokasi,
+                        'foto_in'        => $fileName,
+                        'kode_jam_kerja' => $kode_jam_kerja,
+                    ]);
 
-                    // Kirim Notifikasi Ke WA - DISABLED
-                    // if ($karyawan->no_hp != null || $karyawan->no_hp != "" && $generalsetting->notifikasi_wa == 1) {
-                    //     try {
-                    //         $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen masuk pada " . $jam_presensi . " Semagat Bekerja";
-                    //         $this->sendwa($karyawan->no_hp, $message);
-                    //     } catch (\Exception $waException) {
-                    //         Log::error('Gagal mengirim notifikasi WA untuk absen masuk (face recognition)', [
-                    //             'nik' => $karyawan->nik,
-                    //             'nama' => $karyawan->nama_karyawan,
-                    //             'error' => $waException->getMessage(),
-                    //             'trace' => $waException->getTraceAsString()
-                    //         ]);
-                    //     }
-                    // }
                     return response()->json(['status' => true, 'message' => 'Berhasil Absen Masuk', 'notifikasi' => 'notifikasi_absenmasuk'], 200);
                 } catch (\Exception $e) {
                     return response()->json(['status' => false, 'message' => $e->getMessage()], 400);
@@ -237,47 +167,19 @@ class FacerecognitionpresensiController extends Controller
                 return response()->json(['status' => false, 'message' => 'Maaf Belum Waktunya Absen Pulang, Waktu Absen Dimulai Pukul ' . formatIndo3($jam_mulai_pulang), 'notifikasi' => 'notifikasi_mulaiabsen'], 400);
             } else {
                 try {
-                    if ($presensi_hariini != null) {
-                        Presensi::where('id', $presensi_hariini->id)->update([
-                            'jam_out' => $jam_presensi,
-                            'lokasi_out' => $lokasi,
-                            'foto_out' => $fileName
-                        ]);
-                    } else {
-                        Presensi::create([
-                            'nik' => $karyawan->nik,
-                            'tanggal' => $tanggal_presensi,
-                            'jam_in' => null,
-                            'jam_out' => $jam_presensi,
-                            'lokasi_in' => null,
-                            'lokasi_out' => $lokasi,
-                            'foto_in' => null,
-                            'foto_out' => $fileName,
-                            'kode_jam_kerja' => $kode_jam_kerja,
-                            'status' => 'h'
-                        ]);
-                    }
-                    Storage::put($file, $image_base64);
+                    $this->presensiService->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'out', [
+                        'jam_out'        => $jam_presensi,
+                        'lokasi_out'     => $lokasi,
+                        'foto_out'       => $fileName,
+                        'kode_jam_kerja' => $kode_jam_kerja,
+                    ]);
 
-                    // Kirim Notifikasi Ke WA - DISABLED
-                    // if ($karyawan->no_hp != null || $karyawan->no_hp != "" && $generalsetting->notifikasi_wa == 1) {
-                    //     try {
-                    //         $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Pulang pada " . $jam_presensi . "Hati Hati di Jalan";
-                    //         $this->sendwa($karyawan->no_hp, $message);
-                    //     } catch (\Exception $waException) {
-                    //         Log::error('Gagal mengirim notifikasi WA untuk absen pulang (face recognition)', [
-                    //             'nik' => $karyawan->nik,
-                    //             'nama' => $karyawan->nama_karyawan,
-                    //             'error' => $waException->getMessage(),
-                    //             'trace' => $waException->getTraceAsString()
-                    //         ]);
-                    //     }
-                    // }
                     return response()->json(['status' => true, 'message' => 'Berhasil Absen Pulang', 'notifikasi' => 'notifikasi_absenpulang'], 200);
                 } catch (\Exception $e) {
                     return response()->json(['status' => false, 'message' => $e->getMessage()], 400);
                 }
             }
+        }
         }
     }
 
