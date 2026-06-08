@@ -721,3 +721,82 @@ function singkatString($string)
     // Jika tidak, buat camelCase
     return ucwords(strtolower($string));
 }
+
+function sendAdminNotification($kode_cabang, $kode_dept, $title, $message, $url = null)
+{
+    try {
+        // Ambil semua user yang BUKAN karyawan (misalnya Admin, Super Admin, HRD)
+        $admins = \App\Models\User::withoutRole('karyawan')->get();
+        $targetUserIds = [];
+
+        foreach ($admins as $admin) {
+            if ($admin->isSuperAdmin()) {
+                $targetUserIds[] = (string) $admin->id;
+            } else {
+                $adminCabangs = $admin->getCabangCodes();
+                $adminDepts = $admin->getDepartemenCodes();
+                
+                $matchCabang = empty($kode_cabang) || in_array($kode_cabang, $adminCabangs);
+                $matchDept = empty($kode_dept) || in_array($kode_dept, $adminDepts);
+                
+                if ($matchCabang && $matchDept) {
+                    $targetUserIds[] = (string) $admin->id;
+                }
+            }
+        }
+
+        if (empty($targetUserIds)) {
+            return false;
+        }
+
+        $payload = [
+            'app_id' => config('services.onesignal.app_id'),
+            'include_external_user_ids' => array_values(array_unique($targetUserIds)),
+            'isAnyWeb' => true,
+            'headings' => ['en' => $title],
+            'contents' => ['en' => \Illuminate\Support\Str::limit(strip_tags(html_entity_decode($message)), 100) ?: 'Notifikasi Baru'],
+            'url' => $url ?: rtrim(env('APP_URL'), '/') . '/pengajuanizin?_t=' . time()
+        ];
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Basic ' . config('services.onesignal.rest_api_key'),
+            'Content-Type' => 'application/json',
+        ])->post('https://onesignal.com/api/v1/notifications', $payload);
+
+        \Illuminate\Support\Facades\Log::info('OneSignal Admin Notif: ' . $response->body());
+        return true;
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('OneSignal Admin Error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function sendPushNotification($userIds, $title, $message, $url = null)
+{
+    if (empty($userIds)) {
+        return false;
+    }
+
+    try {
+        $payload = [
+            'app_id' => config('services.onesignal.app_id'),
+            'include_external_user_ids' => array_values(array_unique($userIds)),
+            'isAnyWeb' => true,
+            'headings' => ['en' => $title],
+            'contents' => ['en' => \Illuminate\Support\Str::limit(strip_tags(html_entity_decode($message)), 100) ?: 'Notifikasi Baru'],
+            'url' => $url ?: rtrim(env('APP_URL'), '/')
+        ];
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Basic ' . config('services.onesignal.rest_api_key'),
+            'Content-Type' => 'application/json',
+        ])->post('https://onesignal.com/api/v1/notifications', $payload);
+
+        \Illuminate\Support\Facades\Log::info('OneSignal Generic Notif: ' . $response->body());
+        return true;
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('OneSignal Generic Error: ' . $e->getMessage());
+        return false;
+    }
+}
+

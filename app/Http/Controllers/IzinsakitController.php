@@ -258,6 +258,16 @@ class IzinsakitController extends Controller
                     $request->file('sid')->storeAs($destination_sid_path, $sid_name, 'public');
                 }
             }
+            
+            // --- NOTIFIKASI KE ADMIN ---
+            $karyawan_info = Karyawan::where('nik', $nik)->first();
+            if ($karyawan_info) {
+                $pesan = $karyawan_info->nama_karyawan . " mengajukan Izin Sakit mulai " . formatIndo($request->dari) . " s.d " . formatIndo($request->sampai) . ".";
+                $url = rtrim(env('APP_URL'), '/') . '/izinsakit';
+                sendAdminNotification($karyawan_info->kode_cabang, $karyawan_info->kode_dept, "Pengajuan Izin Sakit", $pesan, $url);
+            }
+            // ---------------------------
+            
             DB::commit();
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {

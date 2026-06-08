@@ -64,11 +64,13 @@ class PengumumanController extends Controller
                 'isi' => $request->isi,
             ]);
             
-            // Send Notification to all active Users with email in the background
-            \App\Jobs\BroadcastPengumumanJob::dispatch($pengumuman);
+            // Send Notification to all active Users with email if requested
+            if ($request->has('send_email')) {
+                \App\Jobs\BroadcastPengumumanJob::dispatch($pengumuman);
+            }
 
-            // Send OneSignal Push Notification - DISABLED
-            // $this->sendOneSignalNotification($pengumuman->judul, $pengumuman->isi);
+            // Send OneSignal Push Notification
+            $this->sendOneSignalNotification($pengumuman->judul, $pengumuman->isi);
 
             DB::commit();
             
@@ -102,17 +104,21 @@ class PengumumanController extends Controller
         }
 
         try {
+            $payload = [
+                'app_id' => config('services.onesignal.app_id'),
+                'included_segments' => ['All'], // Send to all subscribed users
+                'isAnyWeb' => true,
+                'headings' => ['en' => $title],
+                'contents' => ['en' => \Illuminate\Support\Str::limit(strip_tags(html_entity_decode($message)), 100) ?: 'Pengumuman Baru'],
+                'url' => rtrim(env('APP_URL'), '/') . '/pengumuman?_t=' . time()
+            ];
+            
+            Log::info('OneSignal Payload: ' . json_encode($payload));
+
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . config('services.onesignal.rest_api_key'),
                 'Content-Type' => 'application/json',
-            ])->post('https://onesignal.com/api/v1/notifications', [
-                'app_id' => config('services.onesignal.app_id'),
-                'included_segments' => ['All'], // Send to all subscribed users
-                'headings' => ['en' => $title],
-                'contents' => ['en' => substr(strip_tags($message), 0, 100) . '...'],
-                'url' => route('pengumuman.index'), // Open this URL when clicked
-                'chrome_web_icon' => $icon,
-            ]);
+            ])->post('https://onesignal.com/api/v1/notifications', $payload);
 
             Log::info('OneSignal Response: ' . $response->body());
         } catch (\Exception $e) {

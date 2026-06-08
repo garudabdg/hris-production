@@ -143,11 +143,12 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $isAdmin = strtolower($request->role) !== 'karyawan';
         $request->validate([
             'name' => 'required',
             'username' => 'required',
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => \App\Helpers\PasswordHelper::getRules(null, $isAdmin, false, false),
             'role' => 'required'
         ]);
 
@@ -356,9 +357,11 @@ class UserController extends Controller
     public function updatepassword(Request $request, $id)
     {
         $id = Crypt::decrypt($id);
+        $user = User::findOrFail($id);
         $request->validate([
             'username' => 'required|unique:users,username,' . $id,
             'email' => 'required|email|unique:users,email,' . $id,
+            'passwordbaru' => \App\Helpers\PasswordHelper::getRules($user, null, true, false),
             'konfirmasipassword' => 'same:passwordbaru'
         ]);
         try {

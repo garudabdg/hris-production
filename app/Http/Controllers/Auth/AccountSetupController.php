@@ -50,7 +50,7 @@ class AccountSetupController extends Controller
         $request->validate([
             'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => \App\Helpers\PasswordHelper::getRules($user, null, false, true),
         ]);
 
         // Cek cooldown secara global (mencegah spam ganti-ganti email)

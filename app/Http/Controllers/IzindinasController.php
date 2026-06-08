@@ -221,6 +221,16 @@ class IzindinasController extends Controller
                 'status' => 0,
                 'approval_step' => 1,
             ]);
+            
+            // --- NOTIFIKASI KE ADMIN ---
+            $karyawan_info = Karyawan::where('nik', $nik)->first();
+            if ($karyawan_info) {
+                $pesan = $karyawan_info->nama_karyawan . " mengajukan Izin Dinas mulai " . formatIndo($request->dari) . " s.d " . formatIndo($request->sampai) . ".";
+                $url = rtrim(env('APP_URL'), '/') . '/izindinas';
+                sendAdminNotification($karyawan_info->kode_cabang, $karyawan_info->kode_dept, "Pengajuan Izin Dinas", $pesan, $url);
+            }
+            // ---------------------------
+            
             DB::commit();
 
             if ($role == 'karyawan') {

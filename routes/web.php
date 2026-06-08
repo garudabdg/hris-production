@@ -63,6 +63,7 @@ use App\Http\Controllers\AssetPerawatanController;
 use App\Http\Controllers\ItTicketController;
 use App\Http\Controllers\TamuController;
 use App\Http\Controllers\Auth\AccountSetupController;
+use App\Http\Controllers\WebviewController;
 
 
 /*
@@ -134,13 +135,19 @@ Route::get('/download/app', function () {
     ]);
 })->name('download.apk');
 
+// WebView Auto Login Route (Flutter PWA Bridging)
+Route::get('/webview/auto-login', [WebviewController::class, 'autoLogin'])->name('webview.auto-login');
+Route::get('/webview/edit-password', [\App\Http\Controllers\ProfileController::class, 'editpasswordMobile'])
+    ->name('webview.editpassword')
+    ->middleware('auth');
+
 // Account Setup Routes (Authenticated but before setup)
 Route::middleware('auth')->group(function () {
     Route::get('/account/setup', [AccountSetupController::class, 'showSetupForm'])->name('account.setup.form');
-    Route::post('/account/setup', [AccountSetupController::class, 'processSetup'])->name('account.setup.process');
+    Route::post('/account/setup', [AccountSetupController::class, 'processSetup'])->middleware('throttle:3,1')->name('account.setup.process');
     Route::get('/account/verify-otp', [AccountSetupController::class, 'showOtpForm'])->name('account.setup.otp');
-    Route::post('/account/verify-otp', [AccountSetupController::class, 'verifyOtp'])->name('account.setup.verify');
-    Route::post('/account/resend-otp', [AccountSetupController::class, 'resendOtp'])->name('account.setup.resend');
+    Route::post('/account/verify-otp', [AccountSetupController::class, 'verifyOtp'])->middleware('throttle:5,1')->name('account.setup.verify');
+    Route::post('/account/resend-otp', [AccountSetupController::class, 'resendOtp'])->middleware('throttle:1,1')->name('account.setup.resend');
 });
 
 // Route::get('/dashboard', function () {
@@ -899,7 +906,11 @@ Route::group(['middleware' => ['auth', 'account.setup']], function () { // Remov
     // Buku Tamu Routes
     Route::group(['middleware' => ['permission:bukutamu.index']], function () {
         Route::get('/tamu', [TamuController::class, 'index'])->name('tamu.index');
+        Route::get('/tamu/export-excel', [TamuController::class, 'exportExcel'])->name('tamu.exportExcel');
+        Route::get('/tamu/export-pdf', [TamuController::class, 'exportPdf'])->name('tamu.exportPdf');
+        Route::get('/tamu/search', [TamuController::class, 'search'])->name('tamu.search');
         Route::post('/tamu/store', [TamuController::class, 'store'])->name('tamu.store');
+        Route::put('/tamu/{id}', [TamuController::class, 'update'])->name('tamu.update');
         Route::put('/tamu/{id}/out', [TamuController::class, 'updateOut'])->name('tamu.updateOut');
         Route::delete('/tamu/{id}', [TamuController::class, 'destroy'])->name('tamu.destroy');
     });

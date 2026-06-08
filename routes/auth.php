@@ -26,8 +26,12 @@ Route::middleware('guest')->group(function () {
 
     // 2FA routes (guest — session only, user not yet authenticated)
     Route::get('two-factor-challenge', [TwoFactorController::class, 'show'])->name('two-factor.show');
-    Route::post('two-factor-challenge', [TwoFactorController::class, 'verify'])->name('two-factor.verify');
-    Route::post('two-factor-challenge/resend', [TwoFactorController::class, 'resend'])->name('two-factor.resend');
+    Route::post('two-factor-challenge', [TwoFactorController::class, 'verify'])
+        ->middleware('throttle:5,1')
+        ->name('two-factor.verify');
+    Route::post('two-factor-challenge/resend', [TwoFactorController::class, 'resend'])
+        ->middleware('throttle:1,1')
+        ->name('two-factor.resend');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -43,12 +47,15 @@ Route::middleware('guest')->group(function () {
         
     // Custom OTP-based password reset
     Route::post('password/send-otp', [\App\Http\Controllers\Auth\PasswordOtpController::class, 'sendOtp'])
+        ->middleware('throttle:3,1')
         ->name('password.send-otp');
         
     Route::post('password/verify-otp', [\App\Http\Controllers\Auth\PasswordOtpController::class, 'verifyOtp'])
+        ->middleware('throttle:5,1')
         ->name('password.verify-otp');
         
     Route::post('password/reset-with-otp', [\App\Http\Controllers\Auth\PasswordOtpController::class, 'resetPassword'])
+        ->middleware('throttle:5,1')
         ->name('password.reset-with-otp');
 });
 
