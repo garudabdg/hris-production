@@ -145,49 +145,6 @@ class FacerecognitionpresensiController extends Controller
                 return response()->json(['status' => false, 'message' => $e->getMessage()], 400);
             }
         }
-        }
-    }
-
-    function sendwa($no_hp, $message)
-    {
-        $generalsetting = Pengaturanumum::where('id', 1)->first();
-        $apiKey = $generalsetting->wa_api_key;
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.fonnte.com/send',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => array(
-                'target' => $no_hp,
-                'message' => $message,
-                'filename' => 'filename',
-                'schedule' => 0,
-                'typing' => true,
-                'delay' => '2',
-                'countryCode' => '62',
-                'followup' => 0,
-            ),
-            CURLOPT_HTTPHEADER => array(
-                'Authorization: ' . $apiKey
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        if (curl_errno($curl)) {
-            $error_msg = curl_error($curl);
-        }
-        curl_close($curl);
-
-        if (isset($error_msg)) {
-            echo $error_msg;
-        }
     }
 
     public function getKaryawan($nik)
