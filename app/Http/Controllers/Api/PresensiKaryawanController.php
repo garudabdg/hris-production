@@ -18,7 +18,6 @@ use App\Models\Presensi;
 use App\Models\Setjamkerjabydate;
 use App\Models\Setjamkerjabyday;
 use App\Models\Userkaryawan;
-use App\Jobs\SendWaMessage;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -250,22 +249,5 @@ class PresensiKaryawanController extends Controller
             return [null, null, response()->json(['success' => false, 'message' => 'Data karyawan tidak ditemukan'], 404)];
         }
         return [$karyawan, $userkaryawan, null];
-    }
-
-    private function kirimNotifikasiWA($generalsetting, $karyawan, string $tipe, string $jam): void
-    {
-        return; // Disabled per request
-        if (!$generalsetting->notifikasi_wa) return;
-        try {
-            $kata    = $tipe === 'masuk' ? 'Masuk' : 'Pulang';
-            $message = "Terimakasih, Hari ini {$karyawan->nama_karyawan} absen {$kata} pada {$jam}";
-            if ($generalsetting->tujuan_notifikasi_wa == 0) {
-                if ($karyawan->no_hp) dispatch(new SendWaMessage($karyawan->no_hp, $message));
-            } else {
-                dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
-            }
-        } catch (\Exception $e) {
-            Log::error('Gagal kirim WA presensi API', ['nik' => $karyawan->nik, 'error' => $e->getMessage()]);
-        }
     }
 }

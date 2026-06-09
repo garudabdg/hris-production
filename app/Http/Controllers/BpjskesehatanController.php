@@ -68,7 +68,7 @@ class BpjskesehatanController extends Controller
         //Kode BPJS Kesehatan = K250001;
         $tahun = date('Y', strtotime($request->tanggal_berlaku));
         $last_bpjs_kesehatan = Bpjskesehatan::orderBy('kode_bpjs_kesehatan', 'desc')
-            ->whereRaw('YEAR(tanggal_berlaku) = ' . $tahun)
+            ->whereRaw('YEAR(tanggal_berlaku) = ?', [$tahun])
             ->first();
         $last_kode_bpjs_kesehatan = $last_bpjs_kesehatan != null ? $last_bpjs_kesehatan->kode_bpjs_kesehatan : '';
         $kode_bpjs_kesehatan = buatkode($last_kode_bpjs_kesehatan, "K" . substr($tahun, 2, 2), 4);

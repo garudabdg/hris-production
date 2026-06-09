@@ -27,10 +27,9 @@ class AktivitasKaryawanController extends Controller
         // Apply access filters
         $this->applyAccessFilters($query, $user, $user_karyawan);
 
-            // Filter by NIK if provided (for admin)
-            if ($request->filled('nik')) {
-                $query->where('aktivitas_karyawan.nik', $request->nik);
-            }
+        // Filter by NIK if provided (for admin)
+        if ($request->filled('nik')) {
+            $query->where('aktivitas_karyawan.nik', $request->nik);
         }
 
         // Filter by date range if provided
@@ -362,7 +361,8 @@ class AktivitasKaryawanController extends Controller
         // Apply access filters
         $this->applyAccessFilters($query, $user, $user_karyawan);
 
-            // Filter by NIK (required for admin)
+        // Filter by NIK (required for admin)
+        if ($request->filled('nik')) {
             $query->where('aktivitas_karyawan.nik', $request->nik);
         }
 

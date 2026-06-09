@@ -68,7 +68,7 @@ class BpjstenagakerjaController extends Controller
         //Kode BPJS Tenaga Kerja = K250001;
         $tahun = date('Y', strtotime($request->tanggal_berlaku));
         $last_bpjs_tenagakerja = Bpjstenagakerja::orderBy('kode_bpjs_tk', 'desc')
-            ->whereRaw('YEAR(tanggal_berlaku) = ' . $tahun)
+            ->whereRaw('YEAR(tanggal_berlaku) = ?', [$tahun])
             ->first();
         $last_kode_bpjs_tk = $last_bpjs_tenagakerja != null ? $last_bpjs_tenagakerja->kode_bpjs_tk : '';
         $kode_bpjs_tk = buatkode($last_kode_bpjs_tk, "K" . substr($tahun, 2, 2), 4);

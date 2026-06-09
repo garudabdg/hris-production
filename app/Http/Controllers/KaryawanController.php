@@ -594,7 +594,6 @@ class KaryawanController extends Controller
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e);
             return Redirect::back()->with(messageError($e->getMessage()));
         }
     }
@@ -636,7 +635,7 @@ class KaryawanController extends Controller
 
         $jamkerjabydate = Setjamkerjabydate::where('nik', $nik)
             ->join('presensi_jamkerja', 'presensi_jamkerja.kode_jam_kerja', '=', 'presensi_jamkerja_bydate.kode_jam_kerja')
-            ->whereRaw('MONTH(tanggal) = ' . $bulan . ' AND YEAR(tanggal) = ' . $tahun)
+            ->whereRaw('MONTH(tanggal) = ? AND YEAR(tanggal) = ?', [$bulan, $tahun])
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -721,6 +720,9 @@ class KaryawanController extends Controller
         DB::beginTransaction();
         try {
             $count = 0;
+            $appName = optional($generalsetting)->nama_perusahaan ?? 'HRIS';
+            $apkUrl = route('download.apk');
+
             foreach ($karyawan as $k) {
                 $user = User::create([
                     'name' => $k->nama_karyawan,
@@ -735,6 +737,21 @@ class KaryawanController extends Controller
                 ]);
 
                 $user->assignRole('karyawan');
+                
+                // Kirim notifikasi WA ke karyawan
+                if (!empty($k->no_hp)) {
+                    $waMessage = "Halo *{$k->nama_karyawan}*,\n\n"
+                        . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
+                        . "🔐 *Informasi Login Sementara:*\n"
+                        . "Username: *{$k->nik}*\n"
+                        . "Password: *{$k->nik}*\n\n"
+                        . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
+                        . "⚠️ *PENTING:*\n"
+                        . "Silakan login sekarang juga untuk *melengkapi Profil Anda* (mengubah Username, Email aktif, dan Password baru).\n\n"
+                        . "Terima kasih.";
+                    SendWaMessage::dispatch($k->no_hp, $waMessage, false, true, 'presensi');
+                }
+
                 $count++;
             }
 

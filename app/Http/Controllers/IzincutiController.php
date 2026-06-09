@@ -86,7 +86,7 @@ class IzincutiController extends Controller
         $qcuti->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
         $qcuti->join('cuti', 'presensi_izincuti.kode_cuti', '=', 'cuti.kode_cuti');
         
-        $this->filterQueryByAccess($qcuti, $user, 'karyawan');
+        $this->filterQueryByAccess($qcuti, $user);
         
         $qcuti->select('presensi_izincuti.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'karyawan.foto', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'presensi_izincuti.keterangan as nama_cuti');
         if (!empty($request->dari) && !empty($request->sampai)) {

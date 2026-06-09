@@ -183,20 +183,7 @@ class KpiEmployeeController extends Controller
          $kpi_employee = KpiEmployee::with(['details.indicator', 'karyawan', 'period'])->findOrFail($id);
 
          // Hitung otomatis metrik otomatis
-         foreach ($kpi_employee->details as $detail) {
-             if ($detail->indicator->mode == 'auto' && !empty($detail->indicator->metric_source)) {
-                 $realisasi = $this->calculateAutomatedRealization($kpi_employee, $detail->indicator->metric_source);
-                 
-                 // Perbarui jika berbeda (untuk menjaga sinkronisasi DB)
-                 if ($detail->realisasi != $realisasi) {
-                     $detail->update(['realisasi' => $realisasi]);
-                     $detail->realisasi = $realisasi; // Perbarui objek untuk tampilan
-                 }
-                 
-                 // Hitung ulang Skor juga untuk jaga-jaga
-                 $this->calculateScore($detail, $realisasi);
-             }
-         }
+         $this->processAutoCalculations($kpi_employee);
          
          // Refresh untuk mendapatkan skor terbaru jika ada
          // $kpi_employee->refresh();
@@ -224,8 +211,16 @@ class KpiEmployeeController extends Controller
              $total_score = 0;
 
              if ($request->has('detail_id')) {
+                 // Fix N+1: Batch load semua detail beserta indicator di luar loop
+                 $details = KpiDetail::with('indicator')
+                     ->whereIn('id', $request->detail_id)
+                     ->get()
+                     ->keyBy('id');
+
                  foreach ($request->detail_id as $key => $detail_id) {
-                     $detail = KpiDetail::with('indicator')->find($detail_id);
+                     $detail = $details->get($detail_id);
+                     if (!$detail) continue;
+
                      $indicator = $detail->indicator;
 
                      // Tentukan Realisasi
@@ -263,6 +258,28 @@ class KpiEmployeeController extends Controller
              DB::rollBack();
              return Redirect::back()->with(['warning' => $e->getMessage()]);
          }
+    }
+    
+    /**
+     * Proses kalkulasi otomatis untuk detail KPI yang memiliki mode 'auto'.
+     * Digunakan oleh show() dan myScore() untuk menghindari duplikasi kode.
+     */
+    private function processAutoCalculations($kpi_employee)
+    {
+        foreach ($kpi_employee->details as $detail) {
+            if ($detail->indicator->mode == 'auto' && !empty($detail->indicator->metric_source)) {
+                $realisasi = $this->calculateAutomatedRealization($kpi_employee, $detail->indicator->metric_source);
+                
+                // Perbarui jika berbeda (untuk menjaga sinkronisasi DB)
+                if ($detail->realisasi != $realisasi) {
+                    $detail->update(['realisasi' => $realisasi]);
+                    $detail->realisasi = $realisasi; // Perbarui objek untuk tampilan
+                }
+                
+                // Hitung ulang Skor
+                $this->calculateScore($detail, $realisasi);
+            }
+        }
     }
     
     private function calculateScore($detail, $realisasi) {
@@ -434,20 +451,7 @@ class KpiEmployeeController extends Controller
 
         if ($kpi_employee) {
              // Hitung otomatis metrik otomatis (Gunakan kembali logika dari show)
-             foreach ($kpi_employee->details as $detail) {
-                 if ($detail->indicator->mode == 'auto' && !empty($detail->indicator->metric_source)) {
-                     $realisasi = $this->calculateAutomatedRealization($kpi_employee, $detail->indicator->metric_source);
-                     
-                     // Update if different (to keep DB in sync)
-                     if ($detail->realisasi != $realisasi) {
-                         $detail->update(['realisasi' => $realisasi]);
-                         $detail->realisasi = $realisasi; // Update object for view
-                     }
-                     
-                     // Hitung ulang Skor
-                     $this->calculateScore($detail, $realisasi);
-                 }
-             }
+             $this->processAutoCalculations($kpi_employee);
              $kpi_employee->refresh();
              
              return view('kpi.transactions.myscore', compact('kpi_employee', 'karyawan', 'period'));

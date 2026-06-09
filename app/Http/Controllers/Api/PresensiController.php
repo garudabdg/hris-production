@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\SendWaMessage;
 use App\Models\Detailsetjamkerjabydept;
 use App\Models\GrupDetail;
 use App\Models\GrupJamkerjaBydate;
@@ -152,22 +151,7 @@ class PresensiController extends Controller
                             'status' => 'h'
                         ]);
                     }
-                    // Kirim Notifikasi Ke WA (dibungkus try-catch agar error WA tidak mempengaruhi response sukses)
-                    // DISABLED: Notifikasi WA untuk absen dinonaktifkan
-                    // if ($karyawan->no_hp != null || $karyawan->no_hp != "" && $generalsetting->notifikasi_wa == 1) {
-                    //     try {
-                    //         $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen masuk pada " . $jam_presensi . " Semagat Bekerja";
-                    //         $this->sendwa($karyawan->no_hp, $message);
-                    //     } catch (\Exception $waException) {
-                    //         // Log error pengiriman WA tapi tidak mempengaruhi response sukses
-                    //         Log::error('Gagal mengirim notifikasi WA untuk absen masuk (API)', [
-                    //             'nik' => $karyawan->nik,
-                    //             'nama' => $karyawan->nama_karyawan,
-                    //             'error' => $waException->getMessage(),
-                    //             'trace' => $waException->getTraceAsString()
-                    //         ]);
-                    //     }
-                    // }
+                    // Kirim Notifikasi Ke WA dihapus sesuai permintaan
 
                     return response()->json(['status' => true, 'message' => 'Berhasil Absen Masuk', 'notifikasi' => 'notifikasi_absenmasuk'], 200);
                 } catch (\Exception $e) {
@@ -192,33 +176,12 @@ class PresensiController extends Controller
                         'status' => 'h'
                     ]);
                 }
-                // Kirim Notifikasi Ke WA (dibungkus try-catch agar error WA tidak mempengaruhi response sukses)
-                // DISABLED: Notifikasi WA untuk absen dinonaktifkan
-                // if ($karyawan->no_hp != null || $karyawan->no_hp != "" && $generalsetting->notifikasi_wa == 1) {
-                //     try {
-                //         $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Pulang pada " . $jam_presensi . "Hati Hati di Jalan";
-                //         $this->sendwa($karyawan->no_hp, $message);
-                //     } catch (\Exception $waException) {
-                //         // Log error pengiriman WA tapi tidak mempengaruhi response sukses
-                //         Log::error('Gagal mengirim notifikasi WA untuk absen pulang (API)', [
-                //             'nik' => $karyawan->nik,
-                //             'nama' => $karyawan->nama_karyawan,
-                //             'error' => $waException->getMessage(),
-                //             'trace' => $waException->getTraceAsString()
-                //         ]);
-                //     }
-                // }
+                // Kirim Notifikasi Ke WA dihapus sesuai permintaan
                 return response()->json(['status' => true, 'message' => 'Berhasil Absen Pulang', 'notifikasi' => 'notifikasi_absenpulang'], 200);
             } catch (\Exception $e) {
                 return response()->json(['status' => false, 'message' => $e->getMessage()], 400);
             }
         }
-    }
-
-
-    function sendwa($no_hp, $message)
-    {
-        dispatch(new SendWaMessage($no_hp, $message));
     }
 
     /**

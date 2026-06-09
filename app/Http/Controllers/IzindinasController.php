@@ -30,7 +30,7 @@ class IzindinasController extends Controller
         $qizin->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
         $qizin->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
 
-        $this->filterQueryByAccess($qizin, $user, 'karyawan');
+        $this->filterQueryByAccess($qizin, $user);
 
         $qizin->select('presensi_izindinas.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'karyawan.foto', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'karyawan.kode_dept');
         if (!empty($request->dari) && !empty($request->sampai)) {

@@ -428,7 +428,6 @@ class AssetController extends Controller
             'dalam_perbaikan' => (clone $summaryQuery)->where('kondisi', 'dalam_perbaikan')->count(),
         ];
     }
-    }
 
     private function calculateValuationScore(Request $request)
     {

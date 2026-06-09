@@ -13,6 +13,8 @@ use App\Models\GrupDetail;
 use App\Models\GrupJamkerjaBydate;
 use App\Models\Harilibur;
 use App\Models\Izindinas;
+use App\Models\Izincuti;
+use App\Models\Izinsakit;
 use App\Models\Jamkerja;
 use App\Models\Karyawan;
 use App\Models\Pengaturanumum;
@@ -275,11 +277,6 @@ class PresensiController extends Controller
         return response()->json($result, $statusCode);
     }
 
-
-    function sendwa($no_hp, $message)
-    {
-        dispatch(new SendWaMessage($no_hp, $message));
-    }
     public function edit(Request $request)
     {
         $nik = Crypt::decrypt($request->nik);
@@ -561,50 +558,28 @@ class PresensiController extends Controller
                 return Redirect::back()->with(messageError('Sudah Melakukan Presensi Masuk'));
             } else {
                 try {
-                    if ($presensi_hariini != null) {
-                        Presensi::where('id', $presensi_hariini->id)->update([
-                            'jam_in' => $jam_presensi,
-                        ]);
-                    } else {
-                        Presensi::create([
-                            'nik' => $karyawan->nik,
-                            'tanggal' => $tanggal_presensi,
-                            'jam_in' => $jam_presensi,
-                            'jam_out' => null,
-                            'lokasi_out' => null,
-                            'foto_out' => null,
-                            'kode_jam_kerja' => $kode_jam_kerja,
-                            'status' => 'h'
-                        ]);
-                    }
-
-
+                    $this->presensiService->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'in', [
+                        'jam_in' => $jam_presensi,
+                        'kode_jam_kerja' => $kode_jam_kerja,
+                    ]);
                     return Redirect::back()->with(messageSuccess('Berhasil Melakukan Presensi Masuk'));
                 } catch (\Exception $e) {
                     return Redirect::back()->with(messageError($e->getMessage()));
                 }
             }
         } else {
-            try {
-                if ($presensi_hariini != null) {
-                    Presensi::where('id', $presensi_hariini->id)->update([
+            if ($presensi_hariini && $presensi_hariini->jam_out != null) {
+                return Redirect::back()->with(messageError('Sudah Melakukan Presensi Pulang'));
+            } else {
+                try {
+                    $this->presensiService->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'out', [
                         'jam_out' => $jam_presensi,
-                    ]);
-                } else {
-                    Presensi::create([
-                        'nik' => $karyawan->nik,
-                        'tanggal' => $tanggal_presensi,
-                        'jam_in' => null,
-                        'jam_out' => $jam_presensi,
-                        'lokasi_in' => null,
-                        'foto_in' => null,
                         'kode_jam_kerja' => $kode_jam_kerja,
-                        'status' => 'h'
                     ]);
+                    return Redirect::back()->with(messageSuccess('Berhasil Melakukan Presensi Pulang'));
+                } catch (\Exception $e) {
+                    return Redirect::back()->with(messageError($e->getMessage()));
                 }
-                return Redirect::back()->with(messageSuccess('Berhasil Melakukan Presensi Pulang'));
-            } catch (\Exception $e) {
-                return Redirect::back()->with(messageError($e->getMessage()));
             }
         }
     }

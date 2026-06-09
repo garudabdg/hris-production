@@ -40,7 +40,7 @@ class IzinabsenController extends Controller
         $qizin->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
         $qizin->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
 
-        $this->filterQueryByAccess($qizin, $user, 'karyawan');
+        $this->filterQueryByAccess($qizin, $user);
 
         if (!empty($request->dari) && !empty($request->sampai)) {
             $qizin->whereBetween('presensi_izinabsen.tanggal', [$request->dari, $request->sampai]);

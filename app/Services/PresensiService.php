@@ -9,7 +9,6 @@ use App\Models\Presensi;
 use App\Models\Setjamkerjabydate;
 use App\Models\Setjamkerjabyday;
 use App\Models\Detailsetjamkerjabydept;
-use App\Jobs\SendWaMessage;
 use App\Models\Jamkerja;
 use App\Models\Izindinas;
 use Carbon\Carbon;
@@ -65,31 +64,19 @@ class PresensiService
         $inOut      = $request->status == 1 ? 'in' : 'out';
         $fileName   = $this->simpanFotoPresensi($request, $karyawan->nik, $tanggalPresensi, $inOut);
 
-        // Batas waktu absen
-        $batasJamAbsen       = $generalsetting->batas_jam_absen * 60;
-        $batasJamAbsenPulang = $generalsetting->batas_jam_absen_pulang * 60;
-
-        $jamMasukCarbon = Carbon::parse($tanggalPresensi . ' ' . $jamKerja->jam_masuk, $timezone);
-        $jamMulaiMasuk  = $jamMasukCarbon->copy()->subMinutes($batasJamAbsen);
-        $jamAkhirMasuk  = $jamMasukCarbon->copy()->addMinutes($batasJamAbsen);
-        $jamPulangCarbon = Carbon::parse($tanggalPulang . ' ' . $jamKerjaPulang, $timezone);
-        $jamMulaiPulang  = $jamPulangCarbon->copy()->subMinutes($batasJamAbsenPulang);
-
+        $boundaries = $this->calculateTimeBoundaries($jamKerja, $tanggalPresensi, $tanggalPulang, $jamKerjaPulang, $generalsetting, $timezone);
         $jamPresensiCarbon = Carbon::now($timezone);
-
         $presensiHariini = Presensi::where('nik', $karyawan->nik)->where('tanggal', $tanggalPresensi)->first();
+
+        // Validasi waktu absen
+        $validationError = $this->validateAttendanceTime($request->status, $presensiHariini, $jamPresensiCarbon, $boundaries, $generalsetting);
+        if ($validationError) {
+            $validationError['status_code'] = 400;
+            return $validationError;
+        }
 
         if ($request->status == 1) {
             // ─── ABSEN MASUK ───
-            if ($presensiHariini && $presensiHariini->jam_in != null) {
-                return ['success' => false, 'message' => 'Anda sudah absen masuk hari ini.', 'notifikasi' => 'notifikasi_sudahabsen', 'status_code' => 400];
-            }
-            if ($generalsetting->batasi_absen == 1 && $jamPresensiCarbon->lt($jamMulaiMasuk)) {
-                return ['success' => false, 'message' => 'Belum waktunya absen masuk. Waktu absen mulai pukul ' . $jamMulaiMasuk->format('H:i'), 'notifikasi' => 'notifikasi_mulaiabsen', 'status_code' => 400];
-            }
-            if ($generalsetting->batasi_absen == 1 && $jamPresensiCarbon->gt($jamAkhirMasuk)) {
-                return ['success' => false, 'message' => 'Waktu absen masuk sudah habis.', 'notifikasi' => 'notifikasi_akhirabsen', 'status_code' => 400];
-            }
 
             try {
                 $jamPresensiString = $jamPresensiCarbon->format('Y-m-d H:i');
@@ -99,8 +86,6 @@ class PresensiService
                     'foto_in'        => $fileName,
                     'kode_jam_kerja' => $request->kode_jam_kerja,
                 ]);
-
-                $this->kirimNotifikasiWAMobile($generalsetting, $karyawan, 'masuk', $jamPresensiString);
 
                 return [
                     'success'    => true,
@@ -115,12 +100,6 @@ class PresensiService
 
         } else {
             // ─── ABSEN PULANG ───
-            if ($presensiHariini && $presensiHariini->jam_out != null) {
-                return ['success' => false, 'message' => 'Anda sudah absen pulang hari ini.', 'notifikasi' => 'notifikasi_sudahabsen', 'status_code' => 400];
-            }
-            if ($generalsetting->batasi_absen == 1 && $jamPresensiCarbon->lt($jamMulaiPulang)) {
-                return ['success' => false, 'message' => 'Belum waktunya absen pulang. Waktu absen pulang mulai pukul ' . $jamMulaiPulang->format('H:i'), 'notifikasi' => 'notifikasi_mulaiabsen', 'status_code' => 400];
-            }
 
             try {
                 $jamPresensiString = $jamPresensiCarbon->format('Y-m-d H:i');
@@ -130,8 +109,6 @@ class PresensiService
                     'foto_out'       => $fileName,
                     'kode_jam_kerja' => $request->kode_jam_kerja,
                 ]);
-
-                $this->kirimNotifikasiWAMobile($generalsetting, $karyawan, 'pulang', $jamPresensiString);
 
                 return [
                     'success'    => true,
@@ -143,23 +120,6 @@ class PresensiService
             } catch (\Exception $e) {
                 return ['success' => false, 'message' => 'Terjadi kesalahan saat menyimpan presensi.', 'status_code' => 500];
             }
-        }
-    }
-
-    private function kirimNotifikasiWAMobile($generalsetting, $karyawan, string $tipe, string $jam): void
-    {
-        return; // Disabled per request
-        if (!$generalsetting->notifikasi_wa) return;
-        try {
-            $kata    = $tipe === 'masuk' ? 'Masuk' : 'Pulang';
-            $message = "Terimakasih, Hari ini {$karyawan->nama_karyawan} absen {$kata} pada {$jam}";
-            if ($generalsetting->tujuan_notifikasi_wa == 0) {
-                if ($karyawan->no_hp) dispatch(new SendWaMessage($karyawan->no_hp, $message));
-            } else {
-                dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
-            }
-        } catch (\Exception $e) {
-            Log::error('Gagal kirim WA presensi API', ['nik' => $karyawan->nik, 'error' => $e->getMessage()]);
         }
     }
 
@@ -366,31 +326,18 @@ class PresensiService
         $batas_jam_absen = $generalsetting->batas_jam_absen * 60;
         $batas_jam_absen_pulang = $generalsetting->batas_jam_absen_pulang * 60;
 
-        // Jam masuk & batas waktu absen
-        $jam_masuk_string = $tanggal_presensi . " " . $jam_kerja->jam_masuk;
-        $jam_masuk_carbon = Carbon::parse($jam_masuk_string, $timezone_cabang);
-        $jam_mulai_masuk_carbon = $jam_masuk_carbon->copy()->subMinutes($batas_jam_absen);
-        $jam_akhir_masuk_carbon = $jam_masuk_carbon->copy()->addMinutes($batas_jam_absen);
-
-        // Jam pulang & batas waktu absen pulang
-        $jam_pulang_string = $tanggal_pulang . " " . $jam_kerja_pulang;
-        $jam_pulang_carbon = Carbon::parse($jam_pulang_string, $timezone_cabang);
-        $jam_mulai_pulang_carbon = $jam_pulang_carbon->copy()->subMinutes($batas_jam_absen_pulang);
-
-        $presensi_hariini = Presensi::where('nik', $karyawan->nik)
-            ->where('tanggal', $tanggal_presensi)->first();
-
+        $boundaries = $this->calculateTimeBoundaries($jam_kerja, $tanggal_presensi, $tanggal_pulang, $jam_kerja_pulang, $generalsetting, $timezone_cabang);
         $jam_presensi_carbon = Carbon::parse($jam_presensi, $timezone_cabang);
+        $presensi_hariini = Presensi::where('nik', $karyawan->nik)->where('tanggal', $tanggal_presensi)->first();
+
+        // Validasi waktu absen
+        $validationError = $this->validateAttendanceTime($status, $presensi_hariini, $jam_presensi_carbon, $boundaries, $generalsetting);
+        if ($validationError) {
+            return ['status' => 'error', 'message' => $validationError['message']];
+        }
 
         if ($status == 1) {
             // --- ABSEN MASUK ---
-            if ($presensi_hariini && $presensi_hariini->jam_in != null) {
-                return ['status' => 'error', 'message' => 'Anda sudah absen masuk hari ini'];
-            } else if ($jam_presensi_carbon->lt($jam_mulai_masuk_carbon) && $generalsetting->batasi_absen == 1) {
-                return ['status' => 'error', 'message' => 'Belum waktunya absen masuk, mulai pukul ' . $jam_mulai_masuk_carbon->format('H:i')];
-            } else if ($jam_presensi_carbon->gt($jam_akhir_masuk_carbon) && $generalsetting->batasi_absen == 1) {
-                return ['status' => 'error', 'message' => 'Waktu absen masuk sudah habis'];
-            } else {
             try {
                 $this->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'in', [
                     'jam_in'         => $jam_presensi,
@@ -398,35 +345,12 @@ class PresensiService
                     'kode_jam_kerja' => $jam_kerja->kode_jam_kerja,
                 ]);
 
-                // Notifikasi WA
-                // Disabled per request
-                if (false && $generalsetting->notifikasi_wa == 1) {
-                    try {
-                        $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Masuk pada " . $jam_presensi;
-                        if ($generalsetting->tujuan_notifikasi_wa == 0) {
-                            if ($karyawan->no_hp != "") {
-                                dispatch(new SendWaMessage($karyawan->no_hp, $message));
-                            }
-                        } else {
-                            dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
-                        }
-                    } catch (\Exception $waEx) {
-                        Log::error('Gagal kirim WA (kiosk masuk)', ['nik' => $karyawan->nik, 'error' => $waEx->getMessage()]);
-                    }
-                }
-
                 return ['status' => 'success', 'message' => 'Berhasil Absen Masuk', 'type' => 'masuk'];
             } catch (\Exception $e) {
                 return ['status' => 'error', 'message' => $e->getMessage()];
             }
-        }
-    } else {
-        // --- ABSEN PULANG ---
-        if ($presensi_hariini && $presensi_hariini->jam_out != null) {
-            return ['status' => 'error', 'message' => 'Anda sudah absen pulang hari ini'];
-        } else if ($jam_presensi_carbon->lt($jam_mulai_pulang_carbon) && $generalsetting->batasi_absen == 1) {
-            return ['status' => 'error', 'message' => 'Belum waktunya absen pulang, mulai pukul ' . $jam_mulai_pulang_carbon->format('H:i')];
         } else {
+            // --- ABSEN PULANG ---
             try {
                 $this->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'out', [
                     'jam_out'        => $jam_presensi,
@@ -434,28 +358,10 @@ class PresensiService
                     'kode_jam_kerja' => $jam_kerja->kode_jam_kerja,
                 ]);
 
-                // Notifikasi WA
-                // Disabled per request
-                if (false && $generalsetting->notifikasi_wa == 1) {
-                    try {
-                        $message = "Terimakasih, Hari ini " . $karyawan->nama_karyawan . " absen Pulang pada " . $jam_presensi . " Hati Hati di Jalan";
-                        if ($generalsetting->tujuan_notifikasi_wa == 0) {
-                            if ($karyawan->no_hp != "") {
-                                dispatch(new SendWaMessage($karyawan->no_hp, $message));
-                            }
-                        } else {
-                            dispatch(new SendWaMessage($generalsetting->id_group_wa, $message));
-                        }
-                    } catch (\Exception $waEx) {
-                        Log::error('Gagal kirim WA (kiosk pulang)', ['nik' => $karyawan->nik, 'error' => $waEx->getMessage()]);
-                    }
-                }
-
                     return ['status' => 'success', 'message' => 'Berhasil Absen Pulang', 'type' => 'pulang'];
                 } catch (\Exception $e) {
                     return ['status' => 'error', 'message' => $e->getMessage()];
                 }
-            }
         }
     }
 
@@ -514,5 +420,55 @@ class PresensiService
             'Sun' => 'Minggu', 'Mon' => 'Senin', 'Tue' => 'Selasa', 'Wed' => 'Rabu', 'Thu' => 'Kamis', 'Fri' => 'Jumat', 'Sat' => 'Sabtu'
         ];
         return $namaHari[$hari] ?? $hari;
+    }
+
+    /**
+     * Menghitung batas jam absen masuk dan pulang.
+     */
+    public function calculateTimeBoundaries($jamKerja, $tanggalPresensi, $tanggalPulang, $jamKerjaPulang, $generalsetting, $timezone)
+    {
+        $batasJamAbsen       = $generalsetting->batas_jam_absen * 60;
+        $batasJamAbsenPulang = $generalsetting->batas_jam_absen_pulang * 60;
+
+        $jamMasukCarbon = Carbon::parse($tanggalPresensi . ' ' . $jamKerja->jam_masuk, $timezone);
+        $jamPulangCarbon = Carbon::parse($tanggalPulang . ' ' . $jamKerjaPulang, $timezone);
+
+        return [
+            'mulai_masuk'  => $jamMasukCarbon->copy()->subMinutes($batasJamAbsen),
+            'akhir_masuk'  => $jamMasukCarbon->copy()->addMinutes($batasJamAbsen),
+            'mulai_pulang' => $jamPulangCarbon->copy()->subMinutes($batasJamAbsenPulang)
+        ];
+    }
+
+    /**
+     * Memvalidasi waktu absensi (sudah absen, belum waktunya, atau sudah habis).
+     * Mengembalikan array response error jika tidak valid, atau null jika valid.
+     */
+    public function validateAttendanceTime($status, $presensiHariini, $jamPresensiCarbon, $boundaries, $generalsetting)
+    {
+        if ($status == 1) {
+            // Absen Masuk
+            if ($presensiHariini && $presensiHariini->jam_in != null) {
+                return ['success' => false, 'message' => 'Anda sudah absen masuk hari ini.', 'notifikasi' => 'notifikasi_sudahabsen'];
+            }
+            if ($generalsetting->batasi_absen == 1) {
+                if ($jamPresensiCarbon->lt($boundaries['mulai_masuk'])) {
+                    return ['success' => false, 'message' => 'Belum waktunya absen masuk. Waktu absen mulai pukul ' . $boundaries['mulai_masuk']->format('H:i'), 'notifikasi' => 'notifikasi_mulaiabsen'];
+                }
+                if ($jamPresensiCarbon->gt($boundaries['akhir_masuk'])) {
+                    return ['success' => false, 'message' => 'Waktu absen masuk sudah habis.', 'notifikasi' => 'notifikasi_akhirabsen'];
+                }
+            }
+        } else {
+            // Absen Pulang
+            if ($presensiHariini && $presensiHariini->jam_out != null) {
+                return ['success' => false, 'message' => 'Anda sudah absen pulang hari ini.', 'notifikasi' => 'notifikasi_sudahabsen'];
+            }
+            if ($generalsetting->batasi_absen == 1 && $jamPresensiCarbon->lt($boundaries['mulai_pulang'])) {
+                return ['success' => false, 'message' => 'Belum waktunya absen pulang. Waktu absen pulang mulai pukul ' . $boundaries['mulai_pulang']->format('H:i'), 'notifikasi' => 'notifikasi_mulaiabsen'];
+            }
+        }
+
+        return null; // Valid
     }
 }
