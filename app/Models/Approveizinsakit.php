@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Approveizinsakit extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'presensi_izinsakit_approve';
     protected $guarded = [];
 }

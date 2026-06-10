@@ -291,6 +291,15 @@
     })
     </script>
 
+    <!-- Force reload if page is loaded from BFCache to prevent stale CSRF tokens after logout -->
+    <script>
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
+
     <!-- PWA Install Prompt - Only on Login Page -->
     @include('components.pwa-install-prompt')
 </body>

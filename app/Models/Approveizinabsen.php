@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Approveizinabsen extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'presensi_izinabsen_approve';
     protected $primaryKey = 'id_presensi';
     public $incrementing = false;

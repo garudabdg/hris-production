@@ -190,7 +190,7 @@ class ItTicketController extends Controller
             // --- NOTIFIKASI PUSH ONESIGNAL ---
             $recipientIds = $recipients->pluck('id')->map(function($id) { return (string) $id; })->toArray();
             if (!empty($recipientIds)) {
-                $pesanPush = $ticket->pemohon->nama_karyawan . " membuat IT Ticket baru: " . $ticket->judul;
+                $pesanPush = $ticket->pemohon->name . " membuat IT Ticket baru: " . $ticket->judul;
                 $this->sendTicketPushNotification($recipientIds, "IT Ticket Baru", $pesanPush, $ticket->id);
             }
         } catch (\Exception $e) {

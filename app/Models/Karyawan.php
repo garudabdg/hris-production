@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class Karyawan extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "karyawan";
     protected $primaryKey = "nik";
     public $incrementing = false;

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Userkaryawan extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'users_karyawan';
     protected $guarded = [];
 

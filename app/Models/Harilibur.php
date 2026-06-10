@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Harilibur extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'hari_libur';
     protected $primaryKey = 'kode_libur';
     public $incrementing = false;

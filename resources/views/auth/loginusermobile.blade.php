@@ -531,6 +531,14 @@
                 }
             });
         });
+        
+        // Force reload if page is loaded from BFCache (Back/Forward Cache)
+        // This prevents stale CSRF tokens from causing 419 errors after logout
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
     </script>
     @include('components.pwa-install-prompt')
 </body>

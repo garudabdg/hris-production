@@ -365,6 +365,83 @@ class PresensiService
         }
     }
 
+    public function prosesPresensiMesin(array $data)
+    {
+        $pin = $data['pin'] ?? null;
+        $status_scan = $data['status_scan'] ?? null;
+        $scan = $data['scan'] ?? null;
+
+        if (!$pin || !$scan) {
+            return ['status' => false, 'message' => 'Data tidak lengkap', 'status_code' => 400];
+        }
+
+        $generalsetting = Pengaturanumum::where('id', 1)->first();
+        $karyawan = Karyawan::where('pin', $pin)->first();
+
+        if (!$karyawan) {
+            return ['status' => false, 'message' => 'Karyawan Tidak Ditemukan', 'status_code' => 200];
+        }
+
+        $cabang = Cabang::where('kode_cabang', $karyawan->kode_cabang)->first();
+        $timezone_cabang = $cabang->timezone ?? $generalsetting->timezone ?? config('app.timezone');
+        
+        $carbon_scan = Carbon::parse($scan, $timezone_cabang);
+        $tanggal_sekarang = $carbon_scan->format('Y-m-d');
+        $jam_sekarang = $carbon_scan->format('H:i');
+
+        // Dapatkan Jam Kerja
+        $jamkerja = $this->getJamKerjaKaryawan($karyawan, $tanggal_sekarang);
+        if (!$jamkerja) {
+            $jamkerja = Jamkerja::where('kode_jam_kerja', 'JK01')->first();
+        }
+
+        if (!$jamkerja) {
+            return ['status' => false, 'message' => 'Jam Kerja Tidak Ditemukan', 'status_code' => 200];
+        }
+
+        // Resolusi tanggal presensi untuk kasus lintas hari
+        $resolved = $this->resolvePresensiDate($karyawan->nik, $jamkerja->kode_jam_kerja, $timezone_cabang, $generalsetting->batas_presensi_lintashari);
+        $tanggal_presensi = $resolved['tanggal_presensi'];
+
+        $presensi_hariini = Presensi::where('nik', $karyawan->nik)->where('tanggal', $tanggal_presensi)->first();
+        
+        if ($presensi_hariini && $presensi_hariini->status != 'h') {
+            return ['status' => false, 'message' => 'Presensi Sudah Ada', 'status_code' => 200];
+        }
+
+        $jam_presensi = $tanggal_sekarang . " " . $jam_sekarang;
+
+        if (in_array($status_scan, [0, 2, 4, 6, 8])) {
+            // Absen Masuk
+            if ($presensi_hariini && $presensi_hariini->jam_in != null) {
+                return ['status' => false, 'message' => 'Anda Sudah Absen Masuk Hari Ini', 'notifikasi' => 'notifikasi_sudahabsen', 'status_code' => 400];
+            }
+
+            try {
+                $this->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'in', [
+                    'jam_in'         => $jam_presensi,
+                    'kode_jam_kerja' => $jamkerja->kode_jam_kerja,
+                ]);
+
+                return ['status' => true, 'message' => 'Berhasil Absen Masuk', 'notifikasi' => 'notifikasi_absenmasuk', 'status_code' => 200];
+            } catch (\Exception $e) {
+                return ['status' => false, 'message' => $e->getMessage(), 'status_code' => 400];
+            }
+        } else {
+            // Absen Pulang
+            try {
+                $this->simpanRecordPresensi($karyawan->nik, $tanggal_presensi, 'out', [
+                    'jam_out'        => $jam_presensi,
+                    'kode_jam_kerja' => $jamkerja->kode_jam_kerja,
+                ]);
+
+                return ['status' => true, 'message' => 'Berhasil Absen Pulang', 'notifikasi' => 'notifikasi_absenpulang', 'status_code' => 200];
+            } catch (\Exception $e) {
+                return ['status' => false, 'message' => $e->getMessage(), 'status_code' => 400];
+            }
+        }
+    }
+
     public function getJamKerjaKaryawan($karyawan, $tanggal = null)
     {
         $hariini = $tanggal ?? date("Y-m-d");

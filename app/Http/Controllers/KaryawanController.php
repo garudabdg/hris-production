@@ -137,31 +137,10 @@ class KaryawanController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(\App\Http\Requests\Karyawan\StoreKaryawanRequest $request, \App\Services\KaryawanService $karyawanService)
     {
         /** @var \App\Models\User $user */
         $user = auth()->user();
-
-        $request->validate([
-            // nik akan digenerate otomatis; user mengisi nik_show
-            'nik_show' => 'required',
-            'no_ktp' => 'required|string|max:20',
-            'nama_karyawan' => 'required',
-            'tempat_lahir' => 'required',
-            'tanggal_lahir' => 'required',
-            'alamat' => 'required',
-            'jenis_kelamin' => 'required',
-            'no_hp' => 'required|string|regex:/^0[0-9]{9,12}$/',
-            'kode_status_kawin' => 'required',
-            'pendidikan_terakhir' => 'required',
-            'kode_cabang' => 'required',
-            'kode_dept' => 'required',
-            'kode_jabatan' => 'required',
-            'tanggal_masuk' => 'required',
-            'status_karyawan' => 'required',
-            'sub_departemen' => 'nullable|string',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png|max:20480',
-        ]);
 
         // Validasi akses cabang dan departemen jika bukan super admin
         if (!$user->isSuperAdmin()) {
@@ -178,67 +157,12 @@ class KaryawanController extends Controller
         }
 
         try {
-            // Generate NIK format YYMM + 5 digit urut per bulan
-            $tahun = date('y');
-            $bulan = date('m');
-            $prefix = $tahun . $bulan; // e.g., 2510
+            $data = $request->validated();
+            unset($data['foto']);
+            $file = $request->file('foto');
+            
+            $karyawanService->storeKaryawan($data, $file);
 
-            $last = Karyawan::where('nik', 'like', $prefix . '%')
-                ->orderBy('nik', 'desc')
-                ->first();
-
-            $lastNumber = 0;
-            if ($last) {
-                $lastNumber = (int)substr($last->nik, 4, 5);
-            }
-            $nextNumber = $lastNumber + 1;
-            $nikAuto = $prefix . str_pad((string)$nextNumber, 5, '0', STR_PAD_LEFT);
-            $data_foto = [];
-            if ($request->hasfile('foto')) {
-                $foto_name =  $nikAuto . "." . $request->file('foto')->getClientOriginalExtension();
-                $destination_foto_path = "/public/karyawan";
-                $foto = $foto_name;
-                $data_foto = [
-                    'foto' => $foto
-                ];
-            }
-            $data_karyawan = [
-                'nik' => $nikAuto,
-                'nik_show' => $request->nik_show,
-                'no_ktp' => $request->no_ktp,
-                'nama_karyawan' => $request->nama_karyawan,
-                'tempat_lahir' => $request->tempat_lahir,
-                'tanggal_lahir' => $request->tanggal_lahir,
-                'alamat' => $request->alamat,
-                'jenis_kelamin' => $request->jenis_kelamin,
-                'no_hp' => $request->no_hp,
-                'kode_status_kawin' => $request->kode_status_kawin,
-                'pendidikan_terakhir' => $request->pendidikan_terakhir,
-                'kode_cabang' => $request->kode_cabang,
-                'kode_dept' => $request->kode_dept,
-                'sub_departemen' => $request->sub_departemen,
-                'kode_jabatan' => $request->kode_jabatan,
-                'tanggal_masuk' => $request->tanggal_masuk,
-                'status_karyawan' => $request->status_karyawan,
-                'lock_location' => $request->lock_location,
-                'lock_jam_kerja' => $request->lock_jam_kerja,
-                'status_aktif_karyawan' => 1,
-                'rfid_uid' => $request->rfid_uid,
-                'password' => Hash::make('12345')
-            ];
-            $data = array_merge($data_karyawan, $data_foto);
-            $simpan = Karyawan::create($data);
-            if ($simpan) {
-                if ($request->hasfile('foto')) {
-                    if (!Storage::exists($destination_foto_path)) {
-                        Storage::makeDirectory($destination_foto_path, 0775, true);
-                        // Explicit chmod to ensure permissions are correct on some hosting environments
-                        $path = Storage::path($destination_foto_path);
-                        chmod($path, 0775);
-                    }
-                    $request->file('foto')->storeAs($destination_foto_path, $foto_name);
-                }
-            }
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {
             return Redirect::back()->with(messageError($e->getMessage()));
@@ -261,33 +185,12 @@ class KaryawanController extends Controller
     }
 
 
-    public function update($nik, Request $request)
+    public function update($nik, \App\Http\Requests\Karyawan\UpdateKaryawanRequest $request, \App\Services\KaryawanService $karyawanService)
     {
         /** @var \App\Models\User $user */
         $user = auth()->user();
 
         $nik = Crypt::decrypt($nik);
-        $request->validate([
-            // nik tetap primary key dan tidak diedit; nik_show yang bisa diubah
-            'nik_show' => 'required',
-            'no_ktp' => 'required|string|max:20',
-            'nama_karyawan' => 'required',
-            'tempat_lahir' => 'required',
-            'tanggal_lahir' => 'required',
-            'alamat' => 'required',
-            'jenis_kelamin' => 'required',
-            'no_hp' => 'required|string|regex:/^0[0-9]{9,12}$/',
-            'kode_status_kawin' => 'required',
-            'pendidikan_terakhir' => 'required',
-            'kode_cabang' => 'required',
-            'kode_dept' => 'required',
-            'kode_jabatan' => 'required',
-            'tanggal_masuk' => 'required',
-            'status_karyawan' => 'required',
-            'sub_departemen' => 'nullable|string',
-            'tanggal_nonaktif' => 'nullable|date',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png|max:20480',
-        ]);
 
         // Validasi akses cabang dan departemen jika bukan super admin
         if (!$user->isSuperAdmin()) {
@@ -304,64 +207,12 @@ class KaryawanController extends Controller
         }
 
         try {
-            $karyawan = Karyawan::where('nik', $nik)->first();
-            $data_foto = [];
-            if ($request->hasfile('foto')) {
-                $foto_name =  $nik . "." . $request->file('foto')->getClientOriginalExtension();
-                $destination_foto_path = "/public/karyawan";
-                $foto = $foto_name;
-                $data_foto = [
-                    'foto' => $foto
-                ];
-            }
+            $data = $request->validated();
+            unset($data['foto']);
+            $file = $request->file('foto');
+            
+            $karyawanService->updateKaryawan($nik, $data, $file);
 
-            $data_karyawan = [
-                // 'nik' tidak diubah di update
-                'nik_show' => $request->nik_show,
-                'no_ktp' => $request->no_ktp,
-                'nama_karyawan' => $request->nama_karyawan,
-                'tempat_lahir' => $request->tempat_lahir,
-                'tanggal_lahir' => $request->tanggal_lahir,
-                'alamat' => $request->alamat,
-                'jenis_kelamin' => $request->jenis_kelamin,
-                'no_hp' => $request->no_hp,
-                'kode_status_kawin' => $request->kode_status_kawin,
-                'pendidikan_terakhir' => $request->pendidikan_terakhir,
-                'kode_cabang' => $request->kode_cabang,
-                'kode_dept' => $request->kode_dept,
-                'sub_departemen' => $request->sub_departemen,
-                'kode_jabatan' => $request->kode_jabatan,
-                'tanggal_masuk' => $request->tanggal_masuk,
-                'status_karyawan' => $request->status_karyawan,
-                'status_aktif_karyawan' => $request->status_aktif_karyawan,
-                'lock_location' => $request->lock_location,
-                'lock_jam_kerja' => $request->lock_jam_kerja,
-                'tanggal_nonaktif' => $request->status_aktif_karyawan === '0' ? $request->tanggal_nonaktif : null,
-                'rfid_uid' => $request->rfid_uid,
-                'pin' => $request->pin
-            ];
-
-            $data = array_merge($data_karyawan, $data_foto);
-            $simpan = Karyawan::where('nik', $nik)->update($data);
-            if ($simpan) {
-                $user_karyawan = Userkaryawan::where('nik', $nik)->first();
-                if ($user_karyawan) {
-                    User::where('id', $user_karyawan->id_user)->update([
-                        'name' => $request->nama_karyawan
-                    ]);
-                }
-
-                if ($request->hasfile('foto')) {
-                    if (!Storage::exists($destination_foto_path)) {
-                        Storage::makeDirectory($destination_foto_path, 0775, true);
-                        // Explicit chmod to ensure permissions are correct on some hosting environments
-                        $path = Storage::path($destination_foto_path);
-                        chmod($path, 0775);
-                    }
-                    Storage::delete($destination_foto_path . "/" . $karyawan->foto);
-                    $request->file('foto')->storeAs($destination_foto_path, $foto_name);
-                }
-            }
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {
             return Redirect::back()->with(messageError($e->getMessage()));
@@ -581,15 +432,25 @@ class KaryawanController extends Controller
         DB::beginTransaction();
         try {
             Setjamkerjabyday::where('nik', $nik)->delete();
+            
+            $dataInsert = [];
+            $now = now();
             for ($i = 0; $i < count($hari); $i++) {
                 if (!empty($kode_jam_kerja[$i])) {
-                    Setjamkerjabyday::create([
+                    $dataInsert[] = [
                         'nik' => $nik,
                         'hari' => $hari[$i],
-                        'kode_jam_kerja' => $kode_jam_kerja[$i]
-                    ]);
+                        'kode_jam_kerja' => $kode_jam_kerja[$i],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
             }
+            
+            if (!empty($dataInsert)) {
+                Setjamkerjabyday::insert($dataInsert);
+            }
+            
             DB::commit();
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {
@@ -706,7 +567,6 @@ class KaryawanController extends Controller
     {
         $generalsetting = Pengaturanumum::first();
         // Get all active employees who don't have a user yet
-        // Since 'user' relation might not exist in Karyawan model, we use a left join check or explicit query
         $karyawan = Karyawan::where('status_aktif_karyawan', 1)
             ->leftJoin('users_karyawan', 'karyawan.nik', '=', 'users_karyawan.nik')
             ->whereNull('users_karyawan.id_user')
@@ -722,37 +582,79 @@ class KaryawanController extends Controller
             $count = 0;
             $appName = optional($generalsetting)->nama_perusahaan ?? 'HRIS';
             $apkUrl = route('download.apk');
+            $now = now();
+            
+            // Dapatkan ID Role karyawan
+            $role = \Spatie\Permission\Models\Role::findByName('karyawan');
 
-            foreach ($karyawan as $k) {
-                $user = User::create([
-                    'name' => $k->nama_karyawan,
-                    'username' => $k->nik,
-                    'password' => Hash::make($k->nik),
-                    'email' => strtolower(removeTitik($k->nik)) . '@belum.diset',
-                ]);
+            // Proses dalam chunk untuk menghindari memory limit dan N+1
+            foreach ($karyawan->chunk(100) as $chunk) {
+                $usersData = [];
+                $niks = [];
+                $waJobs = [];
 
-                Userkaryawan::create([
-                    'nik' => $k->nik,
-                    'id_user' => $user->id
-                ]);
-
-                $user->assignRole('karyawan');
-                
-                // Kirim notifikasi WA ke karyawan
-                if (!empty($k->no_hp)) {
-                    $waMessage = "Halo *{$k->nama_karyawan}*,\n\n"
-                        . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
-                        . "🔐 *Informasi Login Sementara:*\n"
-                        . "Username: *{$k->nik}*\n"
-                        . "Password: *{$k->nik}*\n\n"
-                        . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
-                        . "⚠️ *PENTING:*\n"
-                        . "Silakan login sekarang juga untuk *melengkapi Profil Anda* (mengubah Username, Email aktif, dan Password baru).\n\n"
-                        . "Terima kasih.";
-                    SendWaMessage::dispatch($k->no_hp, $waMessage, false, true, 'presensi');
+                foreach ($chunk as $k) {
+                    $niks[] = $k->nik;
+                    $usersData[] = [
+                        'name' => $k->nama_karyawan,
+                        'username' => $k->nik,
+                        'password' => Hash::make($k->nik),
+                        'email' => strtolower(removeTitik($k->nik)) . '@belum.diset',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                    
+                    if (!empty($k->no_hp)) {
+                        $waMessage = "Halo *{$k->nama_karyawan}*,\n\n"
+                            . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
+                            . "🔐 *Informasi Login Sementara:*\n"
+                            . "Username: *{$k->nik}*\n"
+                            . "Password: *{$k->nik}*\n\n"
+                            . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
+                            . "⚠️ *PENTING:*\n"
+                            . "Silakan login sekarang juga untuk *melengkapi Profil Anda* (mengubah Username, Email aktif, dan Password baru).\n\n"
+                            . "Terima kasih.";
+                        
+                        $waJobs[] = [
+                            'no_hp' => $k->no_hp,
+                            'message' => $waMessage
+                        ];
+                    }
                 }
 
-                $count++;
+                // Batch Insert Users
+                User::insert($usersData);
+                
+                // Ambil kembali User yang baru diinsert (karena insert tidak mereturn ID)
+                $insertedUsers = User::whereIn('username', $niks)->get();
+                
+                $userKaryawanData = [];
+                $modelHasRolesData = [];
+                
+                foreach ($insertedUsers as $user) {
+                    $userKaryawanData[] = [
+                        'nik' => $user->username,
+                        'id_user' => $user->id,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                    
+                    $modelHasRolesData[] = [
+                        'role_id' => $role->id,
+                        'model_type' => 'App\Models\User',
+                        'model_id' => $user->id
+                    ];
+                    $count++;
+                }
+                
+                // Batch Insert Userkaryawan & Roles
+                Userkaryawan::insert($userKaryawanData);
+                DB::table('model_has_roles')->insert($modelHasRolesData);
+                
+                // Dispatch Job Notifikasi WA
+                foreach ($waJobs as $job) {
+                    SendWaMessage::dispatch($job['no_hp'], $job['message'], false, true, 'presensi');
+                }
             }
 
             DB::commit();

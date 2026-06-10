@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Pelanggaran extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $table = 'pelanggaran';
     protected $primaryKey = 'no_sp';

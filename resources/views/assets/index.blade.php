@@ -183,7 +183,7 @@
             </thead>
             <tbody>
                 @forelse ($assets as $a)
-                    <tr>
+                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form')) { @if(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show')) window.location.href='{{ route('assets.show', $a->id) }}'; @endif }">
                         <td>{{ $assets->firstItem() + $loop->index }}</td>
                         <td>
                             <a href="{{ route('assets.barcode', $a->id) }}" target="_blank" title="Print Barcode" class="text-decoration-none">

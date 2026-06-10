@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Statuskawin extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $table = "status_kawin";
     protected $primaryKey = "kode_status_kawin";

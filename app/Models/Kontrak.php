@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Kontrak extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'kontrak';
     protected $primaryKey = 'id';
     protected $guarded = [];

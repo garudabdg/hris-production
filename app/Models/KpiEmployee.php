@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class KpiEmployee extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $guarded = ['id'];
 

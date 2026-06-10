@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Jabatan extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "jabatan";
     protected $primaryKey = "kode_jabatan";
     public $incrementing = false;

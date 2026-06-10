@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class KonfigurasiDokumen extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "konfigurasi_dokumen";
     protected $primaryKey = "kode_dokumen";
     public $incrementing = false;

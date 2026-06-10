@@ -558,10 +558,17 @@
                      @can('audit.index')
                      <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
                          <a href="{{ route('audit.index') }}" class="menu-link">
-                             <div><i class="ti ti-file-text me-1"></i>Audit Log</div>
+                             <div><i class="ti ti-file-text me-1"></i>Audit Log Login</div>
                          </a>
                      </li>
                      @endcan
+                     @if(auth()->user()->hasRole('super admin'))
+                     <li class="menu-item {{ request()->is(['data-audit', 'data-audit/*']) ? 'active' : '' }}">
+                         <a href="{{ route('data-audit.index') }}" class="menu-link">
+                             <div><i class="ti ti-history me-1"></i>Data Audit Trail</div>
+                         </a>
+                     </li>
+                     @endif
                      @can('bersihkanfoto.index')
                      <li class="menu-item {{ request()->is(['bersihkanfoto', 'bersihkanfoto/*']) ? 'active' : '' }}">
                          <a href="{{ route('bersihkanfoto.index') }}" class="menu-link">
@@ -584,9 +591,17 @@
              <li class="menu-item {{ request()->is(['audit', 'audit/*']) ? 'active' : '' }}">
                  <a href="{{ route('audit.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-file-text"></i>
-                     <div>Audit Log</div>
+                     <div>Audit Log Login</div>
                  </a>
              </li>
+             @if(auth()->user()->hasRole('super admin'))
+             <li class="menu-item {{ request()->is(['data-audit', 'data-audit/*']) ? 'active' : '' }}">
+                 <a href="{{ route('data-audit.index') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-history"></i>
+                     <div>Data Audit Trail</div>
+                 </a>
+             </li>
+             @endif
              @endcannot
          @endcan
          @can('recruitment.index')

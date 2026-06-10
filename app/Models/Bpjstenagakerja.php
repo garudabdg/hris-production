@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Bpjstenagakerja extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "karyawan_bpjstenagakerja";
     protected $primaryKey = "kode_bpjs_tk";
     public $incrementing = false;

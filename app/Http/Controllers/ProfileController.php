@@ -61,7 +61,8 @@ class ProfileController extends Controller
                 'tanggal_lahir' => $request->tanggal_lahir,
             ];
             $data = array_merge($data_karyawan, $data_foto);
-            Karyawan::where('nik', $karyawan->nik)->update($data);
+            $karyawan->fill($data);
+            $karyawan->save();
             if ($request->hasfile('foto')) {
                 if (!Storage::exists($destination_foto_path)) {
                     Storage::makeDirectory($destination_foto_path, 0775, true);
@@ -71,11 +72,12 @@ class ProfileController extends Controller
                 Storage::delete($destination_foto_path . "/" . $karyawan->foto);
                 $request->file('foto')->storeAs($destination_foto_path, $foto_name);
             }
-            User::where('id', $user->id)->update([
+            $user->fill([
                 'name' => $request->nama_karyawan,
                 'email' => $request->email,
                 'username' => $request->username,
             ]);
+            $user->save();
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {
             return Redirect::back()->with(messageError('Gagal menyimpan data. Silakan coba lagi.'));
@@ -107,7 +109,13 @@ class ProfileController extends Controller
                 $data['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
             }
 
-            User::where('id', $user->id)->update($data);
+            $user->fill($data);
+            $user->save();
+
+            if ($request->filled('password')) {
+                // Cegah auto-logout dengan meregenerasi session dengan hash password baru
+                \Illuminate\Support\Facades\Auth::login($user);
+            }
 
             return Redirect::back()->with(messageSuccess('Profile Berhasil Diupdate'));
         } catch (\Exception $e) {

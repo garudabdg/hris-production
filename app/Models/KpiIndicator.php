@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class KpiIndicator extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     
     protected $table = 'kpi_indicators';
     

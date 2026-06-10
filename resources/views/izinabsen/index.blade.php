@@ -76,8 +76,8 @@
                                 @php
                                     $lama = hitungHari($d->dari, $d->sampai);
                                 @endphp
-                                <div class="card mb-2 shadow-sm border">
-                                    <div class="card-body p-2">
+                                <div class="card mb-2 shadow-sm border" style="transition: all 0.2s ease;">
+                                    <div class="card-body p-2" style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form')) { let btn = this.querySelector('.btnApprove'); if(btn) btn.click(); else { let showBtn = this.querySelector('.btnShow'); if(showBtn) showBtn.click(); } }" onmouseover="this.parentElement.style.transform='translateY(-2px)'; this.parentElement.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.15)'" onmouseout="this.parentElement.style.transform='none'; this.parentElement.style.boxShadow='0 .125rem .25rem rgba(0,0,0,.075)'">
                                         <div class="row align-items-center">
                                             <!-- Avatar -->
                                             <div class="col-md-1 text-center" style="width: 60px;">

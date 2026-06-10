@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Presensi extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'presensi';
     protected $guarded = [];
 }

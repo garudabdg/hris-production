@@ -149,61 +149,55 @@ class DashboardService
     {
         $sk = new Karyawan();
 
-        // Modifikasi request untuk getRekapstatuskaryawan dengan filter akses
-        $filterRequest = new Request($request->all());
-        if (!$user->isSuperAdmin()) {
+        // 1. Ambil Permission Sekali Saja
+        $isSuperAdmin = $user->isSuperAdmin();
+        $userCabangs = null;
+        $userDepartemens = null;
+
+        if (!$isSuperAdmin) {
             $userCabangs = $user->getCabangCodes();
             $userDepartemens = $user->getDepartemenCodes();
+        }
 
+        // 2. Modifikasi request untuk getRekapstatuskaryawan
+        $filterRequest = new Request($request->all());
+        if (!$isSuperAdmin) {
             if (empty($userCabangs) || empty($userDepartemens)) {
                 $filterRequest->merge(['kode_cabang' => 'INVALID']);
             } else {
-                if (empty($filterRequest->kode_cabang) && !empty($userCabangs)) {
-                    if (count($userCabangs) == 1) {
-                        $filterRequest->merge(['kode_cabang' => $userCabangs[0]]);
-                    }
+                if (empty($filterRequest->kode_cabang) && count($userCabangs) == 1) {
+                    $filterRequest->merge(['kode_cabang' => $userCabangs[0]]);
                 }
-                if (empty($filterRequest->kode_dept) && !empty($userDepartemens)) {
-                    if (count($userDepartemens) == 1) {
-                        $filterRequest->merge(['kode_dept' => $userDepartemens[0]]);
-                    }
+                if (empty($filterRequest->kode_dept) && count($userDepartemens) == 1) {
+                    $filterRequest->merge(['kode_dept' => $userDepartemens[0]]);
                 }
             }
         }
         $data['status_karyawan'] = $sk->getRekapstatuskaryawan($filterRequest);
 
-        // Modifikasi request untuk chart dengan filter akses
+        // 3. Modifikasi request untuk chart
         $chartRequest = new Request($request->all());
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-
-            if (!empty($userCabangs)) {
-                $chartRequest->merge(['user_cabangs' => $userCabangs]);
-            }
-            if (!empty($userDepartemens)) {
-                $chartRequest->merge(['user_departemens' => $userDepartemens]);
-            }
+        if (!$isSuperAdmin) {
+            if (!empty($userCabangs)) $chartRequest->merge(['user_cabangs' => $userCabangs]);
+            if (!empty($userDepartemens)) $chartRequest->merge(['user_departemens' => $userDepartemens]);
         }
 
         $data['chart'] = $chart->build($chartRequest);
         $data['jkchart'] = $jkchart->build($chartRequest);
         $data['pddchart'] = $pddchart->build($chartRequest);
 
-        $queryPresensi = Presensi::query();
-        $queryPresensi->join('karyawan', 'presensi.nik', '=', 'karyawan.nik');
-        $queryPresensi->select(
-            DB::raw("SUM(IF(status='h',1,0)) as hadir"),
-            DB::raw("SUM(IF(status='i',1,0)) as izin"),
-            DB::raw("SUM(IF(status='s',1,0)) as sakit"),
-            DB::raw("SUM(IF(status='a',1,0)) as alpa"),
-            DB::raw("SUM(IF(status='c',1,0)) as cuti")
-        );
+        // 4. Query Presensi
+        $queryPresensi = Presensi::query()
+            ->join('karyawan', 'presensi.nik', '=', 'karyawan.nik')
+            ->select(
+                DB::raw("SUM(IF(status='h',1,0)) as hadir"),
+                DB::raw("SUM(IF(status='i',1,0)) as izin"),
+                DB::raw("SUM(IF(status='s',1,0)) as sakit"),
+                DB::raw("SUM(IF(status='a',1,0)) as alpa"),
+                DB::raw("SUM(IF(status='c',1,0)) as cuti")
+            );
 
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-
+        if (!$isSuperAdmin) {
             if (!empty($userCabangs)) {
                 $queryPresensi->whereIn('karyawan.kode_cabang', $userCabangs);
             } else {
@@ -223,17 +217,14 @@ class DashboardService
             $queryPresensi->where('tanggal', Carbon::now(config('app.timezone'))->format('Y-m-d'));
         }
 
-        if (!empty($request->kode_cabang)) {
-            $queryPresensi->where('karyawan.kode_cabang', $request->kode_cabang);
-        }
-
-        if (!empty($request->kode_dept)) {
-            $queryPresensi->where('karyawan.kode_dept', $request->kode_dept);
-        }
+        if (!empty($request->kode_cabang)) $queryPresensi->where('karyawan.kode_cabang', $request->kode_cabang);
+        if (!empty($request->kode_dept)) $queryPresensi->where('karyawan.kode_dept', $request->kode_dept);
+        
         $data['rekappresensi'] = $queryPresensi->first();
         $data['departemen'] = $user->getDepartemen();
         $data['cabang'] = $user->getCabang();
         
+        // 5. Birthday & Kontrak
         $today = Carbon::now(config('app.timezone'));
         $data['birthday'] = Karyawan::whereMonth('tanggal_lahir', $today->month)->whereDay('tanggal_lahir', $today->day)
             ->join('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
@@ -255,25 +246,17 @@ class DashboardService
             })
             ->orderBy('tanggal_lahir', 'asc')->get();
 
-        // Filter akses untuk kontrak
-        $userCabangs = null;
-        $userDepartemens = null;
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-        }
-
         $data['kontrak_lewat'] = $sk->getRekapkontrak(0, $userCabangs, $userDepartemens);
         $data['kontrak_bulanini'] = $sk->getRekapkontrak(1, $userCabangs, $userDepartemens);
         $data['kontrak_bulandepan'] = $sk->getRekapkontrak(2, $userCabangs, $userDepartemens);
         $data['kontrak_duabulan'] = $sk->getRekapkontrak(3, $userCabangs, $userDepartemens);
 
-        // Sertifikasi Expired
+        // 6. Sertifikasi Expired
         $now = Carbon::now(config('app.timezone'))->format('Y-m-d');
         $data['sertifikasi_expired'] = \App\Models\KaryawanPelatihan::with('karyawan')
             ->whereNotNull('tanggal_expired')
             ->where('tanggal_expired', '<', $now)
-            ->when(!$user->isSuperAdmin(), function ($query) use ($userCabangs, $userDepartemens) {
+            ->when(!$isSuperAdmin, function ($query) use ($userCabangs, $userDepartemens) {
                 $query->whereHas('karyawan', function($q) use ($userCabangs, $userDepartemens) {
                     if (!empty($userCabangs)) {
                         $q->whereIn('kode_cabang', $userCabangs);
@@ -292,5 +275,53 @@ class DashboardService
             ->get();
 
         return $data;
+    }
+
+    public function processKirimUcapanBirthday(Request $request)
+    {
+        $today = Carbon::now(config('app.timezone'));
+        $birthday = Karyawan::whereMonth('tanggal_lahir', $today->month)
+            ->whereDay('tanggal_lahir', $today->day)
+            ->when($request->kode_cabang, function ($query) use ($request) {
+                $query->where('kode_cabang', $request->kode_cabang);
+            })
+            ->when($request->kode_dept, function ($query) use ($request) {
+                $query->where('kode_dept', $request->kode_dept);
+            })
+            ->whereNotNull('no_hp')
+            ->where('no_hp', '!=', '')
+            ->get();
+
+        if ($birthday->count() == 0) {
+            return false;
+        }
+
+        $count = 0;
+        foreach ($birthday as $karyawan) {
+            $umur = Carbon::parse($karyawan->tanggal_lahir)->age;
+
+            $message = "🎉 *Selamat Ulang Tahun!* 🎂\n\n";
+            $message .= "Halo *{$karyawan->nama_karyawan}*,\n\n";
+            $message .= "Di hari yang istimewa ini, kami ingin mengucapkan:\n\n";
+            $message .= "🎂 *Selamat Ulang Tahun yang ke-{$umur}!* 🎂\n\n";
+            $message .= "Semoga di hari ulang tahunmu ini:\n";
+            $message .= "✨ Panjang umur\n";
+            $message .= "✨ Sehat selalu\n";
+            $message .= "✨ Bahagia selalu\n";
+            $message .= "✨ Sukses dalam karir\n";
+            $message .= "✨ Diberkahi rezeki yang berlimpah\n\n";
+            $message .= "Terima kasih atas dedikasi dan kontribusinya selama ini. Semoga hubungan kerja kita terus berjalan dengan baik!\n\n";
+            $message .= "*Salam Hangat,*\nTim HR";
+
+            $phoneNumber = preg_replace('/^0+/', '', $karyawan->no_hp);
+            if (!str_starts_with($phoneNumber, '62')) {
+                $phoneNumber = '62' . $phoneNumber;
+            }
+
+            \App\Jobs\SendWaMessage::dispatch($phoneNumber, $message, true, false, 'birthday');
+            $count++;
+        }
+
+        return $count;
     }
 }

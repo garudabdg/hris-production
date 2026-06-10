@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setjamkerjabyday extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'presensi_jamkerja_byday';
     protected $guarded = [];
 }
