@@ -8,7 +8,7 @@
     <title>Sign In - HRIS DIDIMAX V3</title>
 
     <!-- PWA Meta Tags -->
-    <meta name="application-name" content="E-Presensi GPS V2">
+    <meta name="application-name" content="HRIS-DIDIMAX V3">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="E-Presensi">
