@@ -67,18 +67,19 @@ class ApprovalService
         }
 
         // Direct role match
-        if ($userRole === $rule->role_name) {
+        if ($user && $user->hasRole($rule->role_name)) {
+            return true;
+        } elseif (!$user && $userRole === $rule->role_name) {
             return true;
         }
 
         // Check via linked approval admin (delegation)
-        if ($user && $userRole === 'karyawan') {
+        if ($user && $user->hasRole('karyawan')) {
             $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
             if ($userkaryawan && $userkaryawan->approval_admin_id) {
                 $admin = User::find($userkaryawan->approval_admin_id);
-                if ($admin) {
-                    $adminRole = $admin->getRoleNames()->first();
-                    return $adminRole === $rule->role_name;
+                if ($admin && $admin->hasRole($rule->role_name)) {
+                    return true;
                 }
             }
         }

@@ -65,10 +65,21 @@
 </form>
 
 <script>
-    $(document).on('click', '[name="approve"]', function() {
+    $(document).on('click', '[name="approve"]', function(e) {
+        e.preventDefault();
+        $('#formApproveizin').append('<input type="hidden" name="approve" value="approve">');
         $('#formApproveizin').submit();
-        $(this).prop('readonly', true);
+        $(this).prop('disabled', true);
         $('button[name="tolak"]').prop('disabled', true);
         $(this).html("<i class='fa fa-spin fa-spinner me-1'></i> Processing...");
-    })
+    });
+
+    $(document).on('click', '[name="tolak"]', function(e) {
+        e.preventDefault();
+        $('#formApproveizin').append('<input type="hidden" name="tolak" value="tolak">');
+        $('#formApproveizin').submit();
+        $(this).prop('disabled', true);
+        $('button[name="approve"]').prop('disabled', true);
+        $(this).html("<i class='fa fa-spin fa-spinner me-1'></i> Processing...");
+    });
 </script>

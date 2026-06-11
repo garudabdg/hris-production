@@ -35,14 +35,14 @@ class KaryawanApprovalController extends Controller
             abort(403, 'Admin approval tidak ditemukan.');
         }
 
-        $adminRole = $admin->getRoleNames()->first();
+        $adminRoles = $admin->getRoleNames();
 
         // Get admin's cabang & departemen access
         $adminDeptCodes = $admin->getDepartemenCodes();
         $adminCabangCodes = $admin->getCabangCodes();
 
         // Cari semua ApprovalLayer yang cocok dengan role admin
-        $layers = ApprovalLayer::where('role_name', $adminRole)
+        $layers = ApprovalLayer::whereIn('role_name', $adminRoles)
                     ->where('feature', 'IZIN')
                     ->get();
 
@@ -81,8 +81,8 @@ class KaryawanApprovalController extends Controller
         $admin = User::find($userkaryawan->approval_admin_id);
         if (!$admin) return 0;
 
-        $adminRole = $admin->getRoleNames()->first();
-        $layers = ApprovalLayer::where('role_name', $adminRole)->where('feature', 'IZIN')->get();
+        $adminRoles = $admin->getRoleNames();
+        $layers = ApprovalLayer::whereIn('role_name', $adminRoles)->where('feature', 'IZIN')->get();
 
         if ($layers->isEmpty()) return 0;
 
