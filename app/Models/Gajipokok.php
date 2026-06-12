@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Gajipokok extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "karyawan_gaji_pokok";
     protected $primaryKey = "kode_gaji";
     protected $guarded = [];

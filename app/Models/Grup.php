@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Grup extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $table = 'grup';
     protected $primaryKey = 'kode_grup';

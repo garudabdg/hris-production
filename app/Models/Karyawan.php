@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class Karyawan extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "karyawan";
     protected $primaryKey = "nik";
     public $incrementing = false;
@@ -126,5 +126,39 @@ class Karyawan extends Model
     public function pelatihan()
     {
         return $this->hasMany(KaryawanPelatihan::class, 'nik', 'nik');
+    }
+
+    public function scopeAccessFilter($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $userCabangs = $user->getCabangCodes();
+        
+        if (!empty($userCabangs)) {
+            $query->whereIn($this->getTable() . '.kode_cabang', $userCabangs);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        $userDepartemenMap = $user->getDepartemenAccessMap();
+        
+        if (!empty($userDepartemenMap)) {
+            $query->where(function ($q) use ($userDepartemenMap) {
+                foreach ($userDepartemenMap as $kodeDept => $subDepts) {
+                    $q->orWhere(function ($q2) use ($kodeDept, $subDepts) {
+                        $q2->where($this->getTable() . '.kode_dept', $kodeDept);
+                        if (!empty($subDepts) && is_array($subDepts)) {
+                            $q2->whereIn($this->getTable() . '.sub_departemen', $subDepts);
+                        }
+                    });
+                }
+            });
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
     }
 }

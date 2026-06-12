@@ -30,23 +30,7 @@ class IzindinasController extends Controller
         $qizin->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept');
         $qizin->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang');
 
-        // Filter berdasarkan akses cabang dan departemen jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qizin->whereIn('karyawan.kode_cabang', $userCabangs);
-            } else {
-                $qizin->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qizin->whereIn('karyawan.kode_dept', $userDepartemens);
-            } else {
-                $qizin->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($qizin, $user);
 
         $qizin->select('presensi_izindinas.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'karyawan.foto', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'karyawan.kode_dept');
         if (!empty($request->dari) && !empty($request->sampai)) {
@@ -90,23 +74,7 @@ class IzindinasController extends Controller
         $qkaryawan = Karyawan::query();
         $qkaryawan->select('karyawan.nik', 'karyawan.nama_karyawan');
         
-        // Filter karyawan berdasarkan akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qkaryawan->whereIn('kode_cabang', $userCabangs);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qkaryawan->whereIn('kode_dept', $userDepartemens);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($qkaryawan, $user, 'kode_cabang', 'kode_dept');
         
         $karyawan = $qkaryawan->get();
 
@@ -125,37 +93,12 @@ class IzindinasController extends Controller
             ->join('karyawan', 'presensi_izindinas.nik', '=', 'karyawan.nik')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $karyawanData = Karyawan::where('nik', $izindinas->nik)->first();
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($karyawanData->kode_cabang, $userCabangs) || !in_array($karyawanData->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
-            }
-        }
+        $this->checkAccess($user, $izindinas);
         
         $qkaryawan = Karyawan::query();
         $qkaryawan->select('karyawan.nik', 'karyawan.nama_karyawan');
         
-        // Filter karyawan berdasarkan akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!empty($userCabangs)) {
-                $qkaryawan->whereIn('kode_cabang', $userCabangs);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-            
-            if (!empty($userDepartemens)) {
-                $qkaryawan->whereIn('kode_dept', $userDepartemens);
-            } else {
-                $qkaryawan->whereRaw('1 = 0');
-            }
-        }
+        $this->filterQueryByAccess($qkaryawan, $user, 'kode_cabang', 'kode_dept');
         
         $karyawan = $qkaryawan->get();
 
@@ -257,15 +200,7 @@ class IzindinasController extends Controller
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($izindinas->kode_cabang, $userCabangs) || !in_array($izindinas->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
-            }
-        }
+        $this->checkAccess($user, $izindinas);
 
         $data['izindinas'] = $izindinas;
         return view('izindinas.approve', $data);
@@ -283,17 +218,7 @@ class IzindinasController extends Controller
             ->select('presensi_izindinas.*', 'karyawan.kode_dept', 'karyawan.kode_cabang', 'karyawan.kode_jabatan')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            // Untuk delegasi, gunakan cabang/dept admin
-            $accessUser = $user->getApprovalAdmin() ?? $user;
-            $userCabangs = $accessUser->getCabangCodes();
-            $userDepartemens = $accessUser->getDepartemenCodes();
-            
-            if (!in_array($izindinas->kode_cabang, $userCabangs) || !in_array($izindinas->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
-            }
-        }
+        $this->checkAccess($user, $izindinas);
         
         $kode_dept = $izindinas->kode_dept;
         $kode_jabatan = $izindinas->kode_jabatan;
@@ -397,15 +322,7 @@ class IzindinasController extends Controller
             ->select('presensi_izindinas.*', 'karyawan.kode_dept', 'karyawan.kode_cabang')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
-            
-            if (!in_array($izindinas->kode_cabang, $userCabangs) || !in_array($izindinas->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
-            }
-        }
+        $this->checkAccess($user, $izindinas);
         
         DB::beginTransaction();
         try {
@@ -478,22 +395,7 @@ class IzindinasController extends Controller
             ->join('karyawan', 'presensi_izindinas.nik', '=', 'karyawan.nik')
             ->first();
         
-        // Cek akses jika bukan super admin
-        if (!$user->isSuperAdmin()) {
-            // Cek apakah user adalah pemilik izin (untuk karyawan)
-            $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
-            $isOwner = $userkaryawan && $userkaryawan->nik == $izindinas->nik;
-            
-            // Jika bukan pemilik, cek akses cabang/dept
-            if (!$isOwner) {
-                $userCabangs = $user->getCabangCodes();
-                $userDepartemens = $user->getDepartemenCodes();
-                
-                if (!in_array($izindinas->kode_cabang, $userCabangs) || !in_array($izindinas->kode_dept, $userDepartemens)) {
-                    abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
-                }
-            }
-        }
+        $this->checkAccess($user, $izindinas, true);
         
         try {
             Izindinas::where('kode_izin_dinas', $kode_izin_dinas)->delete();
@@ -542,17 +444,50 @@ class IzindinasController extends Controller
             ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
             ->first();
         
-        // Cek akses jika bukan super admin
+        $this->checkAccess($user, $izindinas);
+
+        $data['izindinas'] = $izindinas;
+        return view('izindinas.show', $data);
+    }
+
+    private function checkAccess($user, $izindinas, $allowOwner = false)
+    {
+        if ($user->isSuperAdmin()) return;
+
+        if ($allowOwner) {
+            $userkaryawan = Userkaryawan::where('id_user', $user->id)->first();
+            if ($userkaryawan && $userkaryawan->nik == $izindinas->nik) return;
+        }
+
+        $accessUser = $user->getApprovalAdmin() ?? $user;
+        $userCabangs = $accessUser->getCabangCodes();
+        $userDepartemens = $accessUser->getDepartemenCodes();
+        
+        $karyawanCabang = $izindinas->kode_cabang ?? Karyawan::where('nik', $izindinas->nik)->value('kode_cabang');
+        $karyawanDept = $izindinas->kode_dept ?? Karyawan::where('nik', $izindinas->nik)->value('kode_dept');
+
+        if (!in_array($karyawanCabang, $userCabangs) || !in_array($karyawanDept, $userDepartemens)) {
+            abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
+        }
+    }
+
+    private function filterQueryByAccess($query, $user, $colCabang = 'karyawan.kode_cabang', $colDept = 'karyawan.kode_dept')
+    {
         if (!$user->isSuperAdmin()) {
             $userCabangs = $user->getCabangCodes();
             $userDepartemens = $user->getDepartemenCodes();
             
-            if (!in_array($izindinas->kode_cabang, $userCabangs) || !in_array($izindinas->kode_dept, $userDepartemens)) {
-                abort(403, 'Anda tidak memiliki akses ke izin dinas ini.');
+            if (!empty($userCabangs)) {
+                $query->whereIn($colCabang, $userCabangs);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+            
+            if (!empty($userDepartemens)) {
+                $query->whereIn($colDept, $userDepartemens);
+            } else {
+                $query->whereRaw('1 = 0');
             }
         }
-
-        $data['izindinas'] = $izindinas;
-        return view('izindinas.show', $data);
     }
 }

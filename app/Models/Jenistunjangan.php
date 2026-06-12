@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Jenistunjangan extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = "jenis_tunjangan";
     protected $primaryKey = "kode_jenis_tunjangan";
     protected $guarded = [];

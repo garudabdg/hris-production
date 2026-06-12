@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AssetPerawatan extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $table = 'asset_perawatan';
 

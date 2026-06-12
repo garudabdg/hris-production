@@ -190,12 +190,9 @@ class ItTicketController extends Controller
             // --- NOTIFIKASI PUSH ONESIGNAL ---
             $recipientIds = $recipients->pluck('id')->map(function($id) { return (string) $id; })->toArray();
             if (!empty($recipientIds)) {
-                $pesanPush = $ticket->pemohon->nama_karyawan . " membuat IT Ticket baru: " . $ticket->judul;
-                $urlPush = rtrim(env('APP_URL'), '/') . '/it-ticket/' . $ticket->id;
-                sendPushNotification($recipientIds, "IT Ticket Baru", $pesanPush, $urlPush);
+                $pesanPush = $ticket->pemohon->name . " membuat IT Ticket baru: " . $ticket->judul;
+                $this->sendTicketPushNotification($recipientIds, "IT Ticket Baru", $pesanPush, $ticket->id);
             }
-            // ---------------------------------
-            
         } catch (\Exception $e) {
             \Log::warning('Gagal kirim notifikasi IT ticket: ' . $e->getMessage());
         }
@@ -249,24 +246,18 @@ class ItTicketController extends Controller
         $response->load('user');
 
         // --- NOTIFIKASI PUSH ONESIGNAL (RESPONSE) ---
-        try {
-            $urlPush = rtrim(env('APP_URL'), '/') . '/it-ticket/' . $itTicket->id;
-            if ($user->id === $itTicket->pemohon_id) {
-                // Yang balas adalah Pemohon, notif ke Assignee atau semua IT Staff
-                if ($itTicket->assigned_to) {
-                    sendPushNotification([(string) $itTicket->assigned_to], "Balasan Tiket IT", "Pemohon membalas tiket Anda: " . $itTicket->judul, $urlPush);
-                } else {
-                    $itStaffIds = \App\Models\User::role(['it staff', 'super admin'])->pluck('id')->map(function($id) { return (string) $id; })->toArray();
-                    sendPushNotification($itStaffIds, "Balasan Tiket IT", "Pemohon membalas tiket IT: " . $itTicket->judul, $urlPush);
-                }
+        if ($user->id === $itTicket->pemohon_id) {
+            // Yang balas adalah Pemohon, notif ke Assignee atau semua IT Staff
+            if ($itTicket->assigned_to) {
+                $this->sendTicketPushNotification([(string) $itTicket->assigned_to], "Balasan Tiket IT", "Pemohon membalas tiket Anda: " . $itTicket->judul, $itTicket->id);
             } else {
-                // Yang balas adalah IT Staff / Admin, notif ke Pemohon
-                sendPushNotification([(string) $itTicket->pemohon_id], "Update Tiket IT", "Ada respon baru pada tiket IT Anda: " . $itTicket->judul, $urlPush);
+                $itStaffIds = \App\Models\User::role(['it staff', 'super admin'])->pluck('id')->map(function($id) { return (string) $id; })->toArray();
+                $this->sendTicketPushNotification($itStaffIds, "Balasan Tiket IT", "Pemohon membalas tiket IT: " . $itTicket->judul, $itTicket->id);
             }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi respon IT ticket: ' . $e->getMessage());
+        } else {
+            // Yang balas adalah IT Staff / Admin, notif ke Pemohon
+            $this->sendTicketPushNotification([(string) $itTicket->pemohon_id], "Update Tiket IT", "Ada respon baru pada tiket IT Anda: " . $itTicket->judul, $itTicket->id);
         }
-        // --------------------------------------------
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -360,11 +351,7 @@ class ItTicketController extends Controller
         ]);
 
         // --- NOTIFIKASI PUSH ONESIGNAL (STATUS CHANGE) ---
-        try {
-            $urlPush = rtrim(env('APP_URL'), '/') . '/it-ticket/' . $itTicket->id;
-            sendPushNotification([(string) $itTicket->pemohon_id], "Status Tiket IT Diubah", "Tiket '{$itTicket->judul}' menjadi {$newStatus}.", $urlPush);
-        } catch (\Exception $e) {}
-        // -------------------------------------------------
+        $this->sendTicketPushNotification([(string) $itTicket->pemohon_id], "Status Tiket IT Diubah", "Tiket '{$itTicket->judul}' menjadi {$newStatus}.", $itTicket->id);
 
         return redirect()->route('it-ticket.show', $itTicket->id)->with('success', 'Status tiket diperbarui.');
     }
@@ -396,12 +383,8 @@ class ItTicketController extends Controller
         ]);
 
         // --- NOTIFIKASI PUSH ONESIGNAL (ASSIGNMENT) ---
-        try {
-            $urlPush = rtrim(env('APP_URL'), '/') . '/it-ticket/' . $itTicket->id;
-            sendPushNotification([(string) $itTicket->pemohon_id], "Update Tiket IT", "Tiket '{$itTicket->judul}' ditugaskan kepada {$assignee->name}.", $urlPush);
-            sendPushNotification([(string) $assignee->id], "Tugas Tiket Baru", "Tiket '{$itTicket->judul}' ditugaskan kepada Anda.", $urlPush);
-        } catch (\Exception $e) {}
-        // ----------------------------------------------
+        $this->sendTicketPushNotification([(string) $itTicket->pemohon_id], "Update Tiket IT", "Tiket '{$itTicket->judul}' ditugaskan kepada {$assignee->name}.", $itTicket->id);
+        $this->sendTicketPushNotification([(string) $assignee->id], "Tugas Tiket Baru", "Tiket '{$itTicket->judul}' ditugaskan kepada Anda.", $itTicket->id);
 
         return redirect()->route('it-ticket.show', $itTicket->id)->with('success', 'Tiket berhasil di-assign.');
     }
@@ -450,5 +433,18 @@ class ItTicketController extends Controller
         $itTicket->delete();
 
         return redirect()->route('it-ticket.index')->with('success', 'Tiket berhasil dihapus.');
+    }
+
+    private function sendTicketPushNotification(array $recipients, string $title, string $body, $ticketId)
+    {
+        if (empty($recipients)) {
+            return;
+        }
+        try {
+            $urlPush = rtrim(env('APP_URL'), '/') . '/it-ticket/' . $ticketId;
+            sendPushNotification($recipients, $title, $body, $urlPush);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi push IT ticket: ' . $e->getMessage());
+        }
     }
 }

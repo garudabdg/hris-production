@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Slipgaji extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'slip_gaji';
     protected $guarded = [];
     protected $primaryKey = 'kode_slip_gaji';

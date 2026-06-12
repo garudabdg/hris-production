@@ -21,10 +21,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // if (app()->environment('production')) {
-        //     URL::forceScheme('https');
-        // }
+        if (app()->environment('production') || env('APP_ENV') === 'production') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
         Paginator::useBootstrapFive();
+
+        // Share general_setting to all views to prevent undefined variable errors on login and other pages
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('generalsetting')) {
+                $general_setting = \App\Models\Generalsetting::first();
+                \Illuminate\Support\Facades\View::share('general_setting', $general_setting);
+            }
+        } catch (\Exception $e) {
+            // Silence if DB not ready
+        }
 
         // Auto-seed laporan.lembur permission if missing
         try {

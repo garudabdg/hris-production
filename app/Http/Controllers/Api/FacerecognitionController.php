@@ -11,6 +11,32 @@ use Illuminate\Support\Facades\Storage;
 
 class FacerecognitionController extends Controller
 {
+    private function formatFaceImageUrls($wajahList, $folderPath, $encodedFolder)
+    {
+        return $wajahList->map(function ($wajah) use ($folderPath, $encodedFolder) {
+            $filePath    = $folderPath . $wajah->wajah;
+            $fileExists  = Storage::exists($filePath);
+
+            $imageUrl = null;
+            if ($fileExists) {
+                try {
+                    $ts = Storage::lastModified($filePath);
+                } catch (\Exception $e) {
+                    $ts = \Carbon\Carbon::parse($wajah->created_at)->timestamp;
+                }
+                $encodedFile = rawurlencode($wajah->wajah);
+                $imageUrl    = url('/storage/uploads/facerecognition/' . $encodedFolder . '/' . $encodedFile . '?v=' . $ts);
+            }
+
+            return [
+                'id'         => $wajah->id,
+                'wajah'      => $wajah->wajah,
+                'image_url'  => $imageUrl,
+                'created_at' => $wajah->created_at,
+            ];
+        });
+    }
+
     /**
      * GET /api/karyawan/face
      * Ambil daftar wajah yang sudah terdaftar milik karyawan yang login.
@@ -35,29 +61,9 @@ class FacerecognitionController extends Controller
 
         $wajahList = Facerecognition::where('nik', $userkaryawan->nik)
             ->orderBy('created_at', 'asc')
-            ->get()
-            ->map(function ($wajah) use ($folderPath, $encodedFolder) {
-                $filePath    = $folderPath . $wajah->wajah;
-                $fileExists  = Storage::exists($filePath);
+            ->get();
 
-                $imageUrl = null;
-                if ($fileExists) {
-                    try {
-                        $ts = Storage::lastModified($filePath);
-                    } catch (\Exception $e) {
-                        $ts = \Carbon\Carbon::parse($wajah->created_at)->timestamp;
-                    }
-                    $encodedFile = rawurlencode($wajah->wajah);
-                    $imageUrl    = url('/storage/uploads/facerecognition/' . $encodedFolder . '/' . $encodedFile . '?v=' . $ts);
-                }
-
-                return [
-                    'id'         => $wajah->id,
-                    'wajah'      => $wajah->wajah,
-                    'image_url'  => $imageUrl,
-                    'created_at' => $wajah->created_at,
-                ];
-            });
+        $wajahList = $this->formatFaceImageUrls($wajahList, $folderPath, $encodedFolder);
 
         return response()->json([
             'success' => true,
@@ -106,6 +112,8 @@ class FacerecognitionController extends Controller
             $saved  = [];
             $cekWajah = Facerecognition::where('nik', $nik)->count();
             $urutan = $cekWajah + 1;
+            $insertData = [];
+            $now = \Carbon\Carbon::now();
 
             if ($request->hasFile('files')) {
                 // ── Metode 1: File upload (multipart) ──────────────────────
@@ -117,7 +125,12 @@ class FacerecognitionController extends Controller
 
                     $file->storeAs($folderPath, $fileName);
 
-                    Facerecognition::create(['nik' => $nik, 'wajah' => $fileName]);
+                    $insertData[] = [
+                        'nik' => $nik,
+                        'wajah' => $fileName,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                     $saved[] = $fileName;
                     $urutan++;
                 }
@@ -133,7 +146,12 @@ class FacerecognitionController extends Controller
                     $fileName   = $urutan . '_' . $direction . '.png';
 
                     Storage::put($folderPath . $fileName, $imageData);
-                    Facerecognition::create(['nik' => $nik, 'wajah' => $fileName]);
+                    $insertData[] = [
+                        'nik' => $nik,
+                        'wajah' => $fileName,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                     $saved[] = $fileName;
                     $urutan++;
                 }
@@ -145,11 +163,20 @@ class FacerecognitionController extends Controller
                 $fileName   = $urutan . '.png';
 
                 Storage::put($folderPath . $fileName, $imageData);
-                Facerecognition::create(['nik' => $nik, 'wajah' => $fileName]);
+                $insertData[] = [
+                    'nik' => $nik,
+                    'wajah' => $fileName,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
                 $saved[] = $fileName;
 
             } else {
                 return response()->json(['success' => false, 'message' => 'Tidak ada gambar yang dikirim'], 422);
+            }
+
+            if (!empty($insertData)) {
+                Facerecognition::insert($insertData);
             }
 
             return response()->json([

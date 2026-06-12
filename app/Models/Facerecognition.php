@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Facerecognition extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $table = 'karyawan_wajah';
     protected $guarded = ['id'];

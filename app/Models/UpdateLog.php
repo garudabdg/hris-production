@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class UpdateLog extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $fillable = [
         'user_id',

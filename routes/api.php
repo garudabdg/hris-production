@@ -24,34 +24,34 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('karyawan')->group(function () {
 
     // Public: Login
-    Route::post('/login', [\App\Http\Controllers\Api\KaryawanController::class, 'login']);
+    Route::post('/login', [\App\Http\Controllers\Api\Karyawan\AuthController::class, 'login']);
 
     // Protected: Semua endpoint butuh token sanctum
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'role:karyawan'])->group(function () {
 
         // Auth
-        Route::post('/logout', [\App\Http\Controllers\Api\KaryawanController::class, 'logout']);
+        Route::post('/logout', [\App\Http\Controllers\Api\Karyawan\AuthController::class, 'logout']);
 
         // Dashboard
-        Route::get('/dashboard', [\App\Http\Controllers\Api\KaryawanController::class, 'dashboard']);
+        Route::get('/dashboard', [\App\Http\Controllers\Api\Karyawan\DashboardController::class, 'dashboard']);
 
         // Presensi
-        Route::get('/presensi', [\App\Http\Controllers\Api\KaryawanController::class, 'presensi']);
-        Route::get('/rekap',    [\App\Http\Controllers\Api\KaryawanController::class, 'rekap']);
+        Route::get('/presensi', [\App\Http\Controllers\Api\Karyawan\PresensiController::class, 'presensi']);
+        Route::get('/rekap',    [\App\Http\Controllers\Api\Karyawan\PresensiController::class, 'rekap']);
 
         // Lembur
-        Route::get('/lembur', [\App\Http\Controllers\Api\KaryawanController::class, 'lembur']);
+        Route::get('/lembur', [\App\Http\Controllers\Api\Karyawan\LemburController::class, 'lembur']);
 
         // Pengajuan Izin
-        Route::get('/pengajuan-izin', [\App\Http\Controllers\Api\KaryawanController::class, 'pengajuanIzin']);
+        Route::get('/pengajuan-izin', [\App\Http\Controllers\Api\Karyawan\IzinController::class, 'pengajuanIzin']);
 
         // Profil
-        Route::get('/profil',  [\App\Http\Controllers\Api\KaryawanController::class, 'profil']);
-        Route::put('/profil',  [\App\Http\Controllers\Api\KaryawanController::class, 'updateProfil']);
+        Route::get('/profil',  [\App\Http\Controllers\Api\Karyawan\ProfilController::class, 'profil']);
+        Route::put('/profil',  [\App\Http\Controllers\Api\Karyawan\ProfilController::class, 'updateProfil']);
 
         // Notifikasi
-        Route::get('/notifikasi',           [\App\Http\Controllers\Api\KaryawanController::class, 'notifikasi']);
-        Route::post('/notifikasi/read-all', [\App\Http\Controllers\Api\KaryawanController::class, 'readAllNotifikasi']);
+        Route::get('/notifikasi',           [\App\Http\Controllers\Api\Karyawan\NotifikasiController::class, 'notifikasi']);
+        Route::post('/notifikasi/read-all', [\App\Http\Controllers\Api\Karyawan\NotifikasiController::class, 'readAllNotifikasi']);
 
         // Face Recognition
         Route::get('/face',         [\App\Http\Controllers\Api\FacerecognitionController::class, 'index']);

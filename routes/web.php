@@ -263,6 +263,9 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
         Route::get('/{id}', 'show')->name('audit.show');
     });
 
+    // Data Audit Trail (Perubahan Data Master)
+    Route::middleware('role:super admin')->get('/data-audit', [\App\Http\Controllers\DataAuditController::class, 'index'])->name('data-audit.index');
+
     //Data Master
     //Dat Karyawan
     Route::controller(KaryawanController::class)->group(function () {
@@ -949,6 +952,11 @@ Route::group(['middleware' => ['auth', 'account.setup']], function () { // Remov
         Route::patch('/recruitment/{id}/status', [RecruitmentController::class, 'updateStatus'])->name('recruitment.updateStatus');
     });
     Route::group(['middleware' => ['permission:recruitment.edit']], function () {
+        // Update Manajemen
+        Route::get('/update', [UpdateManagementController::class, 'index'])->name('update.index');
+        Route::post('/update', [UpdateManagementController::class, 'store'])->name('update.store');
+        Route::put('/update/{id}', [UpdateManagementController::class, 'update'])->name('update.update');
+
         Route::get('/recruitment/{id}/edit', [RecruitmentController::class, 'edit'])->name('recruitment.edit');
         Route::put('/recruitment/{id}', [RecruitmentController::class, 'update'])->name('recruitment.update');
     });

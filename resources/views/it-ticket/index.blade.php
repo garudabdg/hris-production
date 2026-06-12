@@ -159,7 +159,7 @@
             </thead>
             <tbody>
                 @forelse ($tickets as $t)
-                    <tr class="{{ $t->isOverdue() ? 'table-danger' : '' }}">
+                    <tr class="{{ $t->isOverdue() ? 'table-danger' : '' }}" style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form') && !event.target.closest('input')) { window.location.href='{{ route('it-ticket.show', $t->id) }}'; }">
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->hasRole('it staff'))
                             <td class="text-center">
                                 <input class="form-check-input ticket-checkbox" type="checkbox" name="ticket_ids[]" value="{{ $t->id }}">

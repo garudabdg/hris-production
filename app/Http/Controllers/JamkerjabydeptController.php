@@ -78,7 +78,6 @@ class JamkerjabydeptController extends Controller
             return Redirect::back()->with(messageSuccess('Data Berhasil Disimpan'));
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e);
             return Redirect::back()->with(messageError($e->getMessage()));
         }
     }

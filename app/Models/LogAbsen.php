@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class LogAbsen extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'log_absen';
 }

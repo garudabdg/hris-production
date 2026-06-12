@@ -115,7 +115,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($items as $idx => $item)
-                                        <tr>
+                                        <tr style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form')) { window.location.href='{{ route('recruitment.show', $item->id) }}'; }">
                                             <td>{{ $idx + 1 }}</td>
                                             <td>
                                                 @if ($item->foto && Storage::disk('public')->exists('recruitment/foto/' . $item->foto))
@@ -227,7 +227,7 @@
                             </thead>
                             <tbody>
                                 @forelse ($recruitments as $index => $item)
-                                    <tr>
+                                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form')) { window.location.href='{{ route('recruitment.show', $item->id) }}'; }">
                                         <td>{{ $recruitments->firstItem() + $index }}</td>
                                         <td>
                                             @if ($item->foto && Storage::disk('public')->exists('recruitment/foto/' . $item->foto))

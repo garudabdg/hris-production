@@ -7,5 +7,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class Wamessages extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 }

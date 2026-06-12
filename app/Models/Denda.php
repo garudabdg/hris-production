@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Denda extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'denda';
     protected $guarded = ['id'];
 }

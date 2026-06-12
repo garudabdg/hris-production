@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class GrupDetail extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
 
     protected $table = 'grup_detail';
     protected $fillable = [

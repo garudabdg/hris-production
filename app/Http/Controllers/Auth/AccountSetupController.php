@@ -67,6 +67,16 @@ class AccountSetupController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
+        // Cegah auto-logout dengan meregenerasi session dengan hash password baru
+        Auth::login($user);
+
+        // Catat aktivitas di AuditLog
+        try {
+            \App\Models\AuditLog::log('update', 'Account Setup', 'User (' . $user->username . ') mengubah data login pada proses setup akun awal.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal mencatat audit log account setup: ' . $e->getMessage());
+        }
+
         // Generate and send OTP
         $this->generateAndSendOtp($user);
 

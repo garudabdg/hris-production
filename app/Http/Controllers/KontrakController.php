@@ -555,8 +555,9 @@ class KontrakController extends Controller
     protected function generateKodeTunjangan(string $tanggal): string
     {
         $tahun_gaji = date('Y', strtotime($tanggal));
+        // SECURITY FIX: Use parameter binding instead of string concatenation
         $last_tunjangan = Tunjangan::orderBy('kode_tunjangan', 'desc')
-            ->whereRaw('YEAR(tanggal_berlaku) = ' . $tahun_gaji)
+            ->whereRaw('YEAR(tanggal_berlaku) = ?', [$tahun_gaji])
             ->first();
         $last_kode_tunjangan = $last_tunjangan != null ? $last_tunjangan->kode_tunjangan : '';
         return buatkode($last_kode_tunjangan, "T" . substr($tahun_gaji, 2, 2), 4);

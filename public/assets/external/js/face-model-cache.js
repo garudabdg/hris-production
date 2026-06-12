@@ -211,21 +211,11 @@
             return false;
         }
 
-        // Cek apakah sudah ada di cache
-        const cached = await loadDescriptors(nik);
-        if (cached) {
-            console.log(`[FaceModelCache] Descriptors for ${nik} already cached`);
-            return true;
-        }
-
-        console.log(`[FaceModelCache] Starting background preload of face descriptors for ${nik}...`);
-
         try {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            const timestamp = new Date().getTime();
-
+            
             // Fetch data wajah
-            const response = await fetch(`/facerecognition/getwajah?t=${timestamp}`);
+            const response = await fetch(`/facerecognition/getwajah`);
             const data = await response.json();
 
             if (!data || data.length === 0) {
@@ -233,11 +223,19 @@
                 return false;
             }
 
+            // Cek apakah sudah ada di cache dan jumlah wajah sama
+            const cached = await loadDescriptors(nik);
+            if (cached && cached.faceCount === data.length) {
+                console.log(`[FaceModelCache] Descriptors for ${nik} already cached and valid`);
+                return true;
+            }
+
+            console.log(`[FaceModelCache] Starting background preload of face descriptors for ${nik}...`);
+
             // Process semua foto secara parallel
             const processPromises = data.slice(0, 5).map(async (faceData) => {
                 try {
-                    const randomBust = Math.random().toString(36).substring(7);
-                    const imagePath = `/storage/uploads/facerecognition/${label}/${faceData.wajah}?t=${timestamp}&r=${randomBust}&v=${Date.now()}`;
+                    const imagePath = `/storage/uploads/facerecognition/${label}/${faceData.wajah}`;
 
                     const img = await faceapi.fetchImage(imagePath);
                     if (!img) return null;

@@ -77,42 +77,7 @@ class UpdateController extends Controller
                 $updateServerUrl = config('update.server_url');
 
                 if ($updateServerUrl) {
-                    // Ambil data update dari server eksternal
-                    $checkResult = $this->updateService->checkUpdate($updateServerUrl);
-
-                    if (isset($checkResult['update']) && $checkResult['update']['version'] === $version) {
-                        $updateData = $checkResult['update'];
-
-                        // Parse released_at jika berupa string
-                        $releasedAt = now();
-                        if (isset($updateData['released_at'])) {
-                            try {
-                                $releasedAt = is_string($updateData['released_at'])
-                                    ? \Carbon\Carbon::parse($updateData['released_at'])
-                                    : $updateData['released_at'];
-                            } catch (\Exception $e) {
-                                $releasedAt = now();
-                            }
-                        }
-
-                        // Simpan ke database lokal sementara
-                        $update = Update::create([
-                            'version' => $updateData['version'],
-                            'title' => $updateData['title'] ?? 'Update ' . $updateData['version'],
-                            'description' => $updateData['description'] ?? null,
-                            'changelog' => $updateData['changelog'] ?? null,
-                            'file_url' => $updateData['file_url'],
-                            'file_size' => $updateData['file_size'] ?? null,
-                            'checksum' => $updateData['checksum'] ?? null,
-                            'is_major' => $updateData['is_major'] ?? false,
-                            'is_active' => false,
-                            'migrations' => is_array($updateData['migrations'] ?? null) ? json_encode($updateData['migrations']) : ($updateData['migrations'] ?? null),
-                            'seeders' => is_array($updateData['seeders'] ?? null) ? json_encode($updateData['seeders']) : ($updateData['seeders'] ?? null),
-                            'released_at' => $releasedAt,
-                        ]);
-                    } else {
-                        throw new \Exception('Update versi ' . $version . ' tidak ditemukan di server');
-                    }
+                    $update = $this->fetchUpdateFromServer($version, $updateServerUrl);
                 } else {
                     throw new \Exception('Update versi ' . $version . ' tidak ditemukan. Pastikan update sudah diinput di database atau server update sudah dikonfigurasi.');
                 }
@@ -167,42 +132,7 @@ class UpdateController extends Controller
                 $updateServerUrl = config('update.server_url');
 
                 if ($updateServerUrl) {
-                    // Ambil data update dari server eksternal
-                    $checkResult = $this->updateService->checkUpdate($updateServerUrl);
-
-                    if (isset($checkResult['update']) && $checkResult['update']['version'] === $version) {
-                        $updateData = $checkResult['update'];
-
-                        // Parse released_at jika berupa string
-                        $releasedAt = now();
-                        if (isset($updateData['released_at'])) {
-                            try {
-                                $releasedAt = is_string($updateData['released_at'])
-                                    ? \Carbon\Carbon::parse($updateData['released_at'])
-                                    : $updateData['released_at'];
-                            } catch (\Exception $e) {
-                                $releasedAt = now();
-                            }
-                        }
-
-                        // Simpan ke database lokal sementara
-                        $update = Update::create([
-                            'version' => $updateData['version'],
-                            'title' => $updateData['title'] ?? 'Update ' . $updateData['version'],
-                            'description' => $updateData['description'] ?? null,
-                            'changelog' => $updateData['changelog'] ?? null,
-                            'file_url' => $updateData['file_url'],
-                            'file_size' => $updateData['file_size'] ?? null,
-                            'checksum' => $updateData['checksum'] ?? null,
-                            'is_major' => $updateData['is_major'] ?? false,
-                            'is_active' => false,
-                            'migrations' => is_array($updateData['migrations'] ?? null) ? json_encode($updateData['migrations']) : ($updateData['migrations'] ?? null),
-                            'seeders' => is_array($updateData['seeders'] ?? null) ? json_encode($updateData['seeders']) : ($updateData['seeders'] ?? null),
-                            'released_at' => $releasedAt,
-                        ]);
-                    } else {
-                        throw new \Exception('Update versi ' . $version . ' tidak ditemukan di server');
-                    }
+                    $update = $this->fetchUpdateFromServer($version, $updateServerUrl);
                 } else {
                     throw new \Exception('Update versi ' . $version . ' tidak ditemukan. Pastikan update sudah diinput di database atau server update sudah dikonfigurasi.');
                 }
@@ -281,30 +211,7 @@ class UpdateController extends Controller
                 $updateServerUrl = config('update.server_url');
 
                 if ($updateServerUrl) {
-                    // Ambil data update dari server eksternal
-                    $checkResult = $this->updateService->checkUpdate($updateServerUrl);
-
-                    if (isset($checkResult['update']) && $checkResult['update']['version'] === $version) {
-                        $updateData = $checkResult['update'];
-
-                        // Simpan ke database lokal sementara (tidak aktif, hanya untuk proses update)
-                        $update = Update::create([
-                            'version' => $updateData['version'],
-                            'title' => $updateData['title'] ?? 'Update ' . $updateData['version'],
-                            'description' => $updateData['description'] ?? null,
-                            'changelog' => $updateData['changelog'] ?? null,
-                            'file_url' => $updateData['file_url'],
-                            'file_size' => $updateData['file_size'] ?? null,
-                            'checksum' => $updateData['checksum'] ?? null,
-                            'is_major' => $updateData['is_major'] ?? false,
-                            'is_active' => false, // Tidak aktif karena hanya untuk proses update
-                            'migrations' => $updateData['migrations'] ?? null,
-                            'seeders' => $updateData['seeders'] ?? null,
-                            'released_at' => isset($updateData['released_at']) ? $updateData['released_at'] : now(),
-                        ]);
-                    } else {
-                        throw new \Exception('Update versi ' . $version . ' tidak ditemukan di server');
-                    }
+                    $update = $this->fetchUpdateFromServer($version, $updateServerUrl);
                 } else {
                     throw new \Exception('Update versi ' . $version . ' tidak ditemukan. Pastikan update sudah diinput di database atau server update sudah dikonfigurasi.');
                 }
@@ -429,5 +336,44 @@ class UpdateController extends Controller
             default:
                 return 0;
         }
+    }
+
+    private function fetchUpdateFromServer($version, $updateServerUrl)
+    {
+        $checkResult = $this->updateService->checkUpdate($updateServerUrl);
+
+        if (isset($checkResult['update']) && $checkResult['update']['version'] === $version) {
+            $updateData = $checkResult['update'];
+
+            // Parse released_at jika berupa string
+            $releasedAt = now();
+            if (isset($updateData['released_at'])) {
+                try {
+                    $releasedAt = is_string($updateData['released_at'])
+                        ? \Carbon\Carbon::parse($updateData['released_at'])
+                        : $updateData['released_at'];
+                } catch (\Exception $e) {
+                    $releasedAt = now();
+                }
+            }
+
+            // Simpan ke database lokal sementara
+            return Update::create([
+                'version' => $updateData['version'],
+                'title' => $updateData['title'] ?? 'Update ' . $updateData['version'],
+                'description' => $updateData['description'] ?? null,
+                'changelog' => $updateData['changelog'] ?? null,
+                'file_url' => $updateData['file_url'],
+                'file_size' => $updateData['file_size'] ?? null,
+                'checksum' => $updateData['checksum'] ?? null,
+                'is_major' => $updateData['is_major'] ?? false,
+                'is_active' => false,
+                'migrations' => is_array($updateData['migrations'] ?? null) ? json_encode($updateData['migrations']) : ($updateData['migrations'] ?? null),
+                'seeders' => is_array($updateData['seeders'] ?? null) ? json_encode($updateData['seeders']) : ($updateData['seeders'] ?? null),
+                'released_at' => $releasedAt,
+            ]);
+        }
+
+        throw new \Exception('Update versi ' . $version . ' tidak ditemukan di server');
     }
 }

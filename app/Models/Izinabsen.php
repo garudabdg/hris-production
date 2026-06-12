@@ -8,7 +8,7 @@ use App\Models\ApprovalLayer;
 
 class Izinabsen extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'presensi_izinabsen';
     protected $primaryKey = 'kode_izin';
     public $incrementing = false;

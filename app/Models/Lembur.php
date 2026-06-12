@@ -8,7 +8,7 @@ use App\Models\ApprovalLayer;
 
 class Lembur extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'lembur';
     protected $fillable = [
         'nik',

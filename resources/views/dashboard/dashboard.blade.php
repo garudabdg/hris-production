@@ -63,6 +63,13 @@
     }
 
     $tanggalHariIni = getnamaHari(date('D')) . ', ' . DateToIndo(date('Y-m-d'));
+
+    // Get Karyawan data for Face Recognition preloading
+    $userkaryawan = \App\Models\Userkaryawan::where('id_user', $authUser->id)->first();
+    $karyawan = $userkaryawan ? \App\Models\Karyawan::where('nik', $userkaryawan->nik)->first() : null;
+    $userNik = $karyawan ? $karyawan->nik : '';
+    $userNamaDepan = $karyawan ? getNamaDepan(strtolower($karyawan->nama_karyawan)) : '';
+    $userLabel = $userNik . '-' . $userNamaDepan;
 @endphp
 
 <!-- Welcome Card -->
@@ -663,4 +670,24 @@
     };
 </script>
 <script src="{{ asset('assets/js/dashboard.js') }}"></script>
+
+<!-- Preload Face Recognition Data di Background -->
+@if(!empty($userNik))
+<script defer src="{{ asset('assets/vendor/face-api.min.js') }}"></script>
+<script defer src="{{ asset('assets/external/js/face-model-cache.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Tunda preload agar tidak menghalangi render dashboard
+        setTimeout(() => {
+            if (window.FaceModelCache && window.FaceModelCache.preloadFaceModels) {
+                const nik = '{{ $userNik }}';
+                const label = '{{ $userLabel }}';
+                window.FaceModelCache.preloadFaceModels().then(() => {
+                    window.FaceModelCache.preloadFaceDescriptors(nik, label);
+                });
+            }
+        }, 2000);
+    });
+</script>
+@endif
 @endpush

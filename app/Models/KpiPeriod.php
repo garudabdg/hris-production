@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class KpiPeriod extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\Auditable;
     protected $table = 'kpi_periods';
     protected $guarded = [];
 

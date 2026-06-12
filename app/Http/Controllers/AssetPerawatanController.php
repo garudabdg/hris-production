@@ -80,12 +80,13 @@ class AssetPerawatanController extends Controller
 
         $assets = $this->scopedAssetQuery()->orderBy('nama_asset')->get(['kode_asset', 'nama_asset']);
 
-        $allForSummary = $this->scopedQuery()->get();
+        $baseQuery = $this->scopedQuery();
         $summary = [
-            'total'      => $allForSummary->count(),
-            'baik'       => $allForSummary->filter(fn($p) => $p->hasil_keseluruhan === 'baik')->count(),
-            'cukup_baik' => $allForSummary->filter(fn($p) => $p->hasil_keseluruhan === 'cukup_baik')->count(),
-            'rusak'      => $allForSummary->filter(fn($p) => $p->hasil_keseluruhan === 'rusak')->count(),
+            'total'      => (clone $baseQuery)->count(),
+            'baik'       => (clone $baseQuery)->whereDoesntHave('items', fn($q) => $q->whereIn('klasifikasi', ['rusak', 'cukup_baik']))->count(),
+            'cukup_baik' => (clone $baseQuery)->whereHas('items', fn($q) => $q->where('klasifikasi', 'cukup_baik'))
+                                              ->whereDoesntHave('items', fn($q) => $q->where('klasifikasi', 'rusak'))->count(),
+            'rusak'      => (clone $baseQuery)->whereHas('items', fn($q) => $q->where('klasifikasi', 'rusak'))->count(),
         ];
 
         return view('asset-perawatan.index', compact('perawatans', 'assets', 'summary'));
@@ -169,14 +170,18 @@ class AssetPerawatanController extends Controller
                 'id_user'           => auth()->id(),
             ]);
 
+            $itemsData = [];
             foreach ($request->items as $item) {
-                AssetPerawatanItem::create([
+                $itemsData[] = [
                     'asset_perawatan_id' => $perawatan->id,
                     'item_name'          => $item['item_name'],
                     'klasifikasi'        => $item['klasifikasi'],
                     'keterangan'         => $item['keterangan'] ?? null,
-                ]);
+                    'created_at'         => now(),
+                    'updated_at'         => now(),
+                ];
             }
+            AssetPerawatanItem::insert($itemsData);
 
             DB::commit();
             return redirect()->route('asset-perawatan.index')

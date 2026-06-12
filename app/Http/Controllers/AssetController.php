@@ -57,38 +57,13 @@ class AssetController extends Controller
         abort_unless($user->isSuperAdmin() || $user->can('asset.index'), 403);
         $query = $this->scopedQuery();
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nama_asset', 'like', '%' . $request->search . '%')
-                  ->orWhere('kode_asset', 'like', '%' . $request->search . '%')
-                  ->orWhere('merk', 'like', '%' . $request->search . '%');
-            });
-        }
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-        if ($request->filled('kode_cabang')) {
-            $query->where('kode_cabang', $request->kode_cabang);
-        }
-        if ($request->filled('kondisi')) {
-            $query->where('kondisi', $request->kondisi);
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+        $this->applyFilters($query, $request);
 
         $assets     = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
         $categories = AssetCategory::orderBy('nama_kategori')->get();
         $cabang     = $user->getCabang();
 
-        // Summary hanya untuk cabang yang diakses user
-        $summaryQuery = $this->scopedQuery();
-        $summary = [
-            'total'           => (clone $summaryQuery)->count(),
-            'tersedia'        => (clone $summaryQuery)->where('status', 'tersedia')->count(),
-            'dipinjam'        => (clone $summaryQuery)->where('status', 'dipinjam')->count(),
-            'dalam_perbaikan' => (clone $summaryQuery)->where('kondisi', 'dalam_perbaikan')->count(),
-        ];
+        $summary = $this->getSummaryStats();
 
         return view('assets.index', compact('assets', 'categories', 'cabang', 'summary'));
     }
@@ -139,27 +114,17 @@ class AssetController extends Controller
             'integrity'        => 'nullable|integer|in:1,2,3',
         ]);
 
-        // Hitung asset_valuation otomatis
-        $c = $request->integer('confidentiality', 0);
-        $a = $request->integer('availability', 0);
-        $i = $request->integer('integrity', 0);
-        $valuationScore = ($c && $a && $i) ? ($c + $a + $i) : null;
+        $valuationScore = $this->calculateValuationScore($request);
 
         // Validasi akses cabang jika bukan super admin
-        if (!$user->isSuperAdmin() && $request->filled('kode_cabang')) {
-            $userCabangs = $user->getCabangCodes();
-            if (!in_array($request->kode_cabang, $userCabangs)) {
-                return redirect()->back()->with('error', 'Anda tidak memiliki akses ke cabang yang dipilih.');
-            }
+        if ($error = $this->checkCabangAccess($user, $request->kode_cabang)) {
+            return redirect()->back()->with('error', $error);
         }
 
         $data = $request->except('foto');
         $data['asset_valuation'] = $valuationScore;
-
-        if ($request->hasFile('foto')) {
-            $file = $request->file('foto');
-            $filename = 'asset_' . Str::random(12) . '.' . $file->extension();
-            $file->storeAs('assets', $filename, 'public');
+        
+        if ($filename = $this->handleFotoUpload($request)) {
             $data['foto'] = $filename;
         }
 
@@ -238,32 +203,18 @@ class AssetController extends Controller
             'availability'     => 'nullable|integer|in:1,2,3',
             'integrity'        => 'nullable|integer|in:1,2,3',
         ]);
-
-        // Hitung asset_valuation otomatis
-        $c = $request->integer('confidentiality', 0);
-        $a = $request->integer('availability', 0);
-        $i = $request->integer('integrity', 0);
-        $valuationScore = ($c && $a && $i) ? ($c + $a + $i) : null;
+        $valuationScore = $this->calculateValuationScore($request);
 
         // Validasi akses cabang baru jika bukan super admin
         $user = auth()->user();
-        if (!$user->isSuperAdmin() && $request->filled('kode_cabang')) {
-            $userCabangs = $user->getCabangCodes();
-            if (!in_array($request->kode_cabang, $userCabangs)) {
-                return redirect()->back()->with('error', 'Anda tidak memiliki akses ke cabang yang dipilih.');
-            }
+        if ($error = $this->checkCabangAccess($user, $request->kode_cabang)) {
+            return redirect()->back()->with('error', $error);
         }
 
         $data = $request->except('foto');
         $data['asset_valuation'] = $valuationScore;
 
-        if ($request->hasFile('foto')) {
-            if ($asset->foto && Storage::disk('public')->exists('assets/' . $asset->foto)) {
-                Storage::disk('public')->delete('assets/' . $asset->foto);
-            }
-            $file = $request->file('foto');
-            $filename = 'asset_' . Str::random(12) . '.' . $file->extension();
-            $file->storeAs('assets', $filename, 'public');
+        if ($filename = $this->handleFotoUpload($request, $asset->foto)) {
             $data['foto'] = $filename;
         }
 
@@ -287,26 +238,7 @@ class AssetController extends Controller
             return response()->json(['code' => '']);
         }
 
-        // Clean category name: keep only letters and numbers
-        $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', $category->nama_kategori);
-        // Get the first 3 characters and convert to uppercase
-        $catCode = strtoupper(substr($cleanName, 0, 3));
-        
-        // If the cleaned category name is empty, fallback to GEN (General)
-        if (strlen($catCode) === 0) {
-            $catCode = 'GEN';
-        }
-
-        $prefix = 'AST-' . $catCode . '-';
-
-        // Query the latest asset code with this prefix
-        $lastAsset = Asset::where('kode_asset', 'like', $prefix . '%')
-            ->orderByRaw('LENGTH(kode_asset) DESC')
-            ->orderBy('kode_asset', 'desc')
-            ->first();
-
-        // Increment or start at 0001
-        $newCode = buatkode($lastAsset ? $lastAsset->kode_asset : '', $prefix, 4);
+        $newCode = $this->generateAssetCode($category);
 
         return response()->json(['code' => $newCode]);
     }
@@ -461,5 +393,91 @@ class AssetController extends Controller
         }
 
         return redirect()->route('assets.index')->with('success', $msg . '.');
+    }
+
+    private function applyFilters($query, Request $request)
+    {
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('nama_asset', 'like', '%' . $request->search . '%')
+                  ->orWhere('kode_asset', 'like', '%' . $request->search . '%')
+                  ->orWhere('merk', 'like', '%' . $request->search . '%');
+            });
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('kode_cabang')) {
+            $query->where('kode_cabang', $request->kode_cabang);
+        }
+        if ($request->filled('kondisi')) {
+            $query->where('kondisi', $request->kondisi);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+    }
+
+    private function getSummaryStats()
+    {
+        $summaryQuery = $this->scopedQuery();
+        return [
+            'total'           => (clone $summaryQuery)->count(),
+            'tersedia'        => (clone $summaryQuery)->where('status', 'tersedia')->count(),
+            'dipinjam'        => (clone $summaryQuery)->where('status', 'dipinjam')->count(),
+            'dalam_perbaikan' => (clone $summaryQuery)->where('kondisi', 'dalam_perbaikan')->count(),
+        ];
+    }
+
+    private function calculateValuationScore(Request $request)
+    {
+        $c = $request->integer('confidentiality', 0);
+        $a = $request->integer('availability', 0);
+        $i = $request->integer('integrity', 0);
+        return ($c && $a && $i) ? ($c + $a + $i) : null;
+    }
+
+    private function checkCabangAccess($user, $kodeCabang)
+    {
+        if (!$user->isSuperAdmin() && !empty($kodeCabang)) {
+            $userCabangs = $user->getCabangCodes();
+            if (!in_array($kodeCabang, $userCabangs)) {
+                return 'Anda tidak memiliki akses ke cabang yang dipilih.';
+            }
+        }
+        return null;
+    }
+
+    private function handleFotoUpload(Request $request, $oldFoto = null)
+    {
+        if ($request->hasFile('foto')) {
+            if ($oldFoto && Storage::disk('public')->exists('assets/' . $oldFoto)) {
+                Storage::disk('public')->delete('assets/' . $oldFoto);
+            }
+            $file = $request->file('foto');
+            $filename = 'asset_' . Str::random(12) . '.' . $file->extension();
+            $file->storeAs('assets', $filename, 'public');
+            return $filename;
+        }
+        return null;
+    }
+
+    private function generateAssetCode(AssetCategory $category)
+    {
+        $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', $category->nama_kategori);
+        $catCode = strtoupper(substr($cleanName, 0, 3));
+        
+        if (strlen($catCode) === 0) {
+            $catCode = 'GEN';
+        }
+
+        $prefix = 'AST-' . $catCode . '-';
+
+        $lastAsset = Asset::where('kode_asset', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(kode_asset) DESC')
+            ->orderBy('kode_asset', 'desc')
+            ->first();
+
+        return buatkode($lastAsset ? $lastAsset->kode_asset : '', $prefix, 4);
     }
 }

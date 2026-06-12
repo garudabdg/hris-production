@@ -151,19 +151,21 @@ class KpiEmployeeController extends Controller
                  throw new \Exception('Tidak ada indikator KPI yang dipilih.');
             }
 
-            // Buat Detail
+            // Buat Detail menggunakan Insert (Batch) untuk mencegah N+1
             if ($request->has('indicator_id')) {
+                $details = [];
+                $now = now();
                 foreach ($request->indicator_id as $key => $id_indikator_detail) {
-                    $target = $request->target[$key];
-                    $bobot = $request->bobot[$key]; 
-
-                    KpiDetail::create([
+                    $details[] = [
                         'kpi_employee_id' => $kpi_employee->id,
                         'kpi_indicator_detail_id' => $id_indikator_detail,
-                        'target' => $target,
-                        'bobot' => $bobot,
-                    ]);
+                        'target' => $request->target[$key],
+                        'bobot' => $request->bobot[$key],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
+                KpiDetail::insert($details);
             }
 
             DB::commit();
@@ -183,20 +185,7 @@ class KpiEmployeeController extends Controller
          $kpi_employee = KpiEmployee::with(['details.indicator', 'karyawan', 'period'])->findOrFail($id);
 
          // Hitung otomatis metrik otomatis
-         foreach ($kpi_employee->details as $detail) {
-             if ($detail->indicator->mode == 'auto' && !empty($detail->indicator->metric_source)) {
-                 $realisasi = $this->calculateAutomatedRealization($kpi_employee, $detail->indicator->metric_source);
-                 
-                 // Perbarui jika berbeda (untuk menjaga sinkronisasi DB)
-                 if ($detail->realisasi != $realisasi) {
-                     $detail->update(['realisasi' => $realisasi]);
-                     $detail->realisasi = $realisasi; // Perbarui objek untuk tampilan
-                 }
-                 
-                 // Hitung ulang Skor juga untuk jaga-jaga
-                 $this->calculateScore($detail, $realisasi);
-             }
-         }
+         $this->processAutoCalculations($kpi_employee);
          
          // Refresh untuk mendapatkan skor terbaru jika ada
          // $kpi_employee->refresh();
@@ -224,8 +213,17 @@ class KpiEmployeeController extends Controller
              $total_score = 0;
 
              if ($request->has('detail_id')) {
+                 // Fix N+1: Batch load semua detail beserta indicator di luar loop
+                 $details = KpiDetail::with('indicator')
+                     ->whereIn('id', $request->detail_id)
+                     ->get()
+                     ->keyBy('id');
+
+                 $updates = [];
                  foreach ($request->detail_id as $key => $detail_id) {
-                     $detail = KpiDetail::with('indicator')->find($detail_id);
+                     $detail = $details->get($detail_id);
+                     if (!$detail) continue;
+
                      $indicator = $detail->indicator;
 
                      // Tentukan Realisasi
@@ -238,7 +236,21 @@ class KpiEmployeeController extends Controller
                      // Hitung Skor & Perbarui
                      $score = $this->calculateScore($detail, $realisasi);
                      
+                     $updates[] = [
+                         'id' => $detail->id,
+                         'kpi_employee_id' => $detail->kpi_employee_id,
+                         'kpi_indicator_detail_id' => $detail->kpi_indicator_detail_id,
+                         'target' => $detail->target,
+                         'bobot' => $detail->bobot,
+                         'realisasi' => $realisasi,
+                         'skor' => $score
+                     ];
                      $total_score += $score;
+                 }
+                 
+                 // Lakukan batch update (upsert) untuk mencegah N+1
+                 if (!empty($updates)) {
+                     KpiDetail::upsert($updates, ['id'], ['realisasi', 'skor']);
                  }
              }
 
@@ -265,6 +277,45 @@ class KpiEmployeeController extends Controller
          }
     }
     
+    /**
+     * Proses kalkulasi otomatis untuk detail KPI yang memiliki mode 'auto'.
+     * Digunakan oleh show() dan myScore() untuk menghindari duplikasi kode.
+     */
+    private function processAutoCalculations($kpi_employee)
+    {
+        $updates = [];
+        $hasChanges = false;
+        
+        foreach ($kpi_employee->details as $detail) {
+            if ($detail->indicator->mode == 'auto' && !empty($detail->indicator->metric_source)) {
+                $realisasi = $this->calculateAutomatedRealization($kpi_employee, $detail->indicator->metric_source);
+                $score = $this->calculateScore($detail, $realisasi);
+                
+                // Perbarui jika berbeda (untuk menjaga sinkronisasi DB)
+                if ($detail->realisasi != $realisasi || $detail->skor != $score) {
+                    $detail->realisasi = $realisasi; // Perbarui objek untuk tampilan
+                    $detail->skor = $score;
+                    
+                    $updates[] = [
+                         'id' => $detail->id,
+                         'kpi_employee_id' => $detail->kpi_employee_id,
+                         'kpi_indicator_detail_id' => $detail->kpi_indicator_detail_id,
+                         'target' => $detail->target,
+                         'bobot' => $detail->bobot,
+                         'realisasi' => $realisasi,
+                         'skor' => $score
+                    ];
+                    $hasChanges = true;
+                }
+            }
+        }
+        
+        // Eksekusi upsert secara masal
+        if ($hasChanges) {
+             KpiDetail::upsert($updates, ['id'], ['realisasi', 'skor']);
+        }
+    }
+    
     private function calculateScore($detail, $realisasi) {
         $indicator = $detail->indicator;
         $score = 0;
@@ -274,53 +325,28 @@ class KpiEmployeeController extends Controller
                 $score = ($realisasi / $detail->target) * $detail->bobot;
              }
         } else { // min
-             // Untuk MIN, penanganan khusus jika realisasi adalah 0 (sempurna) vs target 0
-             // Biasanya: (Target / Realisasi) * Bobot. 
-             // Jika Realisasi > Target -> Skor berkurang.
-             // Jika Realisasi < Target -> Skor meningkat
-             // Rumus standar: (Target / Realisasi) * Bobot
-             
-             if ($realisasi > 0) {
-                $score = ($detail->target / $realisasi) * $detail->bobot;
-             } else {
-                 // Jika realisasi 0 (misalnya terlambat 0), dan target misalnya 5.
-                 // Skor harusnya MAX. 
-                 // Jika target 0 dan realisasi 0 -> Skor Sempurna (Bobot).
-                 $score = $detail->bobot; 
-                 // Wait, if target is 5 (allowed 5 late), and actual is 0. 
-                 // (5/0) is undefined. 
-                 // Logika untuk MIN biasanya: 
-                 // Jika Realisasi <= Target, Skor = Bobot (Skor Maks).
-                 // Jika Realisasi > Target, Skor = (Target / Realisasi) * Bobot.
-                 // Mari kita adopsi logika "Target adalah Ambang Batas" yang umum ini.
-                 if ($detail->target > 0) {
-                      // Jika rumus sederhana (Target/Realisasi)*Bobot, realisasi 0 akan merusaknya.
-                      // Menyesuaikan logika:
-                      $score = $detail->bobot; // Sempurna
-                 }
-             }
-             
-             // Cek rumus MIN standar lagi. 
-             // Seringkali: (2 - (Realisasi/Target)) * Bobot ... tidak.
-             // Mari Tetap pada: 
-             // Jika Realisasi == 0, Skor = Bobot (atau bahkan lebih tinggi jika logika mengizinkan, tapi mari kita batasi di Bobot).
-             // Jika Realisasi > 0:
-             // $score = ($detail->target / $realisasi) * $detail->bobot;
-             
-             // Detail implementasi untuk MIN:
              if ($realisasi == 0) {
                  $score = $detail->bobot;
              } else {
                  $score = ($detail->target / $realisasi) * $detail->bobot;
              }
         }
-        
-        $detail->update([
-             'realisasi' => $realisasi,
-             'skor' => $score
-         ]);
          
-         return $score;
+        return $score;
+    }
+
+    private function getPresensiCache($nik, $start, $end) {
+        static $cache = [];
+        $key = "{$nik}_{$start}_{$end}";
+        if (!isset($cache[$key])) {
+            // Join dengan presensi_jamkerja karena kita butuh jam_masuk untuk 'attendance_terlambat'
+            $cache[$key] = Presensi::leftJoin('presensi_jamkerja', 'presensi.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
+                ->where('nik', $nik)
+                ->whereBetween('tanggal', [$start, $end])
+                ->select('presensi.*', 'presensi_jamkerja.jam_masuk')
+                ->get();
+        }
+        return $cache[$key];
     }
 
     private function calculateAutomatedRealization($kpi_employee, $metric_source) {
@@ -328,47 +354,27 @@ class KpiEmployeeController extends Controller
         $start = $kpi_employee->period->start_date;
         $end = $kpi_employee->period->end_date;
         
-        // Gunakan model Presensi yang kita tahu ada
-        // Perlu memastikan kita mengimpor Presensi di bagian atas file (sudah diimpor)
+        $presensiList = $this->getPresensiCache($nik, $start, $end);
         
         switch ($metric_source) {
             case 'attendance_sakit':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 's')
-                    ->count();
+                return $presensiList->where('status', 's')->count();
             case 'attendance_izin':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'i')
-                    ->count();
+                return $presensiList->where('status', 'i')->count();
             case 'attendance_alpa':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'a')
-                    ->count();
+                return $presensiList->where('status', 'a')->count();
             case 'attendance_cuti':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'c')
-                    ->count();
+                return $presensiList->where('status', 'c')->count();
             case 'attendance_hadir':
-                return Presensi::where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'h')
-                    ->count();
+                return $presensiList->where('status', 'h')->count();
             case 'attendance_terlambat':
-                $presensi = Presensi::join('presensi_jamkerja', 'presensi.kode_jam_kerja', '=', 'presensi_jamkerja.kode_jam_kerja')
-                    ->where('nik', $nik)
-                    ->whereBetween('tanggal', [$start, $end])
-                    ->where('status', 'h')
-                    ->select('presensi.*', 'presensi_jamkerja.jam_masuk')
-                    ->get();
-                
+                $hadirList = $presensiList->where('status', 'h');
                 $total_late_minutes = 0;
-                foreach ($presensi as $p) {
+                
+                foreach ($hadirList as $p) {
+                    if (!$p->jam_masuk) continue; // Skip jika tidak ada jadwal jam_masuk
+                    
                     $jam_masuk = $p->tanggal . ' ' . $p->jam_masuk;
-                    // hitungjamterlambat adalah fungsi pembantu
                     $terlambat = hitungjamterlambat($p->jam_in, $jam_masuk);
                     
                     if ($terlambat && isset($terlambat['jamterlambat'])) {
@@ -440,20 +446,7 @@ class KpiEmployeeController extends Controller
 
         if ($kpi_employee) {
              // Hitung otomatis metrik otomatis (Gunakan kembali logika dari show)
-             foreach ($kpi_employee->details as $detail) {
-                 if ($detail->indicator->mode == 'auto' && !empty($detail->indicator->metric_source)) {
-                     $realisasi = $this->calculateAutomatedRealization($kpi_employee, $detail->indicator->metric_source);
-                     
-                     // Update if different (to keep DB in sync)
-                     if ($detail->realisasi != $realisasi) {
-                         $detail->update(['realisasi' => $realisasi]);
-                         $detail->realisasi = $realisasi; // Update object for view
-                     }
-                     
-                     // Hitung ulang Skor
-                     $this->calculateScore($detail, $realisasi);
-                 }
-             }
+             $this->processAutoCalculations($kpi_employee);
              $kpi_employee->refresh();
              
              return view('kpi.transactions.myscore', compact('kpi_employee', 'karyawan', 'period'));

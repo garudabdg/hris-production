@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RecruitmentVacancy extends Model
 {
+    use \App\Traits\Auditable;
     protected $table = 'recruitment_vacancies';
     protected $guarded = [];
 
