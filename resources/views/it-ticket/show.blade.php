@@ -301,6 +301,7 @@ $(function () {
     const RESPOND_URL  = "{{ route('it-ticket.respond', $itTicket->id) }}";
     const POLL_URL     = "{{ route('it-ticket.responses', $itTicket->id) }}";
     const TICKET_ID    = {{ $itTicket->id }};
+    const CSRF_TOKEN   = "{{ csrf_token() }}";
 
     let lastResponseId = {{ $itTicket->responses->max('id') ?? 0 }};
     let isPolling      = false;

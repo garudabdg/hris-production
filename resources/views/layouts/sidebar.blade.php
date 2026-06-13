@@ -465,7 +465,7 @@
              <li class="menu-item {{ request()->is(['it-ticket', 'it-ticket/*']) ? 'active' : '' }}">
                  <a href="{{ route('it-ticket.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-headset"></i>
-                     <div>IT Ticket</div>
+                     <div>Ticket</div>
                      @if (!empty($notifikasi_ticket))
                          <div class="badge bg-danger rounded-pill ms-auto">{{ $notifikasi_ticket }}</div>
                      @endif

@@ -532,7 +532,7 @@
                             <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-1 z-10">{{ $myOpenTickets }}</span>
                         @endif
                         <ion-icon name="headset-outline" style="font-size:40px; color: {{ $t['primary'] ?? '#2d5a4c' }}; margin-bottom:0;"></ion-icon>
-                        <br><span style="font-size:0.75rem; font-weight:400; color: {{ $t['primary'] ?? '#2d5a4c' }};">IT Ticket</span>
+                        <br><span style="font-size:0.75rem; font-weight:400; color: {{ $t['primary'] ?? '#2d5a4c' }};">Ticket</span>
                     </div>
                 </a>
                 @endcan

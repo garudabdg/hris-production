@@ -53,12 +53,12 @@
     <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
             <h5 class="mb-0">
-                <i class="ti ti-headset me-2"></i>Daftar IT Ticket
+                <i class="ti ti-headset me-2"></i>Daftar Ticket
                 <span class="badge bg-success ms-2" id="realtimeIndicator" style="font-size:10px;">
                     <i class="ti ti-wifi"></i> Real-time Active
                 </span>
             </h5>
-            <small class="text-muted">Pengaduan layanan IT — standar ISO 27001</small>
+            <small class="text-muted">Pengaduan layanan — standar ISO 27001</small>
         </div>
         <a href="{{ route('it-ticket.create') }}" class="btn btn-primary btn-sm">
             <i class="ti ti-plus me-1"></i> Buat Tiket
