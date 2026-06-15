@@ -19,7 +19,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        $agent = new \Jenssegers\Agent\Agent();
+        if ($agent->isMobile()) {
+            return view('auth.loginusermobile');
+        }
+        return view('auth.loginuser');
     }
 
     /**

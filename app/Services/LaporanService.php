@@ -469,6 +469,7 @@ class LaporanService
 
         return [
             'bydate' => $jadwal_bydate,
+            'grup_bydate' => $jadwal_grup_bydate,
             'byday' => $jadwal_byday,
             'bydept' => $jadwal_bydept
         ];
