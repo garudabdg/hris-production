@@ -348,7 +348,7 @@
                                         $bgcolor = 'red';
                                         $textcolor = 'white';
                                         $ket_status = 'ALPA';
-                                        $potongan_jam = $generalsetting->status_potongan_jam == 1 ? $totalJamJadwal : 0;
+                                        $potongan_jam = $generalsetting->status_potongan_jam == 1 ? (is_array($totalJamJadwal) ? ($totalJamJadwal['total_jam'] ?? 0) : $totalJamJadwal) : 0;
                                     } else {
                                         $ket_status = '-';
                                     }

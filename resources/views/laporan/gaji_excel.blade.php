@@ -269,7 +269,7 @@
                                         $totalJamJadwal = $mapDept[$nama_hari] ?? null;
                                     }
                                     if ($totalJamJadwal !== null) {
-                                        $potongan_jam = $totalJamJadwal;
+                                        $potongan_jam = is_array($totalJamJadwal) ? ($totalJamJadwal['total_jam'] ?? 0) : $totalJamJadwal;
                                     }
                                 }
                             @endphp

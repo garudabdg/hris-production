@@ -343,7 +343,7 @@
 
                             // Jika ada jadwal tapi tidak ada presensi sama sekali → potongan jam = total_jam jadwal
                             if ($totalJamJadwal !== null) {
-                                $potongan_jam = $totalJamJadwal;
+                                $potongan_jam = is_array($totalJamJadwal) ? ($totalJamJadwal['total_jam'] ?? 0) : $totalJamJadwal;
                             }
                         }
                     @endphp
@@ -490,7 +490,7 @@
 
                                 // Jika ada jadwal tapi tidak ada presensi sama sekali → potongan jam = total_jam jadwal
                                 if ($totalJamJadwal !== null) {
-                                    $potongan_jam = $totalJamJadwal;
+                                    $potongan_jam = is_array($totalJamJadwal) ? ($totalJamJadwal['total_jam'] ?? 0) : $totalJamJadwal;
                                 }
                             }
                         @endphp

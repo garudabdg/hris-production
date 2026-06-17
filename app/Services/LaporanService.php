@@ -275,12 +275,42 @@ class LaporanService
 
     public function applyKaryawanFilters($query, Request $request, $nikColumn = 'karyawan.nik')
     {
-        if (!empty($request->kode_cabang)) {
-            $query->whereIn('karyawan.kode_cabang', (array) $request->kode_cabang);
+        $user = auth()->user();
+
+        if ($user && !$user->hasRole('karyawan') && !$user->isSuperAdmin()) {
+            $userCabangs = $user->getCabangCodes();
+            $userDepartemens = $user->getDepartemenCodes();
+
+            if (!empty($userCabangs)) {
+                if (!empty($request->kode_cabang)) {
+                    $requestedCabangs = array_intersect((array) $request->kode_cabang, $userCabangs);
+                    $query->whereIn('karyawan.kode_cabang', $requestedCabangs);
+                } else {
+                    $query->whereIn('karyawan.kode_cabang', $userCabangs);
+                }
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+
+            if (!empty($userDepartemens)) {
+                if (!empty($request->kode_dept)) {
+                    $requestedDepts = array_intersect((array) $request->kode_dept, $userDepartemens);
+                    $query->whereIn('karyawan.kode_dept', $requestedDepts);
+                } else {
+                    $query->whereIn('karyawan.kode_dept', $userDepartemens);
+                }
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } else {
+            if (!empty($request->kode_cabang)) {
+                $query->whereIn('karyawan.kode_cabang', (array) $request->kode_cabang);
+            }
+            if (!empty($request->kode_dept)) {
+                $query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
+            }
         }
-        if (!empty($request->kode_dept)) {
-            $query->whereIn('karyawan.kode_dept', (array) $request->kode_dept);
-        }
+
         if (!empty($request->sub_departemen)) {
             $query->whereIn('karyawan.sub_departemen', (array) $request->sub_departemen);
         }

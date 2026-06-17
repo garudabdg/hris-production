@@ -628,7 +628,7 @@
                                         if ($totalJamJadwal !== null) {
                                             // Ada jadwal tapi tidak ada presensi sama sekali → Alpa & potong full jam kerja
                                             $jml_alfa++;
-                                            $potongan_jam = $totalJamJadwal;
+                                            $potongan_jam = is_array($totalJamJadwal) ? ($totalJamJadwal['total_jam'] ?? 0) : $totalJamJadwal;
 
                                             // Untuk alpa yang belum ada di database, denda = 0
                                             $denda = 0;
