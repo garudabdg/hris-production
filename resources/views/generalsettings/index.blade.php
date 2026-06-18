@@ -250,6 +250,32 @@
                         </div>
                     </div>
                 </div>
+                <!-- Update APK -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Pengaturan Update APK Mobile</h6>
+                    </div>
+                    <div class="card-body">
+                        <x-input-with-icon-label label="Versi APK Terbaru (Contoh: 1.0.1)" name="apk_version" icon="ti ti-brand-android" :value="$setting->apk_version ?? ''" />
+                        <x-input-with-icon-label label="Link Download APK" name="apk_download_url" icon="ti ti-download" :value="$setting->apk_download_url ?? ''" />
+                        
+                        <div class="form-group mt-2">
+                            <label for="apk_file" style="font-weight: 600" class="form-label">Atau Upload File APK</label>
+                            <input type="file" class="form-control" name="apk_file" id="apk_file" accept=".apk">
+                            <small class="text-muted">Upload file akan menimpa URL download dengan URL dari file ini secara otomatis.</small>
+                        </div>
+                        
+                        <label for="" style="font-weight: 600" class="form-label mt-2">Wajib Update (Force Update)</label>
+                        <div class="checkbox-wrapper-55 mb-2">
+                            <label class="rocker rocker-small">
+                                <input type="checkbox" name="apk_force_update" @checked($setting->apk_force_update ?? false)>
+                                <span class="switch-left">Yes</span>
+                                <span class="switch-right">No</span>
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">Jika 'Yes', user tidak bisa menutup dialog update di aplikasi.</small>
+                    </div>
+                </div>
                 <!-- Tema -->
                 <div class="card mb-3">
                     <div class="card-header">

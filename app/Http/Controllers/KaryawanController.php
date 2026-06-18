@@ -543,12 +543,14 @@ class KaryawanController extends Controller
             // Kirim notifikasi WA ke karyawan
             if (!empty($karyawan->no_hp)) {
                 $appName = optional(Pengaturanumum::first())->nama_perusahaan ?? 'HRIS';
-                $apkUrl = route('download.apk');
+                $apkUrl = rtrim(env('APP_URL', 'https://hris.didimax.id'), '/') . '/download-apk';
+                $webLoginUrl = rtrim(env('APP_URL', 'https://hris.didimax.id'), '/');
                 $waMessage = "Halo *{$karyawan->nama_karyawan}*,\n\n"
                     . "Akun HRIS *{$appName}* Anda telah dibuat.\n\n"
                     . "🔐 *Informasi Login Sementara:*\n"
                     . "Username: *{$karyawan->nik}*\n"
                     . "Password: *{$karyawan->nik}*\n\n"
+                    . "🌐 *Login via Web:*\n{$webLoginUrl}\n\n"
                     . "📱 *Download Aplikasi Android:*\n{$apkUrl}\n\n"
                     . "⚠️ *PENTING:*\n"
                     . "Silakan login sekarang juga untuk *melengkapi Profil Anda* (mengubah Username, Email aktif, dan Password baru).\n\n"

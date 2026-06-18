@@ -83,6 +83,9 @@ Route::any('/adms/capture', [App\Http\Controllers\Api\AdmsController::class, 'ca
 // Endpoint untuk menerima data dari mesin Fingerspot REVO melalui adms
 // Route::post('/presensi/revo', [App\Http\Controllers\Api\PresensiController::class, 'receiveRevoData'])
 //     ->withoutMiddleware('throttle:api');
+// Endpoint untuk check versi apk terbaru
+Route::get('/check-update', [App\Http\Controllers\Api\AppUpdateController::class, 'checkUpdate']);
+
 // Update API Routes
 Route::prefix('update')->group(function () {
     // Public endpoints (tidak perlu auth) - Route spesifik dulu

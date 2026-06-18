@@ -97,6 +97,20 @@
                 <button type="submit" class="btn-login">Login</button>
             </form>
             
+            @php
+                $apkUrl = null;
+                if (isset($general_setting) && $general_setting->apk_download_url) {
+                    $apkUrl = rtrim(env('APP_URL', 'https://hris.didimax.id'), '/') . '/download-apk';
+                }
+            @endphp
+            
+            @if($apkUrl)
+            <a href="{{ $apkUrl }}" class="sign-btn" style="background-color: transparent; border: 2px solid var(--theme-color-1); color: var(--theme-color-1); margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer; border-radius: 15px; padding: 12px; font-weight: 600; width: 100%;">
+                <ion-icon name="logo-android" style="font-size: 22px; color: #a4c639;"></ion-icon>
+                Download Aplikasi Android
+            </a>
+            @endif
+            
             {{-- 
             REGISTER BUTTON DISABLED - Feature removed by admin
             <a href="{{ route('register') }}" class="sign-btn" style="background-color: #0b6a3a; margin-top: 10px; display: block; text-align: center; text-decoration: none; color: white; cursor: pointer;">

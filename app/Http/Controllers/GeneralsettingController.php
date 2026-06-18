@@ -39,6 +39,10 @@ class GeneralsettingController extends Controller
             'theme_color_1' => 'nullable|string|max:20',
             'theme_color_2' => 'nullable|string|max:20',
             'session_time' => 'nullable|integer|min:1',
+            'apk_version' => 'nullable|string|max:20',
+            'apk_download_url' => 'nullable|url|max:255',
+            'apk_force_update' => 'nullable',
+            'apk_file' => 'nullable|file|max:51200', // max 50MB
         ]);
 
         try {
@@ -79,6 +83,9 @@ class GeneralsettingController extends Controller
                 'theme_color_2' => $request->theme_color_2,
                 'mobile_theme_scheme' => $request->mobile_theme_scheme,
                 'session_time' => $request->session_time,
+                'apk_version' => $request->apk_version,
+                'apk_download_url' => $request->apk_download_url,
+                'apk_force_update' => $request->has('apk_force_update') ? true : false,
             ];
 
             if ($request->hasFile('logo')) {
@@ -100,6 +107,31 @@ class GeneralsettingController extends Controller
                 }
 
                 $data['logo'] = $logoName;
+            }
+
+            if ($request->hasFile('apk_file')) {
+                $apk = $request->file('apk_file');
+                // Paksa ekstensi menjadi .apk untuk menghindari browser/OS salah mendeteksinya sebagai .zip
+                $apkName = 'hris_mobile_' . time() . '.apk';
+                
+                $destinationPath = 'public/apk';
+                if (!Storage::exists($destinationPath)) {
+                    Storage::makeDirectory($destinationPath, 0775, true);
+                    $path = Storage::path($destinationPath);
+                    chmod($path, 0775);
+                }
+                
+                $apk->storeAs($destinationPath, $apkName);
+
+                // Hapus apk lama jika mengarah ke storage lokal
+                if ($setting->apk_download_url && str_contains($setting->apk_download_url, 'storage/apk/')) {
+                    $oldApk = basename($setting->apk_download_url);
+                    if (Storage::exists('public/apk/' . $oldApk)) {
+                        Storage::delete('public/apk/' . $oldApk);
+                    }
+                }
+
+                $data['apk_download_url'] = 'storage/apk/' . $apkName;
             }
 
             $oldTimezone = $setting->timezone ?? 'Asia/Jakarta';

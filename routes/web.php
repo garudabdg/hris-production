@@ -963,6 +963,34 @@ Route::group(['middleware' => ['auth', 'account.setup']], function () { // Remov
     Route::group(['middleware' => ['permission:recruitment.delete']], function () {
         Route::delete('/recruitment/{id}', [RecruitmentController::class, 'destroy'])->name('recruitment.destroy');
     });
+Route::get('/download-apk', function () {
+    $setting = \App\Models\Pengaturanumum::first();
+    if (!$setting || !$setting->apk_download_url) {
+        abort(404, 'APK not found');
+    }
+    
+    $url = $setting->apk_download_url;
+    // If it's an external URL
+    if (str_starts_with($url, 'http')) {
+        return redirect($url);
+    }
+    
+    // It's a local file
+    // e.g. storage/apk/hris_mobile_1781767997.apk
+    if (str_starts_with($url, 'storage/')) {
+        $path = substr($url, 8); // 'apk/hris_mobile_...apk'
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+            $headers = [
+                'Content-Type' => 'application/vnd.android.package-archive',
+                'Content-Disposition' => 'attachment; filename="HRIS_Mobile_App.apk"',
+            ];
+            return response()->download(\Illuminate\Support\Facades\Storage::disk('public')->path($path), 'HRIS_Mobile_App.apk', $headers);
+        }
+    }
+    
+    abort(404, 'APK file not found on server');
+})->name('download.apk');
+
 // Route::get('/storage/{path}', function ($path) {
 //     return response()->file(storage_path('app/public/' . $path));
 // })->where('path', '.*');
