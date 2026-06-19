@@ -37,6 +37,16 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         if ($user->hasRole('karyawan')) {
+            $agent = new Agent();
+            if ($agent->isDesktop()) {
+                $user_karyawan = Userkaryawan::where('id_user', $user->id)->first();
+                if ($user_karyawan) {
+                    $karyawan = Karyawan::where('nik', $user_karyawan->nik)->first();
+                    if ($karyawan && $karyawan->kode_dept === 'BU') {
+                        return redirect()->route('dailyreportbu.create');
+                    }
+                }
+            }
             $data = $this->dashboardService->getKaryawanData($user);
             return view('dashboard.karyawan', $data);
         } else {

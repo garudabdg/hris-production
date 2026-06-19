@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\User;
+use App\Models\Pengaturanumum;
+use App\Jobs\SendWaMessage;
 use Carbon\Carbon;
 
 class PasswordOtpController extends Controller
@@ -42,25 +44,47 @@ class PasswordOtpController extends Controller
             'expires_at' => $expiresAt
         ]);
         
-        // Send OTP email
-        try {
-            Mail::send('emails.password-otp', [
-                'otp' => $otp,
-                'expires_at' => $expiresAt->format('H:i'),
-                'email' => $email
-            ], function($message) use ($email) {
-                $message->to($email)
-                        ->subject('Password Reset OTP - HRIS DIDIMAX')
-                        ->from('hrd@didimax.online', 'HRIS DIDIMAX');
-            });
+        // Get General Setting
+        $setting = Pengaturanumum::first();
+        $otpMethod = $setting->otp_method ?? 'email';
+        
+        $user = User::where('email', $email)->first();
+        $isAdmin = $user && !$user->hasRole('karyawan');
+        
+        $noHp = null;
+        if ($otpMethod == 'whatsapp') {
+            if ($user && $user->userkaryawan && $user->userkaryawan->karyawan) {
+                $noHp = $user->userkaryawan->karyawan->no_hp;
+            }
             
-            // Check user role
-            $user = User::where('email', $email)->first();
-            $isAdmin = $user && !$user->hasRole('karyawan');
+            // If phone number is invalid or empty, fallback to email
+            if (empty($noHp)) {
+                $otpMethod = 'email';
+            }
+        }
+        
+        // Send OTP
+        try {
+            if ($otpMethod == 'whatsapp') {
+                $messageText = "*OTP RESET PASSWORD*\n\nKode OTP Anda adalah: *$otp*\n\nBerlaku hingga: " . $expiresAt->format('H:i') . " WIB\n\n_Mohon jangan berikan kode ini kepada siapapun._";
+                SendWaMessage::dispatch($noHp, $messageText, false, true, 'otp');
+                $methodSent = 'WhatsApp';
+            } else {
+                Mail::send('emails.password-otp', [
+                    'otp' => $otp,
+                    'expires_at' => $expiresAt->format('H:i'),
+                    'email' => $email
+                ], function($message) use ($email) {
+                    $message->to($email)
+                            ->subject('Password Reset OTP - HRIS DIDIMAX')
+                            ->from(env('MAIL_FROM_ADDRESS', 'hrd@didimax.online'), env('MAIL_FROM_NAME', 'HRIS DIDIMAX'));
+                });
+                $methodSent = 'email';
+            }
             
             return response()->json([
                 'success' => true,
-                'message' => 'OTP sent to your email',
+                'message' => 'OTP sent to your ' . $methodSent,
                 'token' => $token,
                 'isAdmin' => $isAdmin
             ]);

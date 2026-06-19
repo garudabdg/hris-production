@@ -6,6 +6,7 @@ use App\Models\Izinabsen;
 use App\Models\Izincuti;
 use App\Models\Izindinas;
 use App\Models\Izinsakit;
+use App\Models\Izinkeluar;
 use App\Models\ApprovalLayer;
 use App\Models\User;
 use App\Models\Userkaryawan;
@@ -41,12 +42,15 @@ class PengajuanizinController extends Controller
         $izin_dinas = Izindinas::where('nik', $userkaryawan->nik)
             ->select('kode_izin_dinas as kode', 'tanggal', 'keterangan', 'dari', 'sampai', DB::raw('\'d\' as ket'), 'status as status_izin', 'approval_step');
 
+        $izin_keluar = Izinkeluar::where('nik', $userkaryawan->nik)
+            ->select('kode_izin_keluar as kode', 'tanggal', 'keperluan as keterangan', 'jam_keluar as dari', 'jam_keluar as sampai', DB::raw('\'k\' as ket'), 'status as status_izin', 'approval_step');
+
         // Gabungkan query, exclude cuti jika departemen BU
         $pengajuan_izin = $izinabsen->union($izinsakit);
         if (!$hideCuti) {
             $pengajuan_izin = $pengajuan_izin->union($izincuti);
         }
-        $pengajuan_izin = $pengajuan_izin->union($izin_dinas)->orderBy('tanggal', 'desc')->get();
+        $pengajuan_izin = $pengajuan_izin->union($izin_dinas)->union($izin_keluar)->orderBy('tanggal', 'desc')->get();
 
         // Resolve nama approver yang sedang menunggu (untuk status pending)
         $karyawan = Karyawan::where('nik', $userkaryawan->nik)->first();
@@ -64,6 +68,12 @@ class PengajuanizinController extends Controller
                     })
                     ->first();
                 $item->waiting_role = $layer?->role_name;
+            }
+            if ($item->ket == 'k') {
+                $ik = \App\Models\Izinkeluar::with(['driver', 'kendaraan'])->find($item->kode);
+                $item->driver_nama = $ik && $ik->driver ? $ik->driver->nama_karyawan : null;
+                $item->kendaraan_nama = $ik && $ik->kendaraan ? $ik->kendaraan->nama_asset : null;
+                $item->is_selesai = $ik ? !empty($ik->jam_kembali) : false;
             }
         }
         

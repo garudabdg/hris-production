@@ -397,7 +397,7 @@
                             console.warn('Location Error:', err.message);
                             // Passive warning
                         },
-                        { enableHighAccuracy: true, timeout: 5000 }
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                     );
                 }
             }

@@ -1,0 +1,38 @@
+/* 
+ * CSS for Daily Report BU
+ * Used in Standalone Tailwind layout and Admin view
+ */
+
+/* ========================================= */
+/* KARYAWAN DESKTOP VIEW (Tailwind + Custom) */
+/* ========================================= */
+
+.form-input-bu { 
+    width: 100%; 
+    border: 1px solid #d1d5db; 
+    border-radius: 0.375rem; 
+    padding: 0.5rem 0.75rem; 
+    font-size: 0.875rem; 
+    transition: border-color 0.15s;
+}
+.form-input-bu:focus { 
+    outline: none; 
+    border-color: #3b82f6; 
+    box-shadow: 0 0 0 2px #93c5fd;
+}
+.number-input-bu::-webkit-inner-spin-button, 
+.number-input-bu::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+.number-input-bu { 
+    text-align: center; 
+    font-weight: 600; 
+}
+
+/* ========================================= */
+/* ADMIN VIEW (Bootstrap overrides)          */
+/* ========================================= */
+.online-input-admin {
+    font-weight: 600;
+}

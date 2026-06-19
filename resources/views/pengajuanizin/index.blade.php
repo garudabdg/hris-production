@@ -66,6 +66,11 @@
                     $ket_text = 'Izin Dinas';
                     $st_color = '#4bc0c0';
                     $st_rgb = '75, 192, 192';
+                } elseif ($d->ket == 'k') {
+                    $route = 'izinkeluar.delete';
+                    $ket_text = 'Izin Keluar / Offline';
+                    $st_color = '#9b59b6';
+                    $st_rgb = '155, 89, 182';
                 }
                 
                 $namahari = ['Sun' => 'Minggu', 'Mon' => 'Senin', 'Tue' => 'Selasa', 'Wed' => 'Rabu', 'Thu' => 'Kamis', 'Fri' => 'Jumat', 'Sat' => 'Sabtu'];
@@ -126,11 +131,42 @@
                                 </span>
                             </div>
                             
-                            <p class="text-[11px] text-gray-400 truncate italic leading-none">
+                            <p class="text-[11px] text-gray-400 truncate italic leading-none mb-1">
                                 "{{ $d->keterangan }}"
                             </p>
+
+                            @if ($d->ket == 'k' && $d->status_izin == 1)
+                                <div class="mt-1 p-1 bg-gray-50 rounded border border-gray-100 flex flex-col gap-0.5">
+                                    @if ($d->driver_nama)
+                                    <div class="flex items-center gap-1 text-[10px] text-gray-600">
+                                        <ion-icon name="person-outline"></ion-icon>
+                                        <span>Driver: <b>{{ $d->driver_nama }}</b></span>
+                                    </div>
+                                    @endif
+                                    @if ($d->kendaraan_nama)
+                                    <div class="flex items-center gap-1 text-[10px] text-gray-600">
+                                        <ion-icon name="car-outline"></ion-icon>
+                                        <span>Kendaraan: <b>{{ $d->kendaraan_nama }}</b></span>
+                                    </div>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
+
+                    {{-- Action Selesai --}}
+                    @if ($d->ket == 'k' && $d->status_izin == 1 && !$d->is_selesai)
+                    <div class="bg-gray-50 border-t border-gray-100 px-2 py-1.5 flex justify-end">
+                        <button type="button" onclick="selesaikanIzin('{{ Crypt::encrypt($d->kode) }}')" class="flex items-center justify-center gap-1 bg-[#10b981] hover:bg-[#059669] text-white px-3 py-1 rounded-[6px] text-[11px] font-bold shadow-sm transition-colors w-full">
+                            <ion-icon name="checkmark-done-circle-outline" class="text-[14px]"></ion-icon>
+                            <span>Selesaikan & Kembalikan Kendaraan</span>
+                        </button>
+                    </div>
+                    @elseif ($d->ket == 'k' && $d->is_selesai)
+                    <div class="bg-green-50 border-t border-green-100 px-2 py-1.5 flex justify-center">
+                        <span class="text-[10px] font-bold text-green-700 flex items-center gap-1"><ion-icon name="checkmark-circle"></ion-icon> Izin Selesai</span>
+                    </div>
+                    @endif
                 </div>
             </form>
         @endforeach
@@ -171,6 +207,12 @@
                     <ion-icon name="airplane-outline" class="text-xl"></ion-icon>
                 </div>
             </a>
+            <a href="{{ route('izinkeluar.create') }}" class="flex items-center justify-end gap-2 group/item transform transition-all hover:-translate-x-1">
+                <span class="bg-gray-800 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg opacity-0 group-hover/item:opacity-100 transition-opacity shadow-sm">Izin Keluar / Offline</span>
+                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-md border border-gray-100">
+                    <ion-icon name="walk-outline" class="text-xl"></ion-icon>
+                </div>
+            </a>
         </div>
     </div>
 @endsection
@@ -185,6 +227,33 @@
                 if(content) content.classList.remove('content-hide');
             }, 400);
         });
+
+        function selesaikanIzin(kode) {
+            Swal.fire({
+                title: "Apakah Anda Yakin?",
+                text: "Izin Keluar akan ditandai Selesai dan kendaraan dikembalikan.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#10b981",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Ya, Selesaikan!"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/izinkeluar/' + kode + '/selesai';
+                    
+                    const csrf = document.createElement('input');
+                    csrf.type = 'hidden';
+                    csrf.name = '_token';
+                    csrf.value = '{{ csrf_token() }}';
+                    
+                    form.appendChild(csrf);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
 
 
         // Close FAB menu when clicking outside

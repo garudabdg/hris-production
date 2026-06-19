@@ -76,7 +76,28 @@
 
      <div class="menu-inner-shadow"></div>
 
+     @php
+         $isUserKaryawanBU = false;
+         if ($authUser && $authUser->hasRole('karyawan')) {
+             $userKaryawanModel = \App\Models\Userkaryawan::where('id_user', $authUser->id)->first();
+             if ($userKaryawanModel) {
+                 $karyawanModel = \App\Models\Karyawan::where('nik', $userKaryawanModel->nik)->first();
+                 if ($karyawanModel && $karyawanModel->kode_dept == 'BU') {
+                     $isUserKaryawanBU = true;
+                 }
+             }
+         }
+     @endphp
+
      <ul class="menu-inner py-1">
+         @if($isUserKaryawanBU)
+             <li class="menu-item {{ request()->is(['dailyreportbu', 'dailyreportbu/*']) ? 'active' : '' }}">
+                 <a href="{{ route('dailyreportbu.create') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-document-text"></i>
+                     <div>Form Daily Report Business</div>
+                 </a>
+             </li>
+         @else
          <!-- Dashboards -->
          <li class="menu-item {{ request()->is(['dashboard', 'dashboard/*']) ? 'active' : '' }}">
              <a href="{{ route('dashboard.index') }}" class="menu-link">
@@ -311,8 +332,8 @@
              </li>
          @endif
 
-         @if (auth()->user()->hasAnyPermission(['izinabsen.index', 'izinsakit.index', 'izincuti.index', 'izindinas.index']))
-             <li class="menu-item {{ request()->is(['izinabsen', 'izinabsen/*', 'izinsakit', 'izincuti', 'izindinas']) ? 'active' : '' }}">
+         @if (auth()->user()->hasAnyPermission(['izinabsen.index', 'izinsakit.index', 'izincuti.index', 'izindinas.index', 'izinkeluar.index']))
+             <li class="menu-item {{ request()->is(['izinabsen', 'izinabsen/*', 'izinsakit', 'izincuti', 'izindinas', 'izinkeluar']) ? 'active' : '' }}">
                  <a href="{{ route('izinabsen.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-folder-check"></i>
                      <div>Pengajuan Izin</div>
@@ -421,8 +442,8 @@
                 </ul>
             </li>
         @endif
-         @if (auth()->user()->hasAnyPermission(['laporan.presensi', 'laporan.cuti', 'laporan.jadwal', 'laporan.lembur']))
-             <li class="menu-item {{ request()->is(['laporan', 'laporan/*']) ? 'open' : '' }} ">
+         @if (auth()->user()->hasAnyPermission(['laporan.presensi', 'laporan.cuti', 'laporan.jadwal', 'laporan.lembur', 'dailyreportbu.index']))
+             <li class="menu-item {{ request()->is(['laporan', 'laporan/*', 'dailyreportbu', 'dailyreportbu/*']) ? 'open' : '' }} ">
                  <a href="javascript:void(0);" class="menu-link menu-toggle">
                      <i class="menu-icon tf-icons ti ti-adjustments-alt"></i>
                      <div>Laporan</div>
@@ -453,6 +474,13 @@
                           <li class="menu-item {{ request()->is(['laporan/lembur']) ? 'active' : '' }}">
                               <a href="{{ route('laporan.lembur') }}" class="menu-link">
                                   <div>Laporan Lembur</div>
+                              </a>
+                          </li>
+                      @endcan
+                      @can('dailyreportbu.index')
+                          <li class="menu-item {{ request()->is(['dailyreportbu', 'dailyreportbu/*']) ? 'active' : '' }}">
+                              <a href="{{ route('dailyreportbu.index') }}" class="menu-link">
+                                  <div>Business Report</div>
                               </a>
                           </li>
                       @endcan
@@ -650,6 +678,7 @@
                      </li>
                  </ul>
              </li>
+         @endif
          @endif
      </ul>
  </aside>

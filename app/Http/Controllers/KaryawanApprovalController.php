@@ -6,6 +6,7 @@ use App\Models\Izinabsen;
 use App\Models\Izinsakit;
 use App\Models\Izincuti;
 use App\Models\Izindinas;
+use App\Models\Izinkeluar;
 use App\Models\Userkaryawan;
 use App\Models\User;
 use App\Models\ApprovalLayer;
@@ -50,20 +51,23 @@ class KaryawanApprovalController extends Controller
         $pendingIzinSakit = collect();
         $pendingIzinCuti = collect();
         $pendingIzinDinas = collect();
+        $pendingIzinKeluar = collect();
 
         if ($layers->isNotEmpty()) {
             $pendingIzinAbsen = self::buildIzinQuery(Izinabsen::class, 'presensi_izinabsen', $layers, $adminDeptCodes, $adminCabangCodes, true)->get()->unique('kode_izin');
             $pendingIzinSakit = self::buildIzinQuery(Izinsakit::class, 'presensi_izinsakit', $layers, $adminDeptCodes, $adminCabangCodes, true)->get()->unique('kode_izin_sakit');
             $pendingIzinCuti = self::buildIzinQuery(Izincuti::class, 'presensi_izincuti', $layers, $adminDeptCodes, $adminCabangCodes, true)->get()->unique('kode_izin_cuti');
             $pendingIzinDinas = self::buildIzinQuery(Izindinas::class, 'presensi_izindinas', $layers, $adminDeptCodes, $adminCabangCodes, true)->get()->unique('kode_izin_dinas');
+            $pendingIzinKeluar = self::buildIzinQuery(Izinkeluar::class, 'presensi_izinkeluar', $layers, $adminDeptCodes, $adminCabangCodes, true)->get()->unique('kode_izin_keluar');
         }
 
         $data['pendingIzinAbsen'] = $pendingIzinAbsen;
         $data['pendingIzinSakit'] = $pendingIzinSakit;
         $data['pendingIzinCuti'] = $pendingIzinCuti;
         $data['pendingIzinDinas'] = $pendingIzinDinas;
+        $data['pendingIzinKeluar'] = $pendingIzinKeluar;
         $data['admin'] = $admin;
-        $data['totalPending'] = $pendingIzinAbsen->count() + $pendingIzinSakit->count() + $pendingIzinCuti->count() + $pendingIzinDinas->count();
+        $data['totalPending'] = $pendingIzinAbsen->count() + $pendingIzinSakit->count() + $pendingIzinCuti->count() + $pendingIzinDinas->count() + $pendingIzinKeluar->count();
 
         return view('karyawanapproval.index', $data);
     }
@@ -94,6 +98,7 @@ class KaryawanApprovalController extends Controller
         $count += self::buildIzinQuery(Izinsakit::class, 'presensi_izinsakit', $layers, $adminDeptCodes, $adminCabangCodes, false)->count();
         $count += self::buildIzinQuery(Izincuti::class, 'presensi_izincuti', $layers, $adminDeptCodes, $adminCabangCodes, false)->count();
         $count += self::buildIzinQuery(Izindinas::class, 'presensi_izindinas', $layers, $adminDeptCodes, $adminCabangCodes, false)->count();
+        $count += self::buildIzinQuery(Izinkeluar::class, 'presensi_izinkeluar', $layers, $adminDeptCodes, $adminCabangCodes, false)->count();
 
         return $count;
     }
@@ -301,6 +306,42 @@ class KaryawanApprovalController extends Controller
     {
         $this->validateDelegationAccess();
         app(IzindinasController::class)->cancelapprove($kode_izin_dinas);
+        return redirect()->route('karyawan-approval.index');
+    }
+
+    // ==================== IZIN KELUAR ====================
+    public function approveIzinKeluar($kode_izin_keluar)
+    {
+        $admin = $this->validateDelegationAccess();
+        $kode_izin_keluar = Crypt::decrypt($kode_izin_keluar);
+        $izinkeluar = Izinkeluar::where('kode_izin_keluar', $kode_izin_keluar)
+            ->join('karyawan', 'presensi_izinkeluar.nik', '=', 'karyawan.nik')
+            ->join('jabatan', 'karyawan.kode_jabatan', '=', 'jabatan.kode_jabatan')
+            ->join('departemen', 'karyawan.kode_dept', '=', 'departemen.kode_dept')
+            ->join('cabang', 'karyawan.kode_cabang', '=', 'cabang.kode_cabang')
+            ->first();
+
+        $adminCabangs = $admin->getCabangCodes();
+        $adminDepts = $admin->getDepartemenCodes();
+        if (!in_array($izinkeluar->kode_cabang, $adminCabangs) || !in_array($izinkeluar->kode_dept, $adminDepts)) {
+            abort(403, 'Admin tidak memiliki akses ke izin keluar ini.');
+        }
+
+        $data['izinkeluar'] = $izinkeluar;
+        return view('karyawanapproval.approve_izinkeluar', $data);
+    }
+
+    public function storeApproveIzinKeluar(Request $request, $kode_izin_keluar)
+    {
+        $this->validateDelegationAccess();
+        app(IzinkeluarController::class)->storeapprove($request, $kode_izin_keluar);
+        return redirect()->route('karyawan-approval.index');
+    }
+
+    public function cancelApproveIzinKeluar($kode_izin_keluar)
+    {
+        $this->validateDelegationAccess();
+        app(IzinkeluarController::class)->cancelapprove($kode_izin_keluar);
         return redirect()->route('karyawan-approval.index');
     }
 }

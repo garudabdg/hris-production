@@ -60,6 +60,7 @@ use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetPinjamController;
 use App\Http\Controllers\AssetTransactionController;
 use App\Http\Controllers\AssetPerawatanController;
+use App\Http\Controllers\DailyReportBuController;
 use App\Http\Controllers\ItTicketController;
 use App\Http\Controllers\TamuController;
 use App\Http\Controllers\Auth\AccountSetupController;
@@ -129,11 +130,12 @@ Route::get('/download/app', function () {
     if (!file_exists($file)) {
         abort(404, 'File APK tidak ditemukan.');
     }
-    return response()->download($file, 'HRIS-Didimax.apk', [
+    return response()->streamDownload(function () use ($file) {
+        readfile($file);
+    }, 'HRIS-Didimax.apk', [
         'Content-Type'        => 'application/vnd.android.package-archive',
-        'Content-Disposition' => 'attachment; filename="HRIS-Didimax.apk"',
     ]);
-})->name('download.apk');
+}); // removed name('download.apk') to prevent collision
 
 // WebView Auto Login Route (Flutter PWA Bridging)
 Route::get('/webview/auto-login', [WebviewController::class, 'autoLogin'])->name('webview.auto-login');
@@ -207,6 +209,10 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
         Route::get('/karyawan-approval/izindinas/{kode_izin_dinas}/approve', 'approveIzinDinas')->name('karyawan-approval.izindinas.approve');
         Route::post('/karyawan-approval/izindinas/{kode_izin_dinas}/storeapprove', 'storeApproveIzinDinas')->name('karyawan-approval.izindinas.storeapprove');
         Route::delete('/karyawan-approval/izindinas/{kode_izin_dinas}/cancelapprove', 'cancelApproveIzinDinas')->name('karyawan-approval.izindinas.cancelapprove');
+
+        Route::get('/karyawan-approval/izinkeluar/{kode_izin_keluar}/approve', 'approveIzinKeluar')->name('karyawan-approval.izinkeluar.approve');
+        Route::post('/karyawan-approval/izinkeluar/{kode_izin_keluar}/storeapprove', 'storeApproveIzinKeluar')->name('karyawan-approval.izinkeluar.storeapprove');
+        Route::delete('/karyawan-approval/izinkeluar/{kode_izin_keluar}/cancelapprove', 'cancelApproveIzinKeluar')->name('karyawan-approval.izinkeluar.cancelapprove');
     });
     Route::middleware('role:super admin')->controller(RoleController::class)->group(function () {
         Route::get('/roles', 'index')->name('roles.index');
@@ -577,6 +583,22 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
         Route::post('/izindinas/{kode_izin_cuti}/storeapprove', 'storeapprove')->name('izindinas.storeapprove')->can('izindinas.approve');
     });
 
+    //izin keluar
+    Route::controller(App\Http\Controllers\IzinkeluarController::class)->group(function () {
+        Route::get('/izinkeluar', 'index')->name('izinkeluar.index')->can('izinkeluar.index');
+        Route::get('/izinkeluar/create', 'create')->name('izinkeluar.create')->can('izinkeluar.create');
+        Route::post('/izinkeluar', 'store')->name('izinkeluar.store')->can('izinkeluar.create');
+        Route::get('/izinkeluar/{kode_izin_keluar}/edit', 'edit')->name('izinkeluar.edit')->can('izinkeluar.edit');
+        Route::put('/izinkeluar/{kode_izin_keluar}', 'update')->name('izinkeluar.update')->can('izinkeluar.edit');
+        Route::get('/izinkeluar/{kode_izin_keluar}/show', 'show')->name('izinkeluar.show')->can('izinkeluar.index');
+        Route::delete('/izinkeluar/{kode_izin_keluar}/delete', 'destroy')->name('izinkeluar.delete')->can('izinkeluar.delete');
+        
+        Route::get('/izinkeluar/{kode_izin_keluar}/approve', 'approve')->name('izinkeluar.approve')->can('izinkeluar.approve');
+        Route::delete('/izinkeluar/{kode_izin_keluar}/cancelapprove', 'cancelapprove')->name('izinkeluar.cancelapprove')->can('izinkeluar.approve');
+        Route::post('/izinkeluar/{kode_izin_keluar}/storeapprove', 'storeapprove')->name('izinkeluar.storeapprove')->can('izinkeluar.approve');
+        Route::post('/izinkeluar/{kode_izin_keluar}/selesai', 'selesai')->name('izinkeluar.selesai')->can('izinkeluar.index');
+    });
+
     Route::controller(LemburController::class)->group(function () {
         Route::get('/lembur', 'index')->name('lembur.index')->can('lembur.index');
         Route::get('/lembur/create', 'create')->name('lembur.create')->can('lembur.create');
@@ -706,6 +728,18 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
         Route::put('/aktivitaskaryawan/{aktivitaskaryawan}', 'update')->name('aktivitaskaryawan.update')->can('aktivitaskaryawan.edit');
         Route::delete('/aktivitaskaryawan/{aktivitaskaryawan}', 'destroy')->name('aktivitaskaryawan.destroy')->can('aktivitaskaryawan.delete');
         Route::get('/aktivitaskaryawan/export/pdf', 'exportPdf')->name('aktivitaskaryawan.export.pdf')->can('aktivitaskaryawan.index');
+    });
+
+    // Daily Report BU Routes
+    Route::controller(DailyReportBuController::class)->group(function () {
+        Route::get('/dailyreportbu', 'index')->name('dailyreportbu.index')->can('dailyreportbu.index');
+        Route::get('/dailyreportbu/create', 'create')->name('dailyreportbu.create')->can('dailyreportbu.create');
+        Route::post('/dailyreportbu', 'store')->name('dailyreportbu.store')->can('dailyreportbu.create');
+        Route::get('/dailyreportbu/{id}/show', 'show')->name('dailyreportbu.show')->can('dailyreportbu.index');
+        Route::get('/dailyreportbu/{id}/edit', 'edit')->name('dailyreportbu.edit')->can('dailyreportbu.edit');
+        Route::put('/dailyreportbu/{id}', 'update')->name('dailyreportbu.update')->can('dailyreportbu.edit');
+        Route::delete('/dailyreportbu/{id}', 'destroy')->name('dailyreportbu.destroy')->can('dailyreportbu.delete');
+        Route::get('/dailyreportbu/export/pdf', 'exportPdf')->name('dailyreportbu.export.pdf')->can('dailyreportbu.index');
     });
 
     // Kunjungan Routes
@@ -980,16 +1014,17 @@ Route::get('/download-apk', function () {
     if (str_starts_with($url, 'storage/')) {
         $path = substr($url, 8); // 'apk/hris_mobile_...apk'
         if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
-            $headers = [
+            $file = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
+            return response()->streamDownload(function () use ($file) {
+                readfile($file);
+            }, 'HRIS_Mobile_App.apk', [
                 'Content-Type' => 'application/vnd.android.package-archive',
-                'Content-Disposition' => 'attachment; filename="HRIS_Mobile_App.apk"',
-            ];
-            return response()->download(\Illuminate\Support\Facades\Storage::disk('public')->path($path), 'HRIS_Mobile_App.apk', $headers);
+            ]);
         }
     }
     
     abort(404, 'APK file not found on server');
-})->name('download.apk');
+})->name('download.apk'); // restored original route name
 
 // Route::get('/storage/{path}', function ($path) {
 //     return response()->file(storage_path('app/public/' . $path));

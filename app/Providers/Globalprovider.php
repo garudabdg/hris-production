@@ -94,6 +94,10 @@ class Globalprovider extends ServiceProvider
                 $applyFilter($q_izindinas);
                 $notifikasi_izin_dinas = $q_izindinas->count();
 
+                $q_izinkeluar = \App\Models\Izinkeluar::where('status', 0);
+                $applyFilter($q_izinkeluar);
+                $notifikasi_izin_keluar = $q_izinkeluar->count();
+
                 $q_ajuanjadwal = \App\Models\AjuanJadwal::where('status', 'p');
                 $applyFilter($q_ajuanjadwal);
                 $notifikasi_ajuan_jadwal = $q_ajuanjadwal->count();
@@ -135,10 +139,18 @@ class Globalprovider extends ServiceProvider
                      if (!empty($userCabangs)) $data_izin_dinas->whereIn('karyawan.kode_cabang', $userCabangs);
                      if (!empty($userDepartemens)) $data_izin_dinas->whereIn('karyawan.kode_dept', $userDepartemens);
                 }
-                
-                $data_izin = $data_izinabsen->unionAll($data_izinsakit)->unionAll($data_izincuti)->unionAll($data_izin_dinas)->get();
 
-                $notifikasi_ajuan_absen = $notifikasi_izinabsen + $notifikasi_izincuti + $notifikasi_izinsakit + $notifikasi_izin_dinas + $notifikasi_ajuan_jadwal;
+                $data_izin_keluar = \App\Models\Izinkeluar::select('presensi_izinkeluar.nik', 'nama_karyawan', DB::raw('"k" as status'), 'presensi_izinkeluar.created_at')
+                    ->where('status', 0)
+                    ->join('karyawan', 'presensi_izinkeluar.nik', '=', 'karyawan.nik');
+                if (!$isSuperAdmin) {
+                     if (!empty($userCabangs)) $data_izin_keluar->whereIn('karyawan.kode_cabang', $userCabangs);
+                     if (!empty($userDepartemens)) $data_izin_keluar->whereIn('karyawan.kode_dept', $userDepartemens);
+                }
+                
+                $data_izin = $data_izinabsen->unionAll($data_izinsakit)->unionAll($data_izincuti)->unionAll($data_izin_dinas)->unionAll($data_izin_keluar)->get();
+
+                $notifikasi_ajuan_absen = $notifikasi_izinabsen + $notifikasi_izincuti + $notifikasi_izinsakit + $notifikasi_izin_dinas + $notifikasi_izin_keluar + $notifikasi_ajuan_jadwal;
                 
                 // Notifikasi Ticket
                 $q_ticket = \App\Models\ItTicket::whereNotIn('status', ['resolved', 'closed']);
@@ -163,6 +175,7 @@ class Globalprovider extends ServiceProvider
                     'notifikasi_izincuti' => $notifikasi_izincuti,
                     'notifikasi_lembur' => $notifikasi_lembur,
                     'notifikasi_izin_dinas' => $notifikasi_izin_dinas,
+                    'notifikasi_izin_keluar' => $notifikasi_izin_keluar,
                     'notifikasi_ajuan_absen' => $notifikasi_ajuan_absen,
                     'notifikasi_ajuan_jadwal' => $notifikasi_ajuan_jadwal,
                     'notifikasi_ticket' => $notifikasi_ticket,

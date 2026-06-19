@@ -55,6 +55,16 @@
                 </a>
             </li>
         @endcan
+        @can('izinkeluar.index')
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('izinkeluar.index') }}" class="nav-link {{ request()->is(['izinkeluar']) ? 'active' : '' }}">
+                    <i class="tf-icons ti ti-file-description ti-md me-1"></i> Izin Keluar
+                    @if (!empty($notifikasi_izin_keluar))
+                        <span class="badge bg-danger rounded-pill ms-2">{{ $notifikasi_izin_keluar }}</span>
+                    @endif
+                </a>
+            </li>
+        @endcan
         @can('ajuanjadwal.index')
             <li class="nav-item" role="presentation">
                 <a href="{{ route('ajuanjadwal.index') }}" class="nav-link {{ request()->is(['ajuanjadwal']) ? 'active' : '' }}">

@@ -388,7 +388,7 @@
                     $('#lokasi').val(position.coords.latitude + "," + position.coords.longitude);
                 }, function(error) {
                     console.warn('Geolocation Error:', error.message);
-                }, { enableHighAccuracy: true });
+                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
             }
 
             // Init

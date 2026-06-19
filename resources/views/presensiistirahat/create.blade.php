@@ -346,7 +346,7 @@
             navigator.geolocation.watchPosition(successCallback, errorCallback, {
                 enableHighAccuracy: true,
                 timeout: 5000,
-                maximumAge: 60000 // Cache 1 minute for better performance
+                maximumAge: 0 // Cache 1 minute for better performance
             });
         }
 

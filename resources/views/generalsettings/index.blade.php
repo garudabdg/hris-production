@@ -209,13 +209,21 @@
                         </div>
                     </div>
                 </div>
-                <!-- Email -->
+                <!-- Email & OTP -->
                 <div class="card mb-3">
                     <div class="card-header">
-                        <h6 class="mb-0">Pengaturan Email</h6>
+                        <h6 class="mb-0">Pengaturan Email & OTP</h6>
                     </div>
                     <div class="card-body">
                         <x-input-with-icon-label label="Domain Email (contoh: didimax.online)" name="domain_email" icon="ti ti-mail" :value="$setting->domain_email ?? ''" />
+                        <div class="form-group mt-3">
+                            <label for="otp_method" style="font-weight: 600" class="form-label">Metode Pengiriman OTP Lupa Password</label>
+                            <select class="form-select" name="otp_method" id="otp_method" required>
+                                <option value="email" @selected(($setting->otp_method ?? 'email') == 'email')>Kirim via Email</option>
+                                <option value="whatsapp" @selected(($setting->otp_method ?? 'email') == 'whatsapp')>Kirim via WhatsApp</option>
+                            </select>
+                            <small class="text-muted d-block mt-1">Jika pengguna tidak memiliki Nomor HP (seperti Admin), sistem akan otomatis mengirimkannya via Email.</small>
+                        </div>
                     </div>
                 </div>
             </div>

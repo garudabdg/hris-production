@@ -11,6 +11,7 @@ use App\Models\Presensi;
 use App\Models\Pengumuman;
 use App\Models\Userkaryawan;
 use App\Models\Pengaturanumum;
+use App\Models\DailyReportBu;
 use App\Http\Controllers\KaryawanApprovalController;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -141,6 +142,19 @@ class DashboardService
         $data['pendingApprovalCount'] = KaryawanApprovalController::getPendingCount($user->id);
         $data['bulan_skrg'] = Carbon::parse($hari_ini)->translatedFormat('F');
         $data['tahun_skrg'] = Carbon::parse($hari_ini)->year;
+
+        // Daily Report Khusus BU (Desktop Dashboard)
+        $data['isBuDept'] = ($data['karyawan'] && $data['karyawan']->kode_dept == 'BU');
+        if ($data['isBuDept']) {
+            $data['dailyReportToday'] = DailyReportBu::where('nik', $userkaryawan->nik)
+                ->where('tanggal', $hari_ini)
+                ->with(['onlineActivities', 'offlineActivities', 'nasabahData'])
+                ->first();
+            $data['dailyReportHistory'] = DailyReportBu::where('nik', $userkaryawan->nik)
+                ->orderBy('tanggal', 'desc')
+                ->limit(7)
+                ->get();
+        }
 
         return $data;
     }

@@ -43,6 +43,7 @@ class GeneralsettingController extends Controller
             'apk_download_url' => 'nullable|url|max:255',
             'apk_force_update' => 'nullable',
             'apk_file' => 'nullable|file|max:51200', // max 50MB
+            'otp_method' => 'required|in:email,whatsapp',
         ]);
 
         try {
@@ -86,6 +87,7 @@ class GeneralsettingController extends Controller
                 'apk_version' => $request->apk_version,
                 'apk_download_url' => $request->apk_download_url,
                 'apk_force_update' => $request->has('apk_force_update') ? true : false,
+                'otp_method' => $request->otp_method,
             ];
 
             if ($request->hasFile('logo')) {

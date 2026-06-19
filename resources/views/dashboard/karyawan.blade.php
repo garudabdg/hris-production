@@ -540,6 +540,91 @@
             </div>
         </div>
 
+        {{-- ===== DAILY REPORT SECTION (DESKTOP ONLY - BU DEPT) ===== --}}
+        @if(isset($isBuDept) && $isBuDept)
+        <div class="daily-report-desktop-section px-4 mt-5 fade-in hidden md:block" style="animation-delay:.32s; margin-bottom: 20px;">
+            <div class="bg-white rounded-[15px] p-5 shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <ion-icon name="document-text-outline" class="text-[24px]" style="color: {{ $t['primary'] ?? '#2d5a4c' }}"></ion-icon>
+                            Daily Report Business
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">Laporan harian aktivitas online dan offline Anda.</p>
+                    </div>
+                    @if($dailyReportToday)
+                        <a href="{{ route('dailyreportbu.edit', $dailyReportToday->id) }}" class="px-4 py-2 rounded-full text-white text-sm font-semibold flex items-center gap-1 shadow-sm transition-transform hover:scale-105 active:scale-95" style="background: {{ $t['primary'] ?? '#2d5a4c' }}">
+                            <ion-icon name="create-outline"></ion-icon> Edit Report Hari Ini
+                        </a>
+                    @else
+                        <a href="{{ route('dailyreportbu.create') }}" class="px-4 py-2 rounded-full text-white text-sm font-semibold flex items-center gap-1 shadow-sm transition-transform hover:scale-105 active:scale-95" style="background: {{ $t['primary'] ?? '#2d5a4c' }}">
+                            <ion-icon name="add-circle-outline"></ion-icon> Isi Report Hari Ini
+                        </a>
+                    @endif
+                </div>
+
+                @if($dailyReportToday)
+                    <div class="grid grid-cols-3 gap-4 p-4 rounded-[12px] bg-green-50/50 border border-green-100 mb-4">
+                        <div class="text-center">
+                            <span class="block text-2xl font-bold text-gray-800">{{ $dailyReportToday->total_online ?? 0 }}</span>
+                            <span class="text-xs text-gray-500">Total Aktivitas Online</span>
+                        </div>
+                        <div class="text-center border-x border-green-200">
+                            <span class="block text-2xl font-bold text-gray-800">{{ $dailyReportToday->offlineActivities->count() }}</span>
+                            <span class="text-xs text-gray-500">Total Prospek Offline</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-2xl font-bold text-gray-800">{{ $dailyReportToday->nasabahData->count() }}</span>
+                            <span class="text-xs text-gray-500">Calon Nasabah</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="p-4 mb-4 rounded-[12px] bg-red-50 border border-red-100 text-center">
+                        <p class="text-sm text-red-600 font-medium"><ion-icon name="alert-circle-outline" class="align-middle text-lg"></ion-icon> Anda belum mengisi Daily Report hari ini.</p>
+                    </div>
+                @endif
+
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-sm font-bold text-gray-700">Riwayat Report Terakhir</h4>
+                    <a href="{{ route('dailyreportbu.index') }}" class="text-xs font-semibold hover:underline" style="color: {{ $t['primary'] ?? '#2d5a4c' }}">Lihat Semua &rarr;</a>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 rounded-t-lg">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 rounded-tl-lg">Tanggal</th>
+                                <th scope="col" class="px-4 py-3">Team</th>
+                                <th scope="col" class="px-4 py-3 text-center">Aktivitas Online</th>
+                                <th scope="col" class="px-4 py-3 text-center">Aktivitas Offline</th>
+                                <th scope="col" class="px-4 py-3 text-center">Calon Nasabah</th>
+                                <th scope="col" class="px-4 py-3 rounded-tr-lg">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($dailyReportHistory ?? [] as $history)
+                                <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-3 font-medium text-gray-900">{{ $history->tanggal->format('d/m/Y') }}</td>
+                                    <td class="px-4 py-3">{{ $history->sub_departemen ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded">{{ $history->total_online ?? 0 }}</span></td>
+                                    <td class="px-4 py-3 text-center"><span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded">{{ $history->offlineActivities->count() }}</span></td>
+                                    <td class="px-4 py-3 text-center"><span class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded">{{ $history->nasabahData->count() }}</span></td>
+                                    <td class="px-4 py-3">
+                                        <a href="{{ route('dailyreportbu.show', $history->id) }}" class="text-blue-600 hover:text-blue-900 font-medium"><ion-icon name="eye-outline"></ion-icon> Detail</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-4 py-6 text-center text-gray-500">Belum ada riwayat report.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- ===== HISTORY LIST ===== --}}
         <div class="px-4 mt-5 fade-in" style="animation-delay:.35s; margin-bottom:30px;">
             {{-- Tabs --}}
