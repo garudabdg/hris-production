@@ -62,10 +62,16 @@ class AssetController extends Controller
         $assets     = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
         $categories = AssetCategory::orderBy('nama_kategori')->get();
         $cabang     = $user->getCabang();
+        $lokasiList = $this->scopedQuery()->whereNotNull('lokasi')
+                                    ->where('lokasi', '!=', '')
+                                    ->select('lokasi')
+                                    ->distinct()
+                                    ->orderBy('lokasi')
+                                    ->pluck('lokasi');
 
         $summary = $this->getSummaryStats();
 
-        return view('assets.index', compact('assets', 'categories', 'cabang', 'summary'));
+        return view('assets.index', compact('assets', 'categories', 'cabang', 'lokasiList', 'summary'));
     }
 
     public function create()
@@ -220,7 +226,7 @@ class AssetController extends Controller
 
         $asset->update($data);
 
-        return redirect()->route('assets.index')->with('success', 'Asset berhasil diperbarui.');
+        return redirect()->route('assets.index', request()->query())->with('success', 'Asset berhasil diperbarui.');
     }
 
     public function generateCode(Request $request)
@@ -253,7 +259,43 @@ class AssetController extends Controller
         }
         $asset->delete();
 
-        return redirect()->route('assets.index')->with('success', 'Asset berhasil dihapus.');
+        return redirect()->route('assets.index', request()->query())->with('success', 'Asset berhasil dihapus.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.delete'), 403);
+
+        $request->validate([
+            'ids'   => 'required|array',
+            'ids.*' => 'integer|exists:assets,id',
+        ]);
+
+        $assets = Asset::whereIn('id', $request->ids)->get();
+
+        foreach ($assets as $asset) {
+            $this->authorizeAsset($asset);
+            if ($asset->foto && Storage::disk('public')->exists('assets/' . $asset->foto)) {
+                Storage::disk('public')->delete('assets/' . $asset->foto);
+            }
+            $asset->delete();
+        }
+
+        return redirect()->route('assets.index', $request->query())->with('success', count($assets) . ' Asset berhasil dihapus.');
+    }
+
+    public function bulkBarcode(Request $request)
+    {
+        abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show'), 403);
+        
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:assets,id',
+        ]);
+
+        $assets = Asset::with(['category', 'cabang'])->whereIn('id', $request->ids)->get();
+
+        return view('assets.bulk_barcode', compact('assets'));
     }
 
     public function barcode(Asset $asset)
@@ -415,6 +457,9 @@ class AssetController extends Controller
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+        if ($request->filled('lokasi')) {
+            $query->where('lokasi', $request->lokasi);
         }
     }
 

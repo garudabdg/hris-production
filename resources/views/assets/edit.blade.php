@@ -14,7 +14,7 @@
                 <h5 class="mb-0"><i class="ti ti-pencil me-2"></i>Edit Aset — {{ $asset->nama_asset }}</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('assets.update', $asset->id) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('assets.update', ['asset' => $asset->id] + request()->query()) }}" method="POST" enctype="multipart/form-data">
                     @csrf @method('PUT')
 
                     <div class="row g-3">
@@ -204,7 +204,7 @@
 
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i> Perbarui</button>
-                        <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary">Batal</a>
+                        <a href="{{ route('assets.index', request()->query()) }}" class="btn btn-outline-secondary">Batal</a>
                     </div>
                 </form>
             </div>

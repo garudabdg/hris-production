@@ -93,6 +93,16 @@
             <small class="text-muted">Kelola seluruh aset perusahaan</small>
         </div>
         <div class="d-flex gap-2">
+            @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.delete'))
+            <button type="button" class="btn btn-outline-danger btn-sm d-none" id="btn-bulk-delete">
+                <i class="ti ti-trash me-1"></i> Hapus (<span id="selected-count">0</span>)
+            </button>
+            @endif
+            @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show'))
+            <button type="button" class="btn btn-outline-success btn-sm d-none" id="btn-bulk-print">
+                <i class="ti ti-printer me-1"></i> Print Barcode (<span id="print-selected-count">0</span>)
+            </button>
+            @endif
             @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.index'))
             <a href="{{ route('assets.kategori.index') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="ti ti-tags me-1"></i> Kategori
@@ -120,6 +130,16 @@
             <div class="col-md-3">
                 <input type="text" name="search" class="form-control form-control-sm"
                     placeholder="Cari nama / kode / merk..." value="{{ request('search') }}">
+            </div>
+            <div class="col-md-2">
+                <select name="lokasi" class="form-select form-select-sm">
+                    <option value="">Semua Lokasi</option>
+                    @foreach ($lokasiList as $lok)
+                        <option value="{{ $lok }}" {{ request('lokasi') == $lok ? 'selected' : '' }}>
+                            {{ $lok }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
             <div class="col-md-2">
                 <select name="category_id" class="form-select form-select-sm">
@@ -167,6 +187,11 @@
         <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
+                    <th style="width: 40px;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="checkAll">
+                        </div>
+                    </th>
                     <th>No</th>
                     <th>Kode</th>
                     <th>Nama Aset</th>
@@ -183,7 +208,12 @@
             </thead>
             <tbody>
                 @forelse ($assets as $a)
-                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form')) { @if(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show')) window.location.href='{{ route('assets.show', $a->id) }}'; @endif }">
+                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('form') && !event.target.closest('.form-check')) { @if(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show')) window.location.href='{{ route('assets.show', ['asset' => $a->id] + request()->query()) }}'; @endif }">
+                        <td onclick="event.stopPropagation();">
+                            <div class="form-check">
+                                <input class="form-check-input check-item" type="checkbox" value="{{ $a->id }}">
+                            </div>
+                        </td>
                         <td>{{ $assets->firstItem() + $loop->index }}</td>
                         <td>
                             <a href="{{ route('assets.barcode', $a->id) }}" target="_blank" title="Print Barcode" class="text-decoration-none">
@@ -230,12 +260,12 @@
                         <td class="text-center">
                             <div class="d-flex gap-1 justify-content-center">
                                 @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.show'))
-                                    <a href="{{ route('assets.show', $a->id) }}" class="btn btn-sm btn-outline-info" title="Detail">
+                                    <a href="{{ route('assets.show', ['asset' => $a->id] + request()->query()) }}" class="btn btn-sm btn-outline-info" title="Detail">
                                         <i class="ti ti-eye"></i>
                                     </a>
                                 @endif
                                 @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.edit'))
-                                    <a href="{{ route('assets.edit', $a->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <a href="{{ route('assets.edit', ['asset' => $a->id] + request()->query()) }}" class="btn btn-sm btn-outline-primary" title="Edit">
                                         <i class="ti ti-pencil"></i>
                                     </a>
                                 @endif
@@ -250,7 +280,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center py-4 text-muted">
+                        <td colspan="13" class="text-center py-4 text-muted">
                             <i class="ti ti-package-off fs-2 d-block mb-2"></i>
                             Belum ada aset terdaftar.
                         </td>
@@ -344,7 +374,8 @@ $(function () {
         }).then(result => {
             if (result.isConfirmed) {
                 const form = $('#formDelete');
-                form.attr('action', `{{ url('manajemen-aset') }}/${id}`);
+                const queryString = window.location.search;
+                form.attr('action', `{{ url('manajemen-aset') }}/${id}${queryString}`);
                 form.submit();
             }
         });
@@ -361,6 +392,93 @@ $(function () {
         var modal = new bootstrap.Modal(document.getElementById('modalImport'));
         modal.show();
     @endif
+
+    // Bulk Action Logic
+    const checkAll = $('#checkAll');
+    const checkItems = $('.check-item');
+    const btnBulkDelete = $('#btn-bulk-delete');
+    const btnBulkPrint = $('#btn-bulk-print');
+    const selectedCount = $('#selected-count');
+    const printSelectedCount = $('#print-selected-count');
+
+    function updateBulkActionButtons() {
+        const checkedCount = $('.check-item:checked').length;
+        selectedCount.text(checkedCount);
+        printSelectedCount.text(checkedCount);
+        
+        if (checkedCount > 0) {
+            btnBulkDelete.removeClass('d-none');
+            btnBulkPrint.removeClass('d-none');
+        } else {
+            btnBulkDelete.addClass('d-none');
+            btnBulkPrint.addClass('d-none');
+            checkAll.prop('checked', false);
+        }
+    }
+
+    checkAll.on('change', function () {
+        checkItems.prop('checked', $(this).prop('checked'));
+        updateBulkActionButtons();
+    });
+
+    checkItems.on('change', function () {
+        updateBulkActionButtons();
+        if ($('.check-item:checked').length === checkItems.length && checkItems.length > 0) {
+            checkAll.prop('checked', true);
+        } else {
+            checkAll.prop('checked', false);
+        }
+    });
+
+    btnBulkPrint.on('click', function () {
+        const selectedIds = [];
+        $('.check-item:checked').each(function () {
+            selectedIds.push($(this).val());
+        });
+
+        if (selectedIds.length === 0) return;
+
+        let url = `{{ route('assets.bulk-barcode') }}?`;
+        selectedIds.forEach(id => {
+            url += `ids[]=${id}&`;
+        });
+        
+        window.open(url, '_blank');
+    });
+
+    btnBulkDelete.on('click', function () {
+        const selectedIds = [];
+        $('.check-item:checked').each(function () {
+            selectedIds.push($(this).val());
+        });
+
+        if (selectedIds.length === 0) return;
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Hapus Aset Terpilih?',
+            text: `${selectedIds.length} aset akan dihapus permanen.`,
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus Semua',
+            cancelButtonText: 'Batal',
+        }).then(result => {
+            if (result.isConfirmed) {
+                const form = $('<form>', {
+                    method: 'POST',
+                    action: `{{ route('assets.bulk-destroy') }}${window.location.search}`
+                });
+                form.append($('<input>', { type: 'hidden', name: '_token', value: '{{ csrf_token() }}' }));
+                
+                selectedIds.forEach(id => {
+                    form.append($('<input>', { type: 'hidden', name: 'ids[]', value: id }));
+                });
+
+                $('body').append(form);
+                form.submit();
+            }
+        });
+    });
 });
 </script>
 @endpush

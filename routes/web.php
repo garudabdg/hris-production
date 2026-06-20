@@ -830,6 +830,8 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
         Route::get('/generate-code', 'generateCode')->name('generate-code');
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
+        Route::post('/bulk-destroy', 'bulkDestroy')->name('bulk-destroy');
+        Route::get('/bulk-barcode', 'bulkBarcode')->name('bulk-barcode');
         Route::post('/', 'store')->name('store');
         Route::get('/{asset}', 'show')->name('show');
         Route::get('/{asset}/edit', 'edit')->name('edit');

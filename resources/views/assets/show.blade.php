@@ -27,7 +27,7 @@
                         <i class="ti ti-pencil me-1"></i> Edit
                     </a>
                     @endif
-                    <a href="{{ route('assets.index') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ route('assets.index', request()->query()) }}" class="btn btn-sm btn-outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Kembali
                     </a>
                 </div>
