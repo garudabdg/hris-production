@@ -109,6 +109,7 @@ class AssetController extends Controller
             'kondisi'          => 'required|in:baik,rusak,dalam_perbaikan',
             'status'           => 'required|in:tersedia,dipinjam,tidak_aktif',
             'tanggal_perolehan'=> 'nullable|date',
+            'expired_date'     => 'nullable|date',
             'nilai_perolehan'  => 'nullable|numeric|min:0',
             'jumlah_stok'      => 'nullable|integer|min:0',
             'lokasi'           => 'nullable|string|max:255',
@@ -199,6 +200,7 @@ class AssetController extends Controller
             'kondisi'          => 'required|in:baik,rusak,dalam_perbaikan',
             'status'           => 'required|in:tersedia,dipinjam,tidak_aktif',
             'tanggal_perolehan'=> 'nullable|date',
+            'expired_date'     => 'nullable|date',
             'nilai_perolehan'  => 'nullable|numeric|min:0',
             'jumlah_stok'      => 'nullable|integer|min:0',
             'lokasi'           => 'nullable|string|max:255',
@@ -316,12 +318,14 @@ class AssetController extends Controller
     {
         abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.create'), 403);
         $request->validate([
+            'kode_kategori'   => 'required|string|max:50|unique:asset_categories,kode_kategori',
             'nama_kategori'   => 'required|string|max:100|unique:asset_categories,nama_kategori',
             'deskripsi'       => 'nullable|string',
             'checklist_items' => 'nullable|string',
         ]);
 
         AssetCategory::create([
+            'kode_kategori'   => $request->kode_kategori,
             'nama_kategori'   => $request->nama_kategori,
             'deskripsi'       => $request->deskripsi,
             'checklist_items' => $this->parseChecklistItems($request->checklist_items),
@@ -334,12 +338,14 @@ class AssetController extends Controller
     {
         abort_unless(auth()->user()->isSuperAdmin() || auth()->user()->can('asset.kategori.edit'), 403);
         $request->validate([
+            'kode_kategori'   => 'required|string|max:50|unique:asset_categories,kode_kategori,' . $category->id,
             'nama_kategori'   => 'required|string|max:100|unique:asset_categories,nama_kategori,' . $category->id,
             'deskripsi'       => 'nullable|string',
             'checklist_items' => 'nullable|string',
         ]);
 
         $category->update([
+            'kode_kategori'   => $request->kode_kategori,
             'nama_kategori'   => $request->nama_kategori,
             'deskripsi'       => $request->deskripsi,
             'checklist_items' => $this->parseChecklistItems($request->checklist_items),
@@ -495,12 +501,29 @@ class AssetController extends Controller
 
     private function handleFotoUpload(Request $request, $oldFoto = null)
     {
+        if ($request->filled('foto_base64')) {
+            if ($oldFoto && Storage::disk('public')->exists('assets/' . $oldFoto)) {
+                Storage::disk('public')->delete('assets/' . $oldFoto);
+            }
+            $imgData = $request->foto_base64;
+            $imgData = str_replace('data:image/jpeg;base64,', '', $imgData);
+            $imgData = str_replace('data:image/png;base64,', '', $imgData);
+            $imgData = str_replace(' ', '+', $imgData);
+            $imgRaw = base64_decode($imgData);
+            
+            $filename = 'asset_' . Str::random(12) . '.jpg';
+            Storage::disk('public')->put('assets/' . $filename, $imgRaw);
+            return $filename;
+        }
+
         if ($request->hasFile('foto')) {
             if ($oldFoto && Storage::disk('public')->exists('assets/' . $oldFoto)) {
                 Storage::disk('public')->delete('assets/' . $oldFoto);
             }
             $file = $request->file('foto');
-            $filename = 'asset_' . Str::random(12) . '.' . $file->extension();
+            $ext = $file->extension() ?: $file->getClientOriginalExtension();
+            if (!$ext) $ext = 'jpg';
+            $filename = 'asset_' . Str::random(12) . '.' . $ext;
             $file->storeAs('assets', $filename, 'public');
             return $filename;
         }
@@ -509,11 +532,14 @@ class AssetController extends Controller
 
     private function generateAssetCode(AssetCategory $category)
     {
-        $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', $category->nama_kategori);
-        $catCode = strtoupper(substr($cleanName, 0, 3));
+        $catCode = strtoupper($category->kode_kategori);
         
-        if (strlen($catCode) === 0) {
-            $catCode = 'GEN';
+        if (empty($catCode)) {
+            $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', $category->nama_kategori);
+            $catCode = strtoupper(substr($cleanName, 0, 3));
+            if (strlen($catCode) === 0) {
+                $catCode = 'GEN';
+            }
         }
 
         $prefix = 'AST-' . $catCode . '-';
@@ -524,5 +550,104 @@ class AssetController extends Controller
             ->first();
 
         return buatkode($lastAsset ? $lastAsset->kode_asset : '', $prefix, 4);
+    }
+
+    public function publicChecklist($kode)
+    {
+        $kode_dept = '';
+        $user = auth()->user();
+        if ($user && $user->userkaryawan) {
+            $k = \App\Models\Karyawan::where('nik', $user->userkaryawan->nik)->first();
+            if ($k) $kode_dept = $k->kode_dept;
+        }
+        if (!in_array($kode_dept, ['GA', 'IT', 'HRD'])) {
+            abort(403, 'Akses ditolak. Fitur ini khusus untuk departemen GA, IT, dan HRD.');
+        }
+
+        $asset = Asset::with(['category', 'pic', 'cabang'])->where('kode_asset', $kode)->firstOrFail();
+        
+        $checklistItems = [];
+        if ($asset->category) {
+            $checklistItems = \App\Models\AssetPerawatan::checklistItems($asset->category);
+        }
+        return view('assets.public_checklist', compact('asset', 'checklistItems'));
+    }
+
+    public function publicChecklistUpdate(Request $request, $kode)
+    {
+        $kode_dept = '';
+        $user = auth()->user();
+        if ($user && $user->userkaryawan) {
+            $k = \App\Models\Karyawan::where('nik', $user->userkaryawan->nik)->first();
+            if ($k) $kode_dept = $k->kode_dept;
+        }
+        if (!in_array($kode_dept, ['GA', 'IT', 'HRD'])) {
+            abort(403, 'Akses ditolak. Fitur ini khusus untuk departemen GA, IT, dan HRD.');
+        }
+
+        $asset = Asset::where('kode_asset', $kode)->firstOrFail();
+        
+        $request->validate([
+            'nama_asset' => 'nullable|string|max:255',
+            'merk' => 'nullable|string|max:255',
+            'foto' => 'nullable|file|max:30720',
+            'petugas' => 'required|string|max:255',
+            'catatan' => 'nullable|string|max:1000',
+            'items' => 'required|array|min:1',
+            'items.*.item_name' => 'required|string|max:255',
+            'items.*.klasifikasi' => 'required|in:baik,cukup_baik,rusak',
+            'items.*.keterangan' => 'nullable|string|max:500',
+        ]);
+        
+        // Generate kode_perawatan
+        $last = \App\Models\AssetPerawatan::orderByDesc('id')->first();
+        $kodePerawatan = buatkode($last?->kode_perawatan ?? '', 'PRW' . date('ym'), 4);
+        
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            // Update Asset Name, Brand, and Photo
+            if ($request->filled('nama_asset') || $request->filled('merk') || $request->hasFile('foto')) {
+                $assetUpdate = [];
+                if ($request->filled('nama_asset')) $assetUpdate['nama_asset'] = $request->nama_asset;
+                if ($request->filled('merk')) $assetUpdate['merk'] = $request->merk;
+                
+                if ($filename = $this->handleFotoUpload($request, $asset->foto)) {
+                    $assetUpdate['foto'] = $filename;
+                }
+                
+                if (!empty($assetUpdate)) {
+                    $asset->update($assetUpdate);
+                }
+            }
+
+            $perawatan = \App\Models\AssetPerawatan::create([
+                'kode_perawatan' => $kodePerawatan,
+                'kode_asset' => $asset->kode_asset,
+                'tanggal_perawatan' => now()->format('Y-m-d'),
+                'petugas' => $request->petugas,
+                'catatan' => $request->catatan,
+                'id_user' => auth()->id() ?? null,
+            ]);
+            
+            $itemsData = [];
+            foreach ($request->items as $item) {
+                $itemsData[] = [
+                    'asset_perawatan_id' => $perawatan->id,
+                    'item_name' => $item['item_name'],
+                    'klasifikasi' => $item['klasifikasi'],
+                    'keterangan' => $item['keterangan'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            \App\Models\AssetPerawatanItem::insert($itemsData);
+            
+            \Illuminate\Support\Facades\DB::commit();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+        
+        return redirect()->back()->with('success', 'Kondisi aset berhasil dilaporkan!');
     }
 }

@@ -55,11 +55,13 @@ class DailyReportBu extends Model
     }
 
     /**
-     * Relasi ke data calon nasabah
+     * Data calon nasabah yang terhubung dengan report ini (berdasarkan NIK dan Tanggal)
      */
-    public function nasabahData()
+    public function getNasabahDataAttribute()
     {
-        return $this->hasMany(DailyReportBuNasabah::class, 'daily_report_bu_id');
+        return \App\Models\DataCalonNasabah::where('nik', $this->nik)
+            ->where('tanggal', $this->tanggal)
+            ->get();
     }
 
     /**

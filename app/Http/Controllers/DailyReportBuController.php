@@ -77,10 +77,8 @@ class DailyReportBuController extends Controller
         // Ambil list sub departemen unik
         $subDepartemens = DailyReportBu::distinct()->pluck('sub_departemen')->filter()->values();
 
-        // Jika karyawan → tampilan desktop khusus
-        if ($user->hasRole('karyawan')) {
-            return redirect()->route('dashboard.index');
-        }
+        // Jika karyawan → biarkan mereka mengakses halaman index (history report mereka)
+
 
         return view('dailyreportbu.index', compact('reports', 'karyawans', 'subDepartemens'));
     }
@@ -95,7 +93,7 @@ class DailyReportBuController extends Controller
         $user_karyawan = Userkaryawan::where('id_user', $user->id)->first();
 
         // Platforms untuk section online
-        $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok'];
+        $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
 
         // Tipe untuk section offline
         $tipeOffline = ['appointment', 'cto', 'canvasing'];
@@ -117,6 +115,9 @@ class DailyReportBuController extends Controller
                     ->with('info', 'Anda sudah mengisi report hari ini. Silakan edit report yang ada.');
             }
 
+            if (\Jenssegers\Agent\Facades\Agent::isMobile()) {
+                return view('aktivitaskaryawan.create-dailyreport-mobile', compact('karyawan', 'platforms', 'tipeOffline'));
+            }
             return view('dailyreportbu.create', compact('karyawan', 'platforms', 'tipeOffline'));
         }
 
@@ -160,53 +161,56 @@ class DailyReportBuController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Cek duplikat (1 report per hari)
-        $existing = DailyReportBu::where('nik', $request->nik)
-            ->where('tanggal', $request->tanggal)
-            ->first();
-
-        if ($existing) {
-            return redirect()->back()
-                ->withErrors(['tanggal' => 'Daily report untuk tanggal ini sudah ada.'])
-                ->withInput();
-        }
-
         // Ambil sub_departemen dari data karyawan
         $karyawan = Karyawan::where('nik', $request->nik)->first();
         $subDepartemen = $karyawan->sub_departemen ?? null;
 
+        $report = DailyReportBu::where('nik', $request->nik)
+            ->where('tanggal', $request->tanggal)
+            ->first();
+
         DB::beginTransaction();
         try {
-            // 1. Simpan header report
-            $report = DailyReportBu::create([
-                'nik' => $request->nik,
-                'tanggal' => $request->tanggal,
-                'sub_departemen' => $subDepartemen,
-                'catatan' => $request->catatan,
-            ]);
-
-            // 2. Simpan aktivitas online (4 platform)
-            $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok'];
-            foreach ($platforms as $platform) {
-                DailyReportBuOnline::create([
-                    'daily_report_bu_id' => $report->id,
-                    'platform' => $platform,
-                    'posting' => (int) ($request->input("online.{$platform}.posting", 0)),
-                    'share_group' => (int) ($request->input("online.{$platform}.share_group", 0)),
-                    'add_group' => (int) ($request->input("online.{$platform}.add_group", 0)),
-                    'add_friend' => (int) ($request->input("online.{$platform}.add_friend", 0)),
-                    'inbox' => (int) ($request->input("online.{$platform}.inbox", 0)),
-                    'story' => (int) ($request->input("online.{$platform}.story", 0)),
-                    'broadcast' => (int) ($request->input("online.{$platform}.broadcast", 0)),
-                    'fanspage' => (int) ($request->input("online.{$platform}.fanspage", 0)),
-                    'link_postingan' => $request->input("online.{$platform}.link_postingan", null),
+            if (!$report) {
+                // 1. Simpan header report baru
+                $report = DailyReportBu::create([
+                    'nik' => $request->nik,
+                    'tanggal' => $request->tanggal,
+                    'sub_departemen' => $subDepartemen,
+                    'catatan' => $request->catatan,
                 ]);
+            } else {
+                // Update catatan jika form disubmit dengan catatan
+                if ($request->filled('catatan')) {
+                    $report->update(['catatan' => $request->catatan]);
+                }
             }
 
-            // 3. Simpan aktivitas offline (dinamis)
+            // 2. Simpan aktivitas online
+            if ($request->has('online')) {
+                $report->onlineActivities()->delete();
+                $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
+                foreach ($platforms as $platform) {
+                    DailyReportBuOnline::create([
+                        'daily_report_bu_id' => $report->id,
+                        'platform' => $platform,
+                        'posting' => (int) ($request->input("online.{$platform}.posting", 0)),
+                        'share_group' => (int) ($request->input("online.{$platform}.share_group", 0)),
+                        'add_group' => (int) ($request->input("online.{$platform}.add_group", 0)),
+                        'add_friend' => (int) ($request->input("online.{$platform}.add_friend", 0)),
+                        'inbox' => (int) ($request->input("online.{$platform}.inbox", 0)),
+                        'story' => (int) ($request->input("online.{$platform}.story", 0)),
+                        'broadcast' => (int) ($request->input("online.{$platform}.broadcast", 0)),
+                        'fanspage' => (int) ($request->input("online.{$platform}.fanspage", 0)),
+                        'link_postingan' => $request->input("online.{$platform}.link_postingan", null),
+                    ]);
+                }
+            }
+
+            // 3. Simpan aktivitas offline
             if ($request->has('offline')) {
+                $report->offlineActivities()->delete();
                 foreach ($request->input('offline', []) as $offlineData) {
-                    // Skip baris kosong
                     if (empty($offlineData['nama_prospek']) && empty($offlineData['whatsapp']) && empty($offlineData['alamat'])) {
                         continue;
                     }
@@ -220,15 +224,20 @@ class DailyReportBuController extends Controller
                 }
             }
 
-            // 4. Simpan data calon nasabah (dinamis)
+            // 4. Simpan data calon nasabah (Sinkronisasi dengan tabel mandiri)
             if ($request->has('nasabah')) {
+                // Hapus data nasabah untuk NIK dan Tanggal ini agar bisa replace
+                \App\Models\DataCalonNasabah::where('nik', $request->nik)
+                    ->where('tanggal', $request->tanggal)
+                    ->delete();
+                    
                 foreach ($request->input('nasabah', []) as $nasabahData) {
-                    // Skip baris kosong
                     if (empty($nasabahData['nama'])) {
                         continue;
                     }
-                    DailyReportBuNasabah::create([
-                        'daily_report_bu_id' => $report->id,
+                    \App\Models\DataCalonNasabah::create([
+                        'nik' => $request->nik,
+                        'tanggal' => $request->tanggal,
                         'nama' => $nasabahData['nama'],
                         'akun_sosial_media' => $nasabahData['akun_sosial_media'] ?? null,
                         'no_whatsapp' => $nasabahData['no_whatsapp'] ?? null,
@@ -242,7 +251,7 @@ class DailyReportBuController extends Controller
 
             $redirect = $user->hasRole('karyawan') ? route('dashboard.index') : route('dailyreportbu.index');
             return redirect($redirect)
-                ->with('success', 'Daily report berhasil disimpan.');
+                ->with('success', 'Data berhasil disimpan.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -261,7 +270,7 @@ class DailyReportBuController extends Controller
         $user = User::where('id', auth()->user()->id)->first();
         $user_karyawan = Userkaryawan::where('id_user', $user->id)->first();
 
-        $report = DailyReportBu::with(['onlineActivities', 'offlineActivities', 'nasabahData', 'karyawan'])
+        $report = DailyReportBu::with(['onlineActivities', 'offlineActivities', 'karyawan'])
             ->findOrFail($id);
 
         // Validasi akses
@@ -275,7 +284,7 @@ class DailyReportBuController extends Controller
         }
 
         // Platforms untuk iterasi tampilan
-        $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok'];
+        $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
 
         // Jika karyawan → tampilan standalone desktop
         if ($user->hasRole('karyawan')) {
@@ -294,7 +303,7 @@ class DailyReportBuController extends Controller
         $user = User::where('id', auth()->user()->id)->first();
         $user_karyawan = Userkaryawan::where('id_user', $user->id)->first();
 
-        $report = DailyReportBu::with(['onlineActivities', 'offlineActivities', 'nasabahData'])
+        $report = DailyReportBu::with(['onlineActivities', 'offlineActivities'])
             ->findOrFail($id);
 
         // Validasi akses karyawan
@@ -308,7 +317,7 @@ class DailyReportBuController extends Controller
             abort_unless($this->checkAccessToKaryawan($user, $karyawan), 403);
         }
 
-        $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok'];
+        $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
         $tipeOffline = ['appointment', 'cto', 'canvasing'];
 
         if ($user->hasRole('karyawan')) {
@@ -357,34 +366,33 @@ class DailyReportBuController extends Controller
         DB::beginTransaction();
         try {
             // Update header
-            $report->update([
-                'catatan' => $request->catatan,
-            ]);
-
-            // Hapus dan buat ulang child records
-            $report->onlineActivities()->delete();
-            $report->offlineActivities()->delete();
-            $report->nasabahData()->delete();
+            if ($request->filled('catatan')) {
+                $report->update(['catatan' => $request->catatan]);
+            }
 
             // Re-create online activities
-            $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok'];
-            foreach ($platforms as $platform) {
-                DailyReportBuOnline::create([
-                    'daily_report_bu_id' => $report->id,
-                    'platform' => $platform,
-                    'posting' => (int) ($request->input("online.{$platform}.posting", 0)),
-                    'share_group' => (int) ($request->input("online.{$platform}.share_group", 0)),
-                    'add_group' => (int) ($request->input("online.{$platform}.add_group", 0)),
-                    'add_friend' => (int) ($request->input("online.{$platform}.add_friend", 0)),
-                    'inbox' => (int) ($request->input("online.{$platform}.inbox", 0)),
-                    'story' => (int) ($request->input("online.{$platform}.story", 0)),
-                    'broadcast' => (int) ($request->input("online.{$platform}.broadcast", 0)),
-                    'fanspage' => (int) ($request->input("online.{$platform}.fanspage", 0)),
-                    'link_postingan' => $request->input("online.{$platform}.link_postingan", null),
-                ]);
+            $report->onlineActivities()->delete();
+            if ($request->has('online')) {
+                $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
+                foreach ($platforms as $platform) {
+                    DailyReportBuOnline::create([
+                        'daily_report_bu_id' => $report->id,
+                        'platform' => $platform,
+                        'posting' => (int) ($request->input("online.{$platform}.posting", 0)),
+                        'share_group' => (int) ($request->input("online.{$platform}.share_group", 0)),
+                        'add_group' => (int) ($request->input("online.{$platform}.add_group", 0)),
+                        'add_friend' => (int) ($request->input("online.{$platform}.add_friend", 0)),
+                        'inbox' => (int) ($request->input("online.{$platform}.inbox", 0)),
+                        'story' => (int) ($request->input("online.{$platform}.story", 0)),
+                        'broadcast' => (int) ($request->input("online.{$platform}.broadcast", 0)),
+                        'fanspage' => (int) ($request->input("online.{$platform}.fanspage", 0)),
+                        'link_postingan' => $request->input("online.{$platform}.link_postingan", null),
+                    ]);
+                }
             }
 
             // Re-create offline activities
+            $report->offlineActivities()->delete();
             if ($request->has('offline')) {
                 foreach ($request->input('offline', []) as $offlineData) {
                     if (empty($offlineData['nama_prospek']) && empty($offlineData['whatsapp']) && empty($offlineData['alamat'])) {
@@ -402,12 +410,17 @@ class DailyReportBuController extends Controller
 
             // Re-create nasabah data
             if ($request->has('nasabah')) {
+                \App\Models\DataCalonNasabah::where('nik', $report->nik)
+                    ->where('tanggal', $report->tanggal)
+                    ->delete();
+                    
                 foreach ($request->input('nasabah', []) as $nasabahData) {
                     if (empty($nasabahData['nama'])) {
                         continue;
                     }
-                    DailyReportBuNasabah::create([
-                        'daily_report_bu_id' => $report->id,
+                    \App\Models\DataCalonNasabah::create([
+                        'nik' => $report->nik,
+                        'tanggal' => $report->tanggal,
                         'nama' => $nasabahData['nama'],
                         'akun_sosial_media' => $nasabahData['akun_sosial_media'] ?? null,
                         'no_whatsapp' => $nasabahData['no_whatsapp'] ?? null,
@@ -421,7 +434,7 @@ class DailyReportBuController extends Controller
 
             $redirect = $user->hasRole('karyawan') ? route('dashboard.index') : route('dailyreportbu.index');
             return redirect($redirect)
-                ->with('success', 'Daily report berhasil diperbarui.');
+                ->with('success', 'Data berhasil diperbarui.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -429,6 +442,36 @@ class DailyReportBuController extends Controller
                 ->withErrors(['error' => 'Terjadi kesalahan saat memperbarui data.'])
                 ->withInput();
         }
+    }
+
+    /**
+     * Toggle status validasi link postingan (pending ↔ verified)
+     * Hanya admin dengan permission dailyreportbu.verify yang bisa akses.
+     * Return JSON untuk AJAX response.
+     */
+    public function verify($onlineId)
+    {
+        $online = DailyReportBuOnline::findOrFail($onlineId);
+
+        // Pastikan ada link postingan sebelum bisa diverifikasi
+        if (empty($online->link_postingan)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada link postingan untuk diverifikasi.',
+            ], 422);
+        }
+
+        // Toggle status: pending → verified, verified → pending
+        $newStatus = ($online->status_validasi === 'verified') ? 'pending' : 'verified';
+        $online->update(['status_validasi' => $newStatus]);
+
+        return response()->json([
+            'success'    => true,
+            'status'     => $newStatus,
+            'message'    => $newStatus === 'verified'
+                ? 'Link berhasil diverifikasi.'
+                : 'Status dikembalikan ke Pending.',
+        ]);
     }
 
     /**
@@ -471,7 +514,7 @@ class DailyReportBuController extends Controller
 
         // Jika export single report
         if ($request->filled('id')) {
-            $report = DailyReportBu::with(['onlineActivities', 'offlineActivities', 'nasabahData', 'karyawan'])
+            $report = DailyReportBu::with(['onlineActivities', 'offlineActivities', 'karyawan'])
                 ->findOrFail($request->id);
 
             // Validasi akses
@@ -485,7 +528,7 @@ class DailyReportBuController extends Controller
                 ->select('karyawan.*', 'departemen.nama_dept', 'cabang.nama_cabang')
                 ->first();
 
-            $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok'];
+            $platforms = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
 
             $pdf = Pdf::loadView('dailyreportbu.pdf', compact('report', 'karyawan', 'platforms'));
             $pdf->setPaper('A4', 'landscape');
@@ -514,7 +557,7 @@ class DailyReportBuController extends Controller
             // Admin: filter berdasarkan cabang & departemen access
             if (!$user->isSuperAdmin()) {
                 $userCabangs = $user->getCabangCodes();
-                $userDepartemens = $user->getDepartemenCodes();
+                $deptMap = $user->getDepartemenAccessMap();
 
                 if (!empty($userCabangs)) {
                     $query->whereIn('karyawan.kode_cabang', $userCabangs);
@@ -522,8 +565,14 @@ class DailyReportBuController extends Controller
                     $query->whereRaw('1 = 0');
                 }
 
-                if (!empty($userDepartemens)) {
-                    $query->whereIn('karyawan.kode_dept', $userDepartemens);
+                // Harus punya akses ke departemen BU
+                if (array_key_exists('BU', $deptMap)) {
+                    $query->where('karyawan.kode_dept', 'BU');
+                    
+                    // Filter sub-departemen jika tidak full access ke BU
+                    if (!empty($deptMap['BU'])) {
+                        $query->whereIn('karyawan.sub_departemen', $deptMap['BU']);
+                    }
                 } else {
                     $query->whereRaw('1 = 0');
                 }
@@ -540,7 +589,7 @@ class DailyReportBuController extends Controller
 
         if (!$user->isSuperAdmin()) {
             $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
+            $deptMap = $user->getDepartemenAccessMap();
 
             if (!empty($userCabangs)) {
                 $query->whereIn('kode_cabang', $userCabangs);
@@ -548,8 +597,13 @@ class DailyReportBuController extends Controller
                 $query->whereRaw('1 = 0');
             }
 
-            // Pastikan BU termasuk dalam akses departemen user
-            if (!empty($userDepartemens) && !in_array('BU', $userDepartemens)) {
+            // Harus punya akses ke departemen BU
+            if (array_key_exists('BU', $deptMap)) {
+                // Filter sub-departemen jika tidak full access ke BU
+                if (!empty($deptMap['BU'])) {
+                    $query->whereIn('sub_departemen', $deptMap['BU']);
+                }
+            } else {
                 $query->whereRaw('1 = 0');
             }
         }
@@ -564,10 +618,23 @@ class DailyReportBuController extends Controller
     {
         if (!$user->hasRole('karyawan') && !$user->isSuperAdmin() && $karyawan) {
             $userCabangs = $user->getCabangCodes();
-            $userDepartemens = $user->getDepartemenCodes();
+            $deptMap = $user->getDepartemenAccessMap();
 
-            if (!in_array($karyawan->kode_cabang, $userCabangs) || !in_array($karyawan->kode_dept, $userDepartemens)) {
+            // Cek cabang
+            if (!in_array($karyawan->kode_cabang, $userCabangs)) {
                 return false;
+            }
+
+            // Cek departemen (harus punya BU)
+            if (!array_key_exists($karyawan->kode_dept, $deptMap)) {
+                return false;
+            }
+
+            // Cek sub-departemen jika admin dibatasi sub-departemen tertentu
+            if (!empty($deptMap[$karyawan->kode_dept])) {
+                if (!in_array($karyawan->sub_departemen, $deptMap[$karyawan->kode_dept])) {
+                    return false;
+                }
             }
         }
         return true;

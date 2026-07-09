@@ -153,6 +153,8 @@
                             @foreach ($data_izin as $d)
                                 @php
                                     $link = '#';
+                                    $keterangan = 'Pengajuan';
+                                    $bgcolor = 'secondary';
                                     if ($d->status == 'i') {
                                         $keterangan = 'Izin Absen';
                                         $bgcolor = 'info';
@@ -169,6 +171,10 @@
                                         $keterangan = 'Izin Dinas';
                                         $bgcolor = 'primary';
                                         $link = route('izindinas.index');
+                                    } elseif ($d->status == 'k') {
+                                        $keterangan = 'Izin Keluar';
+                                        $bgcolor = 'danger';
+                                        $link = route('izinkeluar.index');
                                     }
                                 @endphp
                                 <li class="list-group-item list-group-item-action dropdown-notifications-item">

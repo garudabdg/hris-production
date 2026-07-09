@@ -148,7 +148,7 @@ class DashboardService
         if ($data['isBuDept']) {
             $data['dailyReportToday'] = DailyReportBu::where('nik', $userkaryawan->nik)
                 ->where('tanggal', $hari_ini)
-                ->with(['onlineActivities', 'offlineActivities', 'nasabahData'])
+                ->with(['onlineActivities', 'offlineActivities'])
                 ->first();
             $data['dailyReportHistory'] = DailyReportBu::where('nik', $userkaryawan->nik)
                 ->orderBy('tanggal', 'desc')
@@ -265,7 +265,6 @@ class DashboardService
         $data['kontrak_bulandepan'] = $sk->getRekapkontrak(2, $userCabangs, $userDepartemens);
         $data['kontrak_duabulan'] = $sk->getRekapkontrak(3, $userCabangs, $userDepartemens);
 
-        // 6. Sertifikasi Expired
         $now = Carbon::now(config('app.timezone'))->format('Y-m-d');
         $data['sertifikasi_expired'] = \App\Models\KaryawanPelatihan::with('karyawan')
             ->whereNotNull('tanggal_expired')
@@ -286,6 +285,23 @@ class DashboardService
                 });
             })
             ->orderBy('tanggal_expired', 'desc')
+            ->get();
+
+        // 7. Software Expired / Expiring Soon (H-30)
+        $data['software_expired'] = \App\Models\Asset::with(['category', 'pic', 'cabang'])
+            ->whereHas('category', function($q) {
+                $q->where('kode_kategori', 'SOF');
+            })
+            ->whereNotNull('expired_date')
+            ->where('expired_date', '<=', Carbon::now(config('app.timezone'))->addDays(30)->format('Y-m-d'))
+            ->when(!$isSuperAdmin, function ($query) use ($userCabangs) {
+                if (!empty($userCabangs)) {
+                    $query->whereIn('kode_cabang', $userCabangs);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
+            ->orderBy('expired_date', 'asc')
             ->get();
 
         return $data;

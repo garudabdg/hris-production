@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('titlepage', 'Buat Tiket IT')
+@section('titlepage', 'Buat Ticket Pengaduan Layanan')
 
 @section('content')
 @section('navigasi')
-    <a href="{{ route('it-ticket.index') }}">IT Ticket</a>
+    <a href="{{ route('it-ticket.index') }}">Ticket Pengaduan Layanan</a>
     <span> / Buat Tiket</span>
 @endsection
 
@@ -108,7 +108,8 @@
                                 $defaultKodeCabang = old('kode_cabang');
                                 // Auto-select cabang dari data karyawan jika belum ada
                                 if (empty($defaultKodeCabang)) {
-                                    $karyawan = \App\Models\Karyawan::where('nik', auth()->user()->username)->first();
+                                    $nik = auth()->user()->userkaryawan ? auth()->user()->userkaryawan->nik : null;
+                                    $karyawan = \App\Models\Karyawan::where('nik', $nik)->first();
                                     $defaultKodeCabang = $karyawan ? $karyawan->kode_cabang : null;
                                 }
                             @endphp

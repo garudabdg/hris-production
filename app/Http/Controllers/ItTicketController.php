@@ -15,12 +15,25 @@ class ItTicketController extends Controller
 {
     // ── Helpers ────────────────────────────────────────────────────────────────
 
+    private function isTicketHandler($user)
+    {
+        if ($user->isSuperAdmin() || $user->hasRole('it staff')) {
+            return true;
+        }
+        
+        if ($user->userkaryawan && $user->userkaryawan->karyawan && $user->userkaryawan->karyawan->kode_dept === 'GA') {
+            return true;
+        }
+
+        return false;
+    }
+
     private function scopedQuery()
     {
         $user  = auth()->user();
         $query = ItTicket::with(['pemohon', 'assignedTo', 'cabang']);
 
-        if ($user->isSuperAdmin() || $user->hasRole('it staff')) {
+        if ($this->isTicketHandler($user)) {
             return $query; // Lihat semua tiket
         }
 
@@ -39,7 +52,7 @@ class ItTicketController extends Controller
     private function authorizeTicket(ItTicket $ticket)
     {
         $user = auth()->user();
-        if ($user->isSuperAdmin() || $user->hasRole('it staff')) return;
+        if ($this->isTicketHandler($user)) return;
 
         $userCabangs = $user->getCabangCodes();
         $ownTicket   = $ticket->pemohon_id === $user->id;
@@ -48,6 +61,23 @@ class ItTicketController extends Controller
         if (!$ownTicket && !$sameCabang) {
             abort(403, 'Anda tidak memiliki akses ke tiket ini.');
         }
+    }
+
+    // ── Export Excel ──────────────────────────────────────────────────────────
+
+    public function exportExcel(Request $request)
+    {
+        $user = auth()->user();
+
+        // Filter yang sama dengan index
+        $filters = $request->only(['search', 'status', 'prioritas', 'kategori', 'kode_cabang']);
+
+        $filename = 'IT_Tickets_' . now()->format('Ymd_His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ItTicketExport($filters, $this->isTicketHandler($user), $user),
+            $filename
+        );
     }
 
     // ── Index ──────────────────────────────────────────────────────────────────
@@ -158,7 +188,8 @@ class ItTicketController extends Controller
         
         // Auto-set cabang dari karyawan jika tidak diisi
         if (empty($data['kode_cabang'])) {
-            $karyawan = \App\Models\Karyawan::where('nik', $user->username)->first();
+            $nik = $user->userkaryawan ? $user->userkaryawan->nik : null;
+            $karyawan = \App\Models\Karyawan::where('nik', $nik)->first();
             if ($karyawan && $karyawan->kode_cabang) {
                 $data['kode_cabang'] = $karyawan->kode_cabang;
             }
@@ -184,7 +215,11 @@ class ItTicketController extends Controller
         // Kirim notifikasi ke semua IT Staff + Super Admin
         try {
             $ticket->load('pemohon');
-            $recipients = User::role(['it staff', 'super admin'])->get();
+            $recipients = User::whereHas('roles', function($q) {
+                $q->whereIn('name', ['it staff', 'super admin']);
+            })->orWhereHas('userkaryawan.karyawan', function($q) {
+                $q->where('kode_dept', 'GA');
+            })->get();
             Notification::send($recipients, new NewItTicketNotification($ticket));
             
             // --- NOTIFIKASI PUSH ONESIGNAL ---
@@ -209,8 +244,12 @@ class ItTicketController extends Controller
         $itTicket->load(['pemohon', 'assignedTo', 'resolvedBy', 'cabang', 'responses.user']);
 
         $user     = auth()->user();
-        $itStaffs = User::role('it staff')->orderBy('name')->get();
-        $canManage = $user->isSuperAdmin() || $user->hasRole('it staff');
+        $itStaffs = User::whereHas('roles', function($q) {
+            $q->where('name', 'it staff');
+        })->orWhereHas('userkaryawan.karyawan', function($q) {
+            $q->where('kode_dept', 'GA');
+        })->orderBy('name')->get();
+        $canManage = $this->isTicketHandler($user);
 
         $view = $user->hasRole('karyawan') ? 'it-ticket.show-mobile' : 'it-ticket.show';
         return view($view, compact('itTicket', 'itStaffs', 'canManage'));
@@ -316,7 +355,7 @@ class ItTicketController extends Controller
     public function updateStatus(Request $request, ItTicket $itTicket)
     {
         $user = auth()->user();
-        if (!$user->isSuperAdmin() && !$user->hasRole('it staff')) {
+        if (!$this->isTicketHandler($user)) {
             abort(403);
         }
 
@@ -324,7 +363,9 @@ class ItTicketController extends Controller
             'status'           => 'required|in:open,in_progress,pending,resolved,closed',
             'prioritas'        => 'required|in:critical,high,medium,low',
             'klasifikasi_data' => 'required|in:confidential,internal,public',
-            'catatan_resolusi' => 'nullable|string',
+            'catatan_resolusi' => 'required_if:status,resolved,closed|nullable|string',
+        ], [
+            'catatan_resolusi.required_if' => 'Catatan resolusi wajib diisi saat status diselesaikan (resolved) atau ditutup (closed).'
         ]);
 
         $oldStatus = $itTicket->status;
@@ -335,10 +376,14 @@ class ItTicketController extends Controller
         $itTicket->klasifikasi_data = $request->klasifikasi_data;
         $itTicket->tanggal_target = now()->addDays(ItTicket::slaDays($request->prioritas))->toDateString();
         
-        if (in_array($newStatus, ['resolved', 'closed']) && !$itTicket->resolved_at) {
-            $itTicket->resolved_at      = now();
-            $itTicket->resolved_by      = $user->id;
-            $itTicket->catatan_resolusi = $request->catatan_resolusi;
+        if (in_array($newStatus, ['resolved', 'closed'])) {
+            if (!$itTicket->resolved_at) {
+                $itTicket->resolved_at      = now();
+                $itTicket->resolved_by      = $user->id;
+            }
+            if ($request->filled('catatan_resolusi')) {
+                $itTicket->catatan_resolusi = $request->catatan_resolusi;
+            }
         }
         $itTicket->save();
 
@@ -361,7 +406,7 @@ class ItTicketController extends Controller
     public function assign(Request $request, ItTicket $itTicket)
     {
         $user = auth()->user();
-        if (!$user->isSuperAdmin() && !$user->hasRole('it staff')) {
+        if (!$this->isTicketHandler($user)) {
             abort(403);
         }
 
@@ -394,7 +439,7 @@ class ItTicketController extends Controller
     public function bulkUpdate(Request $request)
     {
         $user = auth()->user();
-        if (!$user->isSuperAdmin() && !$user->hasRole('it staff')) {
+        if (!$this->isTicketHandler($user)) {
             abort(403, 'Akses ditolak.');
         }
 

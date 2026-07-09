@@ -146,7 +146,7 @@
                     <option value="">Semua Kategori</option>
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
-                            {{ $cat->nama_kategori }}
+                            {{ $cat->kode_kategori ? '['.$cat->kode_kategori.'] ' : '' }}{{ $cat->nama_kategori }}
                         </option>
                     @endforeach
                 </select>
@@ -200,6 +200,7 @@
                     <th>Merk / No. Seri</th>
                     <th>Kondisi</th>
                     <th>Status</th>
+                    <th>Tgl Expired</th>
                     <th>Stok</th>
                     <th>Valuation</th>
                     <th>Harga Pembelian</th>
@@ -241,7 +242,13 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ $a->category->nama_kategori ?? '-' }}</td>
+                        <td>
+                            @if ($a->category)
+                                <span class="badge bg-label-secondary me-1">{{ $a->category->kode_kategori }}</span>{{ $a->category->nama_kategori }}
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td>
                             {{ optional($a->cabang)->nama_cabang ?? '-' }}
                             @if ($a->pic)
@@ -254,6 +261,15 @@
                         </td>
                         <td>{!! $a->kondisi_badge !!}</td>
                         <td>{!! $a->status_badge !!}</td>
+                        <td>
+                            @if($a->expired_date)
+                                <span class="badge {{ hitungSisahari($a->expired_date) < 0 ? 'bg-label-danger' : 'bg-label-warning' }}">
+                                    {{ \Carbon\Carbon::parse($a->expired_date)->format('d M Y') }}
+                                </span>
+                            @else
+                                <span class="text-muted small">-</span>
+                            @endif
+                        </td>
                         <td>{{ $a->jumlah_stok ?? '-' }}</td>
                         <td>{!! $a->asset_valuation_badge ?? '<span class="text-muted small">-</span>' !!}</td>
                         <td>{{ $a->nilai_perolehan ? 'Rp ' . number_format($a->nilai_perolehan, 0, ',', '.') : '-' }}</td>

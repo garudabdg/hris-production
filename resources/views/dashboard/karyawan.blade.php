@@ -519,6 +519,16 @@
                     </div>
                 </a>
 
+                {{-- Scan Aset (Khusus GA, IT & HRD) --}}
+                @if(in_array(auth()->user()->karyawan->kode_dept ?? ($karyawan->kode_dept ?? ''), ['GA', 'IT', 'HRD']))
+                <a href="{{ route('assets.public_scan') }}" class="block">
+                    <div class="bg-white rounded-[12px] shadow-sm text-center relative" style="padding:5px 5px; line-height:0.8rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <ion-icon name="barcode-outline" style="font-size:40px; color: {{ $t['primary'] ?? '#2d5a4c' }}; margin-bottom:2px;"></ion-icon>
+                        <br><span style="font-size:0.75rem; font-weight:400; color: {{ $t['primary'] ?? '#2d5a4c' }};">Scan Aset</span>
+                    </div>
+                </a>
+                @endif
+
                 {{-- IT Ticket --}}
                 @can('it-ticket.index')
                 <a href="{{ route('it-ticket.index') }}" class="block">
@@ -797,7 +807,7 @@
         @if($myTickets->count() > 0)
         <div class="px-4 mt-4 fade-in" style="animation-delay:.28s;">
             <div class="flex justify-between items-center mb-2">
-                <h4 style="font-size:15px; font-weight:700; color:#333;">🎫 IT Ticket Aktif</h4>
+                <h4 style="font-size:15px; font-weight:700; color:#333;">🎫 Ticket Pengaduan Layanan Aktif</h4>
                 <a href="{{ route('it-ticket.index') }}" style="font-size:12px; color:{{ $t['primary'] ?? '#2d5a4c' }}; font-weight:600;">Lihat Semua →</a>
             </div>
             @foreach($myTickets as $tkt)

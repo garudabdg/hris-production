@@ -37,8 +37,19 @@ class PresensiService
         $jamKerja        = $resolved['jam_kerja'];
 
         // Hitung radius
-        $koordinatUser   = explode(',', $request->lokasi);
-        $koordinatKantor = explode(',', $request->lokasi_cabang);
+        $koordinatUser   = explode(',', $request->lokasi ?? '');
+        $koordinatKantor = explode(',', $request->lokasi_cabang ?? '');
+
+        // Validasi format koordinat (harus memiliki latitude dan longitude)
+        if (count($koordinatUser) < 2 || count($koordinatKantor) < 2) {
+            return [
+                'success'    => false,
+                'message'    => 'Format lokasi tidak valid. Pastikan GPS aktif dan coba lagi.',
+                'notifikasi' => 'notifikasi_lokasi',
+                'status_code'=> 400
+            ];
+        }
+
         $jarak           = hitungjarak($koordinatKantor[0], $koordinatKantor[1], $koordinatUser[0], $koordinatUser[1]);
         $radius          = round($jarak['meters']);
 

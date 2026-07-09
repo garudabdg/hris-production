@@ -12,6 +12,7 @@ class AssetCategory extends Model
     protected $table = 'asset_categories';
 
     protected $fillable = [
+        'kode_kategori',
         'nama_kategori',
         'deskripsi',
         'checklist_items',

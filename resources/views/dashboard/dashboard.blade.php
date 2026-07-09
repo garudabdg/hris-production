@@ -616,6 +616,77 @@
             </div>
         </div>
 
+        <!-- Software Expired -->
+        <div class="row mt-3">
+            <div class="col">
+                <div class="card contract-card" style="border-left: 4px solid #f59e0b;">
+                    <div class="card-header contract-header d-flex flex-column flex-lg-row align-items-lg-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-3">
+                                <span class="avatar-initial rounded bg-label-warning">
+                                    <i class="ti ti-code fs-4"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">Lisensi Software Expired / Segera Berakhir</h4>
+                                <small class="text-muted">Daftar lisensi software yang telah atau akan melewati masa berlaku dalam 30 hari</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-label-warning rounded-pill mt-3 mt-lg-0">
+                            Total {{ count($software_expired) }} Software
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        @if (count($software_expired) === 0)
+                            <div class="contract-empty">
+                                <i class="ti ti-shield-check fs-1 mb-2 d-block text-success"></i>
+                                Tidak ada lisensi software yang expired atau segera berakhir.
+                            </div>
+                        @else
+                            <div class="table-responsive contract-table-wrapper mt-3">
+                                <table class="table table-hover align-middle mb-0 contract-table" style="border-radius: 8px;">
+                                    <thead class="table-dark" style="background: #b45309;">
+                                        <tr>
+                                            <th>Kode Aset</th>
+                                            <th>Nama Software</th>
+                                            <th>Tanggal Expired</th>
+                                            <th>PIC</th>
+                                            <th>Cabang</th>
+                                            <th class="text-center">Sisa Waktu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($software_expired as $s)
+                                            @php
+                                                $sisahari = hitungSisahari($s->expired_date);
+                                                $isLate = $sisahari < 0;
+                                            @endphp
+                                            <tr class="{{ $isLate ? 'contract-row--overdue' : '' }}">
+                                                <td><a href="{{ route('assets.show', $s->id) }}" class="text-primary fw-bold">{{ $s->kode_asset }}</a></td>
+                                                <td><span class="fw-medium">{{ $s->nama_asset }}</span></td>
+                                                <td>
+                                                    <span class="badge {{ $isLate ? 'bg-label-danger' : 'bg-label-warning' }}">
+                                                        {{ \Carbon\Carbon::parse($s->expired_date)->format('d M Y') }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ formatName($s->pic->nama_karyawan ?? '-') }}</td>
+                                                <td>{{ textupperCase($s->cabang->nama_cabang ?? '-') }}</td>
+                                                <td class="text-center">
+                                                    <span class="contract-pill {{ $isLate ? 'contract-pill--danger' : 'contract-pill--safe' }}" style="{{ !$isLate ? 'background-color: #fffbeb; color: #b45309; border-color: #fde68a;' : '' }}">
+                                                        {{ $sisahari }} Hari
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     <div class="col-lg-4 col-md-6 col-sm-12">
         <div class="row mb-2">

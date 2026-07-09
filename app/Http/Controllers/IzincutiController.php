@@ -90,7 +90,7 @@ class IzincutiController extends Controller
         
         $qcuti->select('presensi_izincuti.*', 'karyawan.nama_karyawan', 'karyawan.nik_show', 'karyawan.foto', 'jabatan.nama_jabatan', 'departemen.nama_dept', 'cabang.nama_cabang', 'presensi_izincuti.keterangan as nama_cuti');
         if (!empty($request->dari) && !empty($request->sampai)) {
-            $qcuti->whereBetween('izincuti.dari', [$request->dari, $request->sampai]);
+            $qcuti->whereBetween('presensi_izincuti.dari', [$request->dari, $request->sampai]);
         }
         if (!empty($request->nama_karyawan)) {
             $qcuti->where('karyawan.nama_karyawan', 'like', '%' . $request->nama_karyawan . '%');
@@ -180,21 +180,24 @@ class IzincutiController extends Controller
         DB::beginTransaction();
         try {
             $cek_izin_absen = Izinabsen::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])
-                ->where('nik', $nik)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })
                 ->first();
 
             $cek_izin_sakit = Izinsakit::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])
-                ->where('nik', $nik)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })
                 ->first();
 
             $cek_izin_cuti = Izincuti::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])
-                ->where('nik', $nik)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })
                 ->first();
 
             if ($cek_izin_absen) {

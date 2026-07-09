@@ -10,6 +10,19 @@
                 </h2>
                 <div class="text-muted mt-1">Lacak semua perubahan data krusial di sistem.</div>
             </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                    <a href="{{ route('data-audit.export') }}" class="btn btn-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-excel" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+                            <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"></path>
+                            <path d="M10 12l4 4m0 -4l-4 4"></path>
+                        </svg>
+                        Export Excel
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

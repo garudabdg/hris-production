@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Jobs\SendWaMessage;
 
 class WagatewayController extends Controller
 {
@@ -598,6 +600,98 @@ class WagatewayController extends Controller
         ];
 
         return view('wagateway.messages', compact('messages', 'stats'));
+    }
+
+    public function broadcast()
+    {
+        return view('wagateway.broadcast');
+    }
+
+    public function broadcastProcess(Request $request)
+    {
+        $request->validate([
+            'file_excel' => 'required|mimes:xlsx,xls,csv',
+            'pesan' => 'required|string',
+            'file_media' => 'nullable|mimes:jpeg,png,jpg,webp|max:2048',
+            'delay' => 'required|numeric|min:15',
+        ]);
+
+        try {
+            $file = $request->file('file_excel');
+            $pesanTemplate = $request->input('pesan');
+            $delay = (int) $request->input('delay', 30);
+
+            $fileUrl = null;
+            if ($request->hasFile('file_media')) {
+                $media = $request->file('file_media');
+                $filename = time() . '_' . $media->getClientOriginalName();
+                $media->move(public_path('uploads/broadcast'), $filename);
+                $fileUrl = asset('uploads/broadcast/' . $filename);
+            }
+
+            // Parse excel file
+            $collections = Excel::toCollection(null, $file);
+            $rows = $collections->first(); // Get first sheet
+
+            if ($rows->isEmpty()) {
+                return redirect()->back()->with('error', 'File Excel kosong.');
+            }
+
+            $countSent = 0;
+            $currentDelay = 0; // Jeda waktu kumulatif
+
+            \Log::info("Mulai proses broadcast Excel. Total baris: " . count($rows));
+
+            // Iterate rows
+            foreach ($rows as $index => $row) {
+                $phoneNumber = $row[0];
+                
+                // Skip header intelligently: if row 0 doesn't have any numbers, it's likely a header
+                if ($index == 0 && !preg_match('/[0-9]/', $phoneNumber ?? '')) {
+                    continue;
+                }
+                
+                if (empty($phoneNumber)) continue;
+                
+                \Log::info("Memproses baris $index", ['row0' => $phoneNumber]);
+                if (empty($phoneNumber)) continue;
+
+                $pesan = $pesanTemplate;
+
+                // Replace {{A}}, {{B}}, {{C}}... up to Z
+                foreach (range('A', 'Z') as $colIndex => $letter) {
+                    $placeholder = '{{' . $letter . '}}';
+                    if (str_contains($pesan, $placeholder)) {
+                        $value = isset($row[$colIndex]) ? $row[$colIndex] : '';
+                        $pesan = str_replace($placeholder, $value, $pesan);
+                    }
+                }
+
+                // Clean phone number
+                $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+                if (empty($phoneNumber)) continue;
+
+                if (str_starts_with($phoneNumber, '0')) {
+                    $phoneNumber = '62' . substr($phoneNumber, 1);
+                } elseif (str_starts_with($phoneNumber, '8')) {
+                    $phoneNumber = '62' . $phoneNumber;
+                }
+
+                // Tambahkan jeda (delay) statis sesuai input pengguna per pesan secara beruntun
+                $currentDelay += $delay;
+
+                // Dispatch Job dengan delay
+                SendWaMessage::dispatch($phoneNumber, $pesan, false, true, 'lainnya', $fileUrl)
+                    ->delay(now()->addSeconds($currentDelay));
+                
+                $countSent++;
+            }
+
+            return redirect()->back()->with('success', "Berhasil memasukkan $countSent pesan ke dalam antrean (queue) pengiriman.");
+        } catch (\Exception $e) {
+            Log::error('Broadcast error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses file: ' . $e->getMessage());
+        }
     }
 
     public function fetchGroups(Request $request)

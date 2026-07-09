@@ -264,6 +264,9 @@ class LaporanService
             $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
             $periode_dari = $tahun . '-' . $bulan . '-' . $generalsetting->periode_laporan_dari;
             $periode_sampai = $request->tahun . '-' . str_pad($request->bulan, 2, '0', STR_PAD_LEFT) . '-' . $generalsetting->periode_laporan_sampai;
+        } else if ($request->periode_laporan == 3) {
+            $periode_dari = $request->dari;
+            $periode_sampai = $request->sampai;
         } else {
             $bulan = str_pad($request->bulan, 2, '0', STR_PAD_LEFT);
             $periode_dari = $request->tahun . '-' . $bulan . '-01';

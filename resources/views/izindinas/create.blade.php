@@ -107,17 +107,6 @@
                     }
                 });
                 return false;
-            } else if (hitungHari(dari, sampai) > 3) {
-                Swal.fire({
-                    title: "Oops!",
-                    text: 'Periode Izin Dinas Tidak Boleh Lebih Dari 3 Hari !',
-                    icon: "warning",
-                    showConfirmButton: true,
-                    didClose: () => {
-                        form.find("#sampai").focus();
-                    }
-                });
-                return false;
             } else if (keterangan == '') {
                 Swal.fire({
                     title: "Oops!",

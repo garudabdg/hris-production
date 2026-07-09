@@ -175,7 +175,7 @@
         <!-- Aset & Tiket IT -->
         <div class="card mb-4">
             <div class="card-body">
-                <small class="card-text text-uppercase text-muted small">Aset & Tiket IT</small>
+                <small class="card-text text-uppercase text-muted small">Aset & Ticket Pengaduan Layanan</small>
                 <ul class="list-unstyled mb-4 mt-3">
                     <li class="d-flex align-items-center mb-3">
                         <i class="ti ti-ticket text-heading"></i><span class="fw-medium mx-2 text-heading">Total Tiket Dibuat:</span>

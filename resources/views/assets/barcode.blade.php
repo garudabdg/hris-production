@@ -84,8 +84,10 @@
             display: block; width: 100%;
             overflow-x: auto; margin-bottom: 16px;
         }
-        .barcode-box svg, .barcode-box table {
+        .barcode-box svg, .barcode-box img {
             display: block; margin: 0 auto;
+            max-width: 100%;
+            height: auto;
         }
         .kode-label {
             font-size: 12px; font-weight: 700;
@@ -163,8 +165,8 @@
             </div>
 
             <div class="barcode-box">
-                {!! DNS1D::getBarcodeHTML($asset->kode_asset, 'C128', 2.2, 55, '#1e293b') !!}
-                <div class="kode-label">{{ $asset->kode_asset }}</div>
+                {!! DNS2D::getBarcodeSVG(route('assets.public_checklist', $asset->kode_asset), 'QRCODE', 5, 5, '#1e293b') !!}
+                <div class="kode-label" style="margin-top:12px;">{{ $asset->kode_asset }}</div>
             </div>
 
             <div class="info-grid">

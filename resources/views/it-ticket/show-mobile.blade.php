@@ -303,14 +303,16 @@
             <p style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Update Status</p>
             <form action="{{ route('it-ticket.update-status', $itTicket->id) }}" method="POST">
                 @csrf @method('PUT')
-                <select name="status" class="manage-select">
+                <select name="status" class="manage-select" id="mobile_status_select">
                     <option value="open"        {{ $itTicket->status=='open'        ?'selected':'' }}>Open</option>
                     <option value="in_progress" {{ $itTicket->status=='in_progress' ?'selected':'' }}>In Progress</option>
                     <option value="pending"     {{ $itTicket->status=='pending'     ?'selected':'' }}>Pending</option>
                     <option value="resolved"    {{ $itTicket->status=='resolved'    ?'selected':'' }}>Resolved</option>
                     <option value="closed"      {{ $itTicket->status=='closed'      ?'selected':'' }}>Closed</option>
                 </select>
-                <textarea name="catatan_resolusi" class="manage-select" style="height:70px;resize:none;" placeholder="Catatan resolusi (jika resolved/closed)...">{{ $itTicket->catatan_resolusi }}</textarea>
+                <div id="mobile_resolusi_wrapper" style="display: none;">
+                    <textarea name="catatan_resolusi" id="mobile_catatan_resolusi" class="manage-select" style="height:70px;resize:none; margin-bottom:8px;" placeholder="Catatan resolusi * (wajib diisi)...">{{ $itTicket->catatan_resolusi }}</textarea>
+                </div>
                 <button type="submit" class="btn-action btn-warning">
                     <ion-icon name="refresh-outline"></ion-icon> Update Status
                 </button>
@@ -318,12 +320,12 @@
 
             <hr style="border-color:#f1f5f9;margin:10px 0;">
 
-            {{-- Assign IT Staff --}}
-            <p style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assign IT Staff</p>
+            {{-- Assign Staff --}}
+            <p style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assign Staff</p>
             <form action="{{ route('it-ticket.assign', $itTicket->id) }}" method="POST">
                 @csrf @method('PUT')
                 <select name="assigned_to" class="manage-select">
-                    <option value="">-- Pilih IT Staff --</option>
+                    <option value="">-- Pilih Staff (IT/GA) --</option>
                     @foreach($itStaffs as $staff)
                         <option value="{{ $staff->id }}" {{ $itTicket->assigned_to == $staff->id ? 'selected' : '' }}>
                             {{ $staff->name }}
@@ -569,6 +571,28 @@
     // ── Init ────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
         startPolling();
+        
+        // Dynamic resolution form
+        const statusSelect = document.getElementById('mobile_status_select');
+        const resolusiWrapper = document.getElementById('mobile_resolusi_wrapper');
+        const resolusiInput = document.getElementById('mobile_catatan_resolusi');
+        
+        function toggleResolution() {
+            if (statusSelect && resolusiWrapper) {
+                if (statusSelect.value === 'resolved' || statusSelect.value === 'closed') {
+                    resolusiWrapper.style.display = 'block';
+                    resolusiInput.required = true;
+                } else {
+                    resolusiWrapper.style.display = 'none';
+                    resolusiInput.required = false;
+                }
+            }
+        }
+        
+        if(statusSelect) {
+            statusSelect.addEventListener('change', toggleResolution);
+            toggleResolution();
+        }
     });
 </script>
 

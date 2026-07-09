@@ -22,6 +22,7 @@ class Asset extends Model
         'kondisi',
         'status',
         'tanggal_perolehan',
+        'expired_date',
         'nilai_perolehan',
         'jumlah_stok',
         'deskripsi',
@@ -36,6 +37,7 @@ class Asset extends Model
 
     protected $casts = [
         'tanggal_perolehan' => 'date',
+        'expired_date'      => 'date',
         'nilai_perolehan'   => 'decimal:2',
         'confidentiality'   => 'integer',
         'availability'      => 'integer',

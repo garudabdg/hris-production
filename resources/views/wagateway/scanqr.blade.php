@@ -166,6 +166,9 @@
                         <div class="card-header">
                             <h5 class="card-title">Daftar Device</h5>
                             <div class="card-tools">
+                                <a href="{{ route('wagateway.broadcast') }}" class="btn btn-sm btn-success me-2">
+                                    <i class="ti ti-broadcast"></i> Broadcast Excel
+                                </a>
                                 <a href="{{ route('wagateway.messages') }}" class="btn btn-sm btn-info me-2">
                                     <i class="ti ti-message"></i> Riwayat Pesan
                                 </a>

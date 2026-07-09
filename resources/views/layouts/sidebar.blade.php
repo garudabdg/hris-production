@@ -77,27 +77,52 @@
      <div class="menu-inner-shadow"></div>
 
      @php
-         $isUserKaryawanBU = false;
-         if ($authUser && $authUser->hasRole('karyawan')) {
+         $isKaryawanBU = false;
+         $isNormalBU = false; // hanya karyawan biasa di BU (tanpa role tambahan)
+         
+         if ($authUser) {
              $userKaryawanModel = \App\Models\Userkaryawan::where('id_user', $authUser->id)->first();
              if ($userKaryawanModel) {
                  $karyawanModel = \App\Models\Karyawan::where('nik', $userKaryawanModel->nik)->first();
                  if ($karyawanModel && $karyawanModel->kode_dept == 'BU') {
-                     $isUserKaryawanBU = true;
+                     $isKaryawanBU = true;
+                     // Jika role-nya hanya 1 yaitu 'karyawan', maka dia normal BU
+                     if ($authUser->roles->count() === 1 && $authUser->hasRole('karyawan')) {
+                         $isNormalBU = true;
+                     }
                  }
              }
          }
      @endphp
 
      <ul class="menu-inner py-1">
-         @if($isUserKaryawanBU)
-             <li class="menu-item {{ request()->is(['dailyreportbu', 'dailyreportbu/*']) ? 'active' : '' }}">
-                 <a href="{{ route('dailyreportbu.create') }}" class="menu-link">
-                     <i class="menu-icon tf-icons ti ti-document-text"></i>
-                     <div>Form Daily Report Business</div>
+         @if($isKaryawanBU)
+             <li class="menu-item {{ request()->is(['dailyreportbu/create', 'dailyreportbu', 'data-calon-nasabah*']) ? 'open' : '' }}">
+                 <a href="javascript:void(0);" class="menu-link menu-toggle">
+                     <i class="menu-icon tf-icons ti ti-briefcase"></i>
+                     <div>Karyawan Business</div>
                  </a>
+                 <ul class="menu-sub">
+                     <li class="menu-item {{ request()->is('dailyreportbu/create') && !request()->has('section') ? 'active' : '' }}">
+                         <a href="{{ route('dailyreportbu.create') }}" class="menu-link">
+                             <div>Form Daily Report</div>
+                         </a>
+                     </li>
+                     <li class="menu-item {{ request()->routeIs('dailyreportbu.index') ? 'active' : '' }}">
+                         <a href="{{ route('dailyreportbu.index') }}" class="menu-link">
+                             <div>Riwayat Daily Report</div>
+                         </a>
+                     </li>
+                     <li class="menu-item {{ request()->routeIs('data-calon-nasabah.*') ? 'active' : '' }}">
+                         <a href="{{ route('data-calon-nasabah.index') }}" class="menu-link">
+                             <div>Data Calon Nasabah</div>
+                         </a>
+                     </li>
+                 </ul>
              </li>
-         @else
+         @endif
+
+         @if(!$isNormalBU)
          <!-- Dashboards -->
          <li class="menu-item {{ request()->is(['dashboard', 'dashboard/*']) ? 'active' : '' }}">
              <a href="{{ route('dashboard.index') }}" class="menu-link">
@@ -197,6 +222,14 @@
                  <a href="{{ route('tamu.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-notebook"></i>
                      <div>Buku Tamu</div>
+                 </a>
+             </li>
+         @endcan
+         @can('penerimaantelepon.index')
+             <li class="menu-item {{ request()->is(['penerimaan-telepon', 'penerimaan-telepon/*']) ? 'active' : '' }}">
+                 <a href="{{ route('penerimaan-telepon.index') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-phone-call"></i>
+                     <div>Penerimaan Telepon</div>
                  </a>
              </li>
          @endcan
@@ -480,7 +513,12 @@
                       @can('dailyreportbu.index')
                           <li class="menu-item {{ request()->is(['dailyreportbu', 'dailyreportbu/*']) ? 'active' : '' }}">
                               <a href="{{ route('dailyreportbu.index') }}" class="menu-link">
-                                  <div>Business Report</div>
+                                  <div>Laporan Business</div>
+                              </a>
+                          </li>
+                          <li class="menu-item {{ request()->routeIs('data-calon-nasabah.*') && !request()->is(['dailyreportbu/create']) ? 'active' : '' }}">
+                              <a href="{{ route('data-calon-nasabah.index') }}" class="menu-link">
+                                  <div>Data Calon Nasabah</div>
                               </a>
                           </li>
                       @endcan
@@ -493,10 +531,30 @@
              <li class="menu-item {{ request()->is(['it-ticket', 'it-ticket/*']) ? 'active' : '' }}">
                  <a href="{{ route('it-ticket.index') }}" class="menu-link">
                      <i class="menu-icon tf-icons ti ti-headset"></i>
-                     <div>Ticket</div>
+                     <div>Ticket Pengaduan Layanan</div>
                      @if (!empty($notifikasi_ticket))
                          <div class="badge bg-danger rounded-pill ms-auto">{{ $notifikasi_ticket }}</div>
                      @endif
+                 </a>
+             </li>
+         @endcan
+
+         {{-- ID Control List --}}
+         @can('view id control list')
+             <li class="menu-item {{ request()->is(['id-control-list', 'id-control-list/*']) ? 'active' : '' }}">
+                 <a href="{{ route('id-control-list.index') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-id-badge"></i>
+                     <div>ID Control List Aplikasi</div>
+                 </a>
+             </li>
+         @endcan
+
+         {{-- Threat Intelligence Report --}}
+         @can('threat-intelligence.index')
+             <li class="menu-item {{ request()->is(['threat-intelligence-reports', 'threat-intelligence-reports/*']) ? 'active' : '' }}">
+                 <a href="{{ route('threat-intelligence-reports.index') }}" class="menu-link">
+                     <i class="menu-icon tf-icons ti ti-shield-check"></i>
+                     <div>Threat Intelligence Report</div>
                  </a>
              </li>
          @endcan

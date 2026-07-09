@@ -35,7 +35,7 @@
                             <select name="category_id" id="category_id" class="form-select @error('category_id') is-invalid @enderror">
                                 <option value="">-- Pilih Kategori --</option>
                                 @foreach ($categories as $cat)
-                                    <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                    <option value="{{ $cat->id }}" data-kode="{{ $cat->kode_kategori }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
                                         {{ $cat->nama_kategori }}
                                     </option>
                                 @endforeach
@@ -102,7 +102,13 @@
                                 value="{{ old('tanggal_perolehan') }}" placeholder="Pilih tanggal">
                             @error('tanggal_perolehan') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4" id="expired_date_container" style="display: none;">
+                            <label class="form-label">Tanggal Expired <span class="text-danger">*</span></label>
+                            <input type="text" name="expired_date" class="form-control flatpickr-date @error('expired_date') is-invalid @enderror"
+                                value="{{ old('expired_date') }}" placeholder="Pilih tanggal (Khusus Software)">
+                            @error('expired_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Harga Pembelian (Rp)</label>
                             <input type="number" name="nilai_perolehan" class="form-control @error('nilai_perolehan') is-invalid @enderror"
                                 value="{{ old('nilai_perolehan') }}" placeholder="0">
@@ -236,7 +242,24 @@ $(function() {
         } else {
             $('#kode_asset').val('');
         }
+        
+        // Show/hide expired date if category is Software (SOF)
+        const kode = $(this).find('option:selected').data('kode');
+        if (kode === 'SOF' || kode === 'SFW') {
+            $('#expired_date_container').show();
+        } else {
+            $('#expired_date_container').hide();
+            $('input[name="expired_date"]').val('');
+        }
     });
+
+    // Initial check on load
+    if ($('#category_id').val()) {
+        const kode = $('#category_id').find('option:selected').data('kode');
+        if (kode === 'SOF' || kode === 'SFW') {
+            $('#expired_date_container').show();
+        }
+    }
 });
 
 function calcValuation() {

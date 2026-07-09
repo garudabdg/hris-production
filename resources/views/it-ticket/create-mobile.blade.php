@@ -1,5 +1,5 @@
 @extends('layouts.mobile.modern')
-@section('title', 'Buat Tiket IT')
+@section('title', 'Buat Ticket Pengaduan Layanan')
 
 @section('header_left')
     <a href="{{ route('it-ticket.index') }}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white active:scale-95 transition-all">

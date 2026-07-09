@@ -35,9 +35,14 @@
                 </h1>
                 <p class="text-sm text-gray-500 mt-1">Isi laporan aktivitas online, offline, dan nasabah Anda untuk hari ini.</p>
             </div>
-            <a href="{{ route('dashboard.index') }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
-                <ion-icon name="arrow-back"></ion-icon> Kembali
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('dailyreportbu.index') }}" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
+                    <ion-icon name="time-outline"></ion-icon> Riwayat Report
+                </a>
+                <a href="{{ route('dashboard.index') }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
+                    <ion-icon name="arrow-back"></ion-icon> Kembali
+                </a>
+            </div>
         </div>
 
         @if($errors->any())

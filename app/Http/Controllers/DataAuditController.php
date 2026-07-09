@@ -15,4 +15,9 @@ class DataAuditController extends Controller
 
         return view('data-audit.index', compact('logs'));
     }
+
+    public function export()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\DataAuditExport, 'data_audit_log_'.date('Y-m-d_H-i').'.xlsx');
+    }
 }

@@ -75,6 +75,7 @@
                                 <th>Broadcast</th>
                                 <th>Fanspage</th>
                                 <th>Link Postingan</th>
+                                <th class="text-center">Status Validasi</th>
                                 <th>Subtotal</th>
                             </tr>
                         </thead>
@@ -116,6 +117,34 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
+
+                                    {{-- Kolom Status Validasi --}}
+                                    <td class="text-center">
+                                        @if(empty($act->link_postingan))
+                                            <span class="text-muted">-</span>
+                                        @elseif(auth()->user()->can('dailyreportbu.verify'))
+                                            {{-- Admin: tombol toggle langsung --}}
+                                            <button type="button"
+                                                class="btn btn-sm {{ $act->status_validasi === 'verified' ? 'btn-success' : 'btn-warning' }} btn-toggle-verify-show"
+                                                data-id="{{ $act->id }}"
+                                                id="btn-verify-{{ $act->id }}"
+                                                title="Klik untuk toggle status">
+                                                @if($act->status_validasi === 'verified')
+                                                    <i class="ti ti-circle-check me-1"></i>Verified
+                                                @else
+                                                    <i class="ti ti-clock me-1"></i>Pending
+                                                @endif
+                                            </button>
+                                        @else
+                                            {{-- Karyawan: badge read-only --}}
+                                            @if($act->status_validasi === 'verified')
+                                                <span class="badge bg-success"><i class="ti ti-circle-check me-1"></i>Verified</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark"><i class="ti ti-clock me-1"></i>Pending</span>
+                                            @endif
+                                        @endif
+                                    </td>
+
                                     <td class="fw-bold text-primary">{{ $act->subtotal ?? 0 }}</td>
                                 </tr>
                             @endforeach
@@ -233,3 +262,60 @@
     </div>
 </div>
 @endsection
+
+@push('myscript')
+@if(auth()->user()->can('dailyreportbu.verify'))
+<script>
+    $(function() {
+        // ------------------------------------------------
+        // Toggle status validasi link postingan (AJAX)
+        // Hanya aktif untuk admin dengan permission dailyreportbu.verify
+        // ------------------------------------------------
+        var verifyBaseUrl = '{{ rtrim(url('/'), '/') }}/dailyreportbu/online/';
+        var verifyCsrf    = '{{ csrf_token() }}';
+
+        $(document).on('click', '.btn-toggle-verify-show', function() {
+            var btn      = $(this);
+            var onlineId = btn.data('id');
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+            $.ajax({
+                url: verifyBaseUrl + onlineId + '/verify',
+                method: 'PATCH',
+                headers: { 'X-CSRF-TOKEN': verifyCsrf },
+                success: function(res) {
+                    if (res.success) {
+                        var isVerified = res.status === 'verified';
+
+                        // Update tampilan tombol
+                        if (isVerified) {
+                            btn.removeClass('btn-warning').addClass('btn-success')
+                                .html('<i class="ti ti-circle-check me-1"></i>Verified');
+                        } else {
+                            btn.removeClass('btn-success').addClass('btn-warning')
+                                .html('<i class="ti ti-clock me-1"></i>Pending');
+                        }
+                        btn.prop('disabled', false);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: res.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        btn.prop('disabled', false);
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: res.message });
+                    }
+                },
+                error: function() {
+                    btn.prop('disabled', false);
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan. Silakan coba lagi.' });
+                }
+            });
+        });
+    });
+</script>
+@endif
+@endpush

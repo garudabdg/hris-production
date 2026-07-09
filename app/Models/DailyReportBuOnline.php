@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  * Model: Daily Report BU Online
  * 
  * Menyimpan aktivitas online per platform sosial media.
- * Setiap report memiliki 4 row (facebook, instagram, whatsapp, tiktok).
+ * Setiap report memiliki 5 row (facebook, instagram, whatsapp, tiktok, youtube).
  */
 class DailyReportBuOnline extends Model
 {
@@ -29,17 +29,19 @@ class DailyReportBuOnline extends Model
         'broadcast',
         'fanspage',
         'link_postingan',
+        'status_validasi',
     ];
 
     protected $casts = [
-        'posting' => 'integer',
-        'share_group' => 'integer',
-        'add_group' => 'integer',
-        'add_friend' => 'integer',
-        'inbox' => 'integer',
-        'story' => 'integer',
-        'broadcast' => 'integer',
-        'fanspage' => 'integer',
+        'posting'          => 'integer',
+        'share_group'      => 'integer',
+        'add_group'        => 'integer',
+        'add_friend'       => 'integer',
+        'inbox'            => 'integer',
+        'story'            => 'integer',
+        'broadcast'        => 'integer',
+        'fanspage'         => 'integer',
+        'status_validasi'  => 'string',
     ];
 
     /**

@@ -92,6 +92,43 @@ class AssetPerawatanController extends Controller
         return view('asset-perawatan.index', compact('perawatans', 'assets', 'summary'));
     }
 
+    public function exportPdf(Request $request)
+    {
+        $user = auth()->user();
+        abort_unless($user->isSuperAdmin() || $user->can('asset.perawatan.index'), 403);
+
+        $query = $this->scopedQuery();
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('kode_perawatan', 'like', '%' . $request->search . '%')
+                  ->orWhere('petugas', 'like', '%' . $request->search . '%')
+                  ->orWhereHas('asset', function ($qa) use ($request) {
+                      $qa->where('nama_asset', 'like', '%' . $request->search . '%')
+                         ->orWhere('kode_asset', 'like', '%' . $request->search . '%');
+                  });
+            });
+        }
+
+        if ($request->filled('kode_asset')) {
+            $query->where('kode_asset', $request->kode_asset);
+        }
+
+        if ($request->filled('dari')) {
+            $query->whereDate('tanggal_perawatan', '>=', $request->dari);
+        }
+        if ($request->filled('sampai')) {
+            $query->whereDate('tanggal_perawatan', '<=', $request->sampai);
+        }
+
+        $perawatans = $query->orderByDesc('tanggal_perawatan')->orderByDesc('id')->get();
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('asset-perawatan.pdf-index', compact('perawatans', 'request'))
+                    ->setPaper('a4', 'landscape');
+                    
+        return $pdf->download('Data_Perawatan_Aset_' . date('Ymd_His') . '.pdf');
+    }
+
     public function create(Request $request)
     {
         $user = auth()->user();
@@ -137,6 +174,23 @@ class AssetPerawatanController extends Controller
                 'nama_asset' => $asset->nama_asset,
             ],
         ]);
+    }
+
+    public function exportPdfForm(Request $request)
+    {
+        $user = auth()->user();
+        abort_unless($user->isSuperAdmin() || $user->can('asset.perawatan.create'), 403);
+
+        $request->validate([
+            'kode_asset' => 'required|exists:assets,kode_asset',
+        ]);
+
+        $asset = Asset::with('category')->where('kode_asset', $request->kode_asset)->firstOrFail();
+        $checklistItems = AssetPerawatan::checklistItems($asset->category);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('asset-perawatan.pdf-form', compact('asset', 'checklistItems'));
+        
+        return $pdf->download('Form_Perawatan_Aset_' . $asset->kode_asset . '.pdf');
     }
 
     public function store(Request $request)
@@ -200,6 +254,19 @@ class AssetPerawatanController extends Controller
         $assetPerawatan->load(['asset.category', 'asset.cabang', 'user', 'items']);
 
         return view('asset-perawatan.show', compact('assetPerawatan'));
+    }
+
+    public function exportPdfDetail(AssetPerawatan $assetPerawatan)
+    {
+        $user = auth()->user();
+        abort_unless($user->isSuperAdmin() || $user->can('asset.perawatan.index'), 403);
+
+        $assetPerawatan->load(['asset.category', 'asset.cabang', 'user', 'items']);
+        $asset = $assetPerawatan->asset;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('asset-perawatan.pdf-detail', compact('assetPerawatan', 'asset'));
+        
+        return $pdf->download('Detail_Perawatan_Aset_' . $assetPerawatan->kode_perawatan . '.pdf');
     }
 
     public function destroy(AssetPerawatan $assetPerawatan)

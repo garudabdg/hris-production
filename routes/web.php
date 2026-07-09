@@ -63,6 +63,7 @@ use App\Http\Controllers\AssetPerawatanController;
 use App\Http\Controllers\DailyReportBuController;
 use App\Http\Controllers\ItTicketController;
 use App\Http\Controllers\TamuController;
+use App\Http\Controllers\PenerimaanTeleponController;
 use App\Http\Controllers\Auth\AccountSetupController;
 use App\Http\Controllers\WebviewController;
 
@@ -271,6 +272,7 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
 
     // Data Audit Trail (Perubahan Data Master)
     Route::middleware('role:super admin')->get('/data-audit', [\App\Http\Controllers\DataAuditController::class, 'index'])->name('data-audit.index');
+    Route::middleware('role:super admin')->get('/data-audit/export', [\App\Http\Controllers\DataAuditController::class, 'export'])->name('data-audit.export');
 
     //Data Master
     //Dat Karyawan
@@ -686,6 +688,8 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
     Route::middleware('role:super admin|hrd|direktur utama')->controller(WagatewayController::class)->group(function () {
         Route::get('/wagateway', 'index')->name('wagateway.index');
         Route::get('/wagateway/messages', 'messages')->name('wagateway.messages');
+        Route::get('/wagateway/broadcast', 'broadcast')->name('wagateway.broadcast');
+        Route::post('/wagateway/broadcast', 'broadcastProcess')->name('wagateway.broadcast.process');
         Route::post('/wagateway/add-device', 'addDevice')->name('wagateway.add-device');
         Route::post('/wagateway/toggle-device-status/{id}', 'toggleDeviceStatus')->name('wagateway.toggle-device-status');
         Route::post('/wagateway/generate-qr', 'generateQR')->name('wagateway.generate-qr');
@@ -740,7 +744,13 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
         Route::put('/dailyreportbu/{id}', 'update')->name('dailyreportbu.update')->can('dailyreportbu.edit');
         Route::delete('/dailyreportbu/{id}', 'destroy')->name('dailyreportbu.destroy')->can('dailyreportbu.delete');
         Route::get('/dailyreportbu/export/pdf', 'exportPdf')->name('dailyreportbu.export.pdf')->can('dailyreportbu.index');
+        // Route untuk verifikasi link postingan (khusus admin dengan permission dailyreportbu.verify)
+        Route::patch('/dailyreportbu/online/{onlineId}/verify', 'verify')->name('dailyreportbu.verify')->can('dailyreportbu.verify');
     });
+
+    // Data Calon Nasabah Routes
+    Route::get('data-calon-nasabah/export-excel', [\App\Http\Controllers\DataCalonNasabahController::class, 'exportExcel'])->name('data-calon-nasabah.export-excel');
+    Route::resource('data-calon-nasabah', \App\Http\Controllers\DataCalonNasabahController::class);
 
     // Kunjungan Routes
     Route::controller(KunjunganController::class)->group(function () {
@@ -803,9 +813,37 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
     Route::resource('mutasi', App\Http\Controllers\MutasiKaryawanController::class);
     Route::get('/mutasi/{nik}/getKaryawan', [App\Http\Controllers\MutasiKaryawanController::class, 'getKaryawan'])->name('mutasi.getKaryawan');
 
+    Route::get('/init-perm-id-control', function() {
+        $groupName = 'ID Control List';
+        $group = \Illuminate\Support\Facades\DB::table('permission_groups')->where('name', $groupName)->first();
+        if (!$group) {
+            $groupId = \Illuminate\Support\Facades\DB::table('permission_groups')->insertGetId(['name' => $groupName]);
+        } else {
+            $groupId = $group->id;
+        }
+
+        $permissions = ['view id control list', 'create id control list', 'edit id control list', 'delete id control list'];
+        foreach ($permissions as $permission) {
+            \Spatie\Permission\Models\Permission::updateOrCreate(
+                ['name' => $permission],
+                ['id_permission_group' => $groupId]
+            );
+        }
+        return 'Done';
+    });
+
+    // ID Control List
+    Route::get('id-control-list/export-pdf', [App\Http\Controllers\IdControlListController::class, 'exportPdf'])->name('id-control-list.export-pdf');
+    Route::resource('id-control-list', App\Http\Controllers\IdControlListController::class);
+    Route::resource('aplikasi', App\Http\Controllers\AplikasiController::class)->only(['store', 'update', 'destroy']);
+
+    // Threat Intelligence Report
+    Route::get('threat-intelligence-reports/export-pdf', [App\Http\Controllers\ThreatIntelligenceReportController::class, 'exportPdf'])->name('threat-intelligence-reports.export-pdf');
+    Route::resource('threat-intelligence-reports', App\Http\Controllers\ThreatIntelligenceReportController::class);
     // IT Ticket — semua user yang login bisa buat tiket, IT Staff & Super Admin bisa manage
     Route::prefix('it-ticket')->name('it-ticket.')->controller(ItTicketController::class)->group(function () {
         Route::get('/',                      'index')->name('index');
+        Route::get('/export-excel',          'exportExcel')->name('export-excel');
         Route::get('/check-new',             'checkNew')->name('check-new');
         Route::get('/create',                'create')->name('create');
         Route::post('/',                     'store')->name('store');
@@ -866,12 +904,30 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
     // Asset Perawatan (Checklist)
     Route::prefix('asset-perawatan')->name('asset-perawatan.')->controller(AssetPerawatanController::class)->group(function () {
         Route::get('/', 'index')->name('index');
+        Route::get('/export-pdf', 'exportPdf')->name('export-pdf');
         Route::get('/create', 'create')->name('create');
+        Route::get('/export-pdf-form', 'exportPdfForm')->name('export-pdf-form');
         Route::get('/checklist-items', 'getChecklistItems')->name('checklist-items');
         Route::post('/', 'store')->name('store');
         Route::get('/{assetPerawatan}', 'show')->name('show');
+        Route::get('/{assetPerawatan}/export-pdf', 'exportPdfDetail')->name('export-pdf-detail');
         Route::delete('/{assetPerawatan}', 'destroy')->name('destroy');
     });
+    // Asset Checklist & Scanner Route (Restricted by Auth)
+    Route::get('/public/scan-asset', function () {
+        $kode_dept = '';
+        $user = auth()->user();
+        if ($user && $user->userkaryawan) {
+            $k = \App\Models\Karyawan::where('nik', $user->userkaryawan->nik)->first();
+            if ($k) $kode_dept = $k->kode_dept;
+        }
+        if (!in_array($kode_dept, ['GA', 'IT', 'HRD'])) {
+            abort(403, 'Akses ditolak. Fitur ini khusus untuk departemen GA, IT, dan HRD.');
+        }
+        return view('assets.public_scan');
+    })->name('assets.public_scan');
+    Route::get('/public/assets/{kode}', [App\Http\Controllers\AssetController::class, 'publicChecklist'])->name('assets.public_checklist');
+    Route::post('/public/assets/{kode}', [App\Http\Controllers\AssetController::class, 'publicChecklistUpdate'])->name('assets.public_checklist.update');
 });
 
 
@@ -940,6 +996,14 @@ Route::group(['middleware' => ['auth', 'account.setup']], function () { // Remov
         } catch (\Exception $e) {
             return "Error: " . $e->getMessage();
         }
+    });
+
+    // Penerimaan Telepon Routes
+    Route::group(['middleware' => ['permission:penerimaantelepon.index']], function () {
+        Route::get('/penerimaan-telepon', [PenerimaanTeleponController::class, 'index'])->name('penerimaan-telepon.index');
+        Route::post('/penerimaan-telepon/store', [PenerimaanTeleponController::class, 'store'])->name('penerimaan-telepon.store');
+        Route::put('/penerimaan-telepon/{id}', [PenerimaanTeleponController::class, 'update'])->name('penerimaan-telepon.update');
+        Route::delete('/penerimaan-telepon/{id}', [PenerimaanTeleponController::class, 'destroy'])->name('penerimaan-telepon.destroy');
     });
 
     // Buku Tamu Routes

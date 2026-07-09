@@ -134,13 +134,12 @@ class IzindinasController extends Controller
         DB::beginTransaction();
         try {
             $jmlhari = hitungHari($request->dari, $request->sampai);
-            if ($jmlhari > 3) {
-                return Redirect::back()->with(messageError('Tidak Boleh Lebih dari 3 Hari!'));
-            }
 
             $cek_izin_dinas = Izindinas::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])->first();
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })->first();
 
             if ($cek_izin_dinas) {
                 return Redirect::back()->with(messageError('Anda Sudah Mengajukan Izin Dinas Pada Rentang Tanggal Tersebut!'));
@@ -230,7 +229,9 @@ class IzindinasController extends Controller
 
          // Check Authorization using Service
         if (!$approvalService->canApprove('IZIN', $currentStep, $userRole, $kode_dept, $kode_jabatan, $user, $kode_cabang)) {
-             return Redirect::back()->with(messageError('Anda tidak memiliki wewenang untuk menyetujui tahap ini.'));
+             if (!$user->isSuperAdmin()) {
+                 return Redirect::back()->with(messageError('Anda tidak memiliki wewenang untuk menyetujui tahap ini.'));
+             }
         }
         
         DB::beginTransaction();
@@ -253,6 +254,8 @@ class IzindinasController extends Controller
                  if ($nextRule && !$user->hasRole('super admin')) {
                     // Update to next step
                     Izindinas::where('kode_izin_dinas', $kode_izin_dinas)->update(['approval_step' => $nextLevel]);
+                    DB::commit();
+                    return Redirect::back()->with(messageSuccess('Berhasil disetujui (Tahap ' . $currentStep . '). Menunggu approval tahap selanjutnya.'));
                 } else {
                      // Final Approval
                     Izindinas::where('kode_izin_dinas', $kode_izin_dinas)->update([

@@ -146,8 +146,8 @@ class UserController extends Controller
         $isAdmin = strtolower($request->role) !== 'karyawan';
         $request->validate([
             'name' => 'required',
-            'username' => 'required',
-            'email' => 'required|email',
+            'username' => 'required|unique:users,username',
+            'email' => 'required|email|unique:users,email',
             'password' => \App\Helpers\PasswordHelper::getRules(null, $isAdmin, false, false),
             'role' => 'required'
         ]);
@@ -177,6 +177,16 @@ class UserController extends Controller
             ]);
 
             $user->assignRole($request->role);
+
+            // Kirim email notifikasi jika yang dibuat adalah admin (bukan karyawan)
+            if ($isAdmin) {
+                try {
+                    $loginUrl = route('login');
+                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\NewAdminAccountMail($user->name, $user->email, $request->password, $loginUrl));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Gagal mengirim email akun admin baru: ' . $e->getMessage());
+                }
+            }
 
             // Jika role adalah super admin, berikan akses ke semua cabang dan departemen
             if ($roleName === 'super admin') {
@@ -228,8 +238,8 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required',
-            'username' => 'required',
-            'email' => 'required|email',
+            'username' => 'required|unique:users,username,' . $id,
+            'email' => 'required|email|unique:users,email,' . $id,
         ]);
 
         try {

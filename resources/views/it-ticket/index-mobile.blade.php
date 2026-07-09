@@ -1,5 +1,5 @@
 @extends('layouts.mobile.modern')
-@section('title', 'IT Ticket')
+@section('title', 'Ticket Pengaduan Layanan')
 
 @section('header_left')
     <a href="{{ route('dashboard.index') }}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white active:scale-95 transition-all">
@@ -230,7 +230,7 @@
         <div class="flex flex-col items-center justify-center py-16 opacity-60">
             <ion-icon name="headset-outline" style="font-size:64px;color:#cbd5e1;"></ion-icon>
             <h4 class="text-sm font-semibold text-slate-600 mt-3">Belum ada tiket</h4>
-            <p class="text-xs text-slate-400 mt-1 text-center px-6">Buat tiket baru untuk melaporkan masalah IT.</p>
+            <p class="text-xs text-slate-400 mt-1 text-center px-6">Buat tiket baru untuk melaporkan masalah layanan.</p>
         </div>
         @endforelse
 

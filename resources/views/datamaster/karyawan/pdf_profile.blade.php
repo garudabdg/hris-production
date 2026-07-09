@@ -231,7 +231,7 @@
         <div class="section-title">Aset & Dukungan IT</div>
         <table class="table-profile">
             <tr>
-                <td class="label">Total Tiket IT Dibuat</td>
+                <td class="label">Total Ticket Pengaduan Layanan Dibuat</td>
                 <td class="colon">:</td>
                 <td class="value"><strong>{{ $total_tickets }}</strong> tiket</td>
             </tr>

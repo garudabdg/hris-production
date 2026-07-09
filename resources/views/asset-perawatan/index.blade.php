@@ -115,6 +115,7 @@
             <div class="col-md-2 d-flex gap-1">
                 <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-search"></i></button>
                 <a href="{{ route('asset-perawatan.index') }}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-x"></i></a>
+                <button type="submit" name="export_pdf" value="1" formaction="{{ route('asset-perawatan.export-pdf') }}" formtarget="_blank" class="btn btn-outline-danger btn-sm" title="Export PDF"><i class="ti ti-file-pdf"></i></button>
             </div>
         </form>
     </div>

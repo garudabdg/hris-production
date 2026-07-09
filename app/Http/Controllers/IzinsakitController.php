@@ -139,21 +139,24 @@ class IzinsakitController extends Controller
         DB::beginTransaction();
         try {
             $cek_izin_absen = Izinabsen::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])
-                ->where('nik', $nik)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })
                 ->first();
 
             $cek_izin_sakit = Izinsakit::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])
-                ->where('nik', $nik)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })
                 ->first();
 
             $cek_izin_cuti = Izincuti::where('nik', $nik)
-                ->whereBetween('dari', [$request->dari, $request->sampai])
-                ->orWhereBetween('sampai', [$request->dari, $request->sampai])
-                ->where('nik', $nik)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('dari', [$request->dari, $request->sampai])
+                        ->orWhereBetween('sampai', [$request->dari, $request->sampai]);
+                })
                 ->first();
 
             if ($cek_izin_absen) {

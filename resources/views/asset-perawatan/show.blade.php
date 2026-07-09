@@ -155,9 +155,14 @@
             @endif
 
             <div class="card-footer d-flex justify-content-between align-items-center">
-                <a href="{{ route('asset-perawatan.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="ti ti-arrow-left me-1"></i> Kembali
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('asset-perawatan.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="ti ti-arrow-left me-1"></i> Kembali
+                    </a>
+                    <a href="{{ route('asset-perawatan.export-pdf-detail', $assetPerawatan->id) }}" class="btn btn-outline-danger btn-sm" target="_blank">
+                        <i class="ti ti-file-pdf me-1"></i> Export PDF
+                    </a>
+                </div>
                 @if (auth()->user()->isSuperAdmin() || auth()->user()->can('asset.perawatan.delete'))
                 <form method="POST" action="{{ route('asset-perawatan.destroy', $assetPerawatan->id) }}"
                     onsubmit="return confirm('Hapus checklist {{ $assetPerawatan->kode_perawatan }}?')">

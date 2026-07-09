@@ -48,7 +48,7 @@
                                                         'medium' => 'info', 'low' => 'success', default => 'secondary'
                                                     };
                                                 @endphp
-                                                <span class="badge bg-label-{{ $pColor }}"><i class="ti ti-ticket me-1"></i>Tiket IT Baru</span>
+                                                <span class="badge bg-label-{{ $pColor }}"><i class="ti ti-ticket me-1"></i>Ticket Pengaduan Baru</span>
                                             @else
                                                 @if($notif['status'] == 1)
                                                     <span class="badge bg-success">✅ Disetujui</span>

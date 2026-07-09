@@ -27,14 +27,16 @@ class SendWaMessage implements ShouldQueue
     protected bool $birthday;
     protected bool $direct = false; // true = kirim langsung ke nomor, bypass tujuan notifikasi
     protected string $kategori;
+    protected ?string $fileUrl;
 
-    public function __construct(string $phoneNumber, string $message, bool $birthday = false, bool $direct = false, string $kategori = 'lainnya')
+    public function __construct(string $phoneNumber, string $message, bool $birthday = false, bool $direct = false, string $kategori = 'lainnya', ?string $fileUrl = null)
     {
         $this->phoneNumber = $phoneNumber;
         $this->message = $message;
         $this->birthday = $birthday;
         $this->direct = $direct;
         $this->kategori = $birthday ? 'birthday' : $kategori;
+        $this->fileUrl = $fileUrl;
     }
 
     public function handle(): void
@@ -86,13 +88,18 @@ class SendWaMessage implements ShouldQueue
             }
             $url = rtrim($domain, '/') . '/send-message';
 
+            $payloadLocal = [
+                'number'  => $penerima,
+                'message' => $this->message,
+            ];
+            if ($this->fileUrl) {
+                $payloadLocal['url'] = $this->fileUrl;
+            }
+
             $response = Http::timeout(30)
                 ->withHeaders(['X-Api-Key' => $apiKey])
                 ->asJson()
-                ->post($url, [
-                    'number'  => $penerima,
-                    'message' => $this->message,
-                ]);
+                ->post($url, $payloadLocal);
 
             Log::info('SendWaMessage: Local Gateway response', [
                 'http'     => $response->status(),
@@ -148,7 +155,7 @@ class SendWaMessage implements ShouldQueue
                     'delay' => '2',
                     'countryCode' => '62',
                     'followup' => 0,
-                ),
+                ) + ($this->fileUrl ? ['url' => $this->fileUrl] : []),
                 CURLOPT_HTTPHEADER => array(
                     'Authorization: ' . $apiKey
                 ),
@@ -211,6 +218,9 @@ class SendWaMessage implements ShouldQueue
             'number' => $penerima,
             'message' => $this->message,
         ];
+        if ($this->fileUrl) {
+            $payload['url'] = $this->fileUrl;
+        }
 
         // Gunakan JSON format untuk konsistensi dengan endpoint lain (info-device, generate-qr)
         // Beberapa gateway seperti asfimedia.id membutuhkan JSON format

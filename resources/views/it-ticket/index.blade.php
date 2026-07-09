@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('titlepage', 'IT Ticket')
+@section('titlepage', 'Ticket Pengaduan Layanan')
 
 @section('content')
 @section('navigasi')
-    <span>IT Ticket</span>
+    <span>Ticket Pengaduan Layanan</span>
 @endsection
 
 @if (session('success'))
@@ -60,9 +60,14 @@
             </h5>
             <small class="text-muted">Pengaduan layanan — standar ISO 27001</small>
         </div>
-        <a href="{{ route('it-ticket.create') }}" class="btn btn-primary btn-sm">
-            <i class="ti ti-plus me-1"></i> Buat Tiket
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('it-ticket.export-excel', request()->query()) }}" class="btn btn-success btn-sm" id="btnExportExcel">
+                <i class="ti ti-file-spreadsheet me-1"></i> Export Excel
+            </a>
+            <a href="{{ route('it-ticket.create') }}" class="btn btn-primary btn-sm">
+                <i class="ti ti-plus me-1"></i> Buat Tiket
+            </a>
+        </div>
     </div>
     <div class="card-body border-bottom pb-3">
         <form method="GET" action="{{ route('it-ticket.index') }}" class="row g-2">
@@ -152,7 +157,7 @@
                     <th>Pemohon</th>
                     <th>Departemen</th>
                     <th>Assigned To</th>
-                    <th>SLA Target</th>
+                    <th>Tanggal Masuk</th>
                     <th>Status</th>
                     <th class="text-center">Aksi</th>
                 </tr>
@@ -184,7 +189,8 @@
                         </td>
                         <td>
                             @php
-                                $karyawan = \App\Models\Karyawan::where('nik', $t->pemohon->username ?? null)->first();
+                                $nik = optional($t->pemohon)->userkaryawan ? $t->pemohon->userkaryawan->nik : null;
+                                $karyawan = \App\Models\Karyawan::where('nik', $nik)->first();
                                 $dept = $karyawan ? optional($karyawan->departemen)->nama_dept : null;
                                 $subDept = $karyawan ? $karyawan->sub_departemen : null;
                             @endphp
@@ -205,9 +211,9 @@
                             @endif
                         </td>
                         <td>
-                            @if($t->tanggal_target)
-                                <small class="{{ $t->isOverdue() ? 'text-danger fw-bold' : 'text-muted' }}">
-                                    {{ $t->tanggal_target->format('d/m/Y') }}
+                            @if($t->created_at)
+                                <small class="text-muted">
+                                    {{ $t->created_at->format('d/m/Y H:i') }}
                                 </small>
                             @else
                                 <span class="text-muted">-</span>

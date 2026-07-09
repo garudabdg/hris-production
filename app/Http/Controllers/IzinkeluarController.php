@@ -222,7 +222,9 @@ class IzinkeluarController extends Controller
 
          // Check Authorization using Service
         if (!$approvalService->canApprove('IZIN', $currentStep, $userRole, $kode_dept, $kode_jabatan, $user, $kode_cabang)) {
-             return Redirect::back()->with(messageError('Anda tidak memiliki wewenang untuk menyetujui tahap ini.'));
+             if (!$user->isSuperAdmin()) {
+                 return Redirect::back()->with(messageError('Anda tidak memiliki wewenang untuk menyetujui tahap ini.'));
+             }
         }
         
         DB::beginTransaction();
@@ -245,6 +247,8 @@ class IzinkeluarController extends Controller
                  if ($nextRule && !$user->hasRole('super admin')) {
                     // Update to next step
                     Izinkeluar::where('kode_izin_keluar', $kode_izin_keluar)->update(['approval_step' => $nextLevel]);
+                    DB::commit();
+                    return Redirect::back()->with(messageSuccess('Berhasil disetujui (Tahap ' . $currentStep . '). Menunggu approval tahap selanjutnya.'));
                 } else {
                     // Final Approval
                     $updateData = ['status' => 1];

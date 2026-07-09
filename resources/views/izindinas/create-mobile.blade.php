@@ -218,12 +218,6 @@
                     return;
                 }
 
-                // Izin Dinas limit is 3 strictly check
-                if (jml_hari > 3) {
-                    e.preventDefault();
-                    Swal.fire({ title: "Oops!", text: 'Izin Dinas Tidak Boleh Lebih dari 3 Hari !', icon: "warning" });
-                    return;
-                }
 
                 if (!keterangan.trim()) {
                     e.preventDefault();

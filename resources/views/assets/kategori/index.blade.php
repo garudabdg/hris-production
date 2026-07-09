@@ -30,6 +30,12 @@
                 <form action="{{ route('assets.kategori.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
+                        <label class="form-label">Kode Kategori <span class="text-danger">*</span></label>
+                        <input type="text" name="kode_kategori" class="form-control @error('kode_kategori') is-invalid @enderror"
+                            value="{{ old('kode_kategori') }}" placeholder="Contoh: SFW, HRD">
+                        @error('kode_kategori') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Nama Kategori <span class="text-danger">*</span></label>
                         <input type="text" name="nama_kategori" class="form-control @error('nama_kategori') is-invalid @enderror"
                             value="{{ old('nama_kategori') }}" placeholder="Contoh: Elektronik, Furniture, Kendaraan">
@@ -80,6 +86,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>No</th>
+                            <th>Kode</th>
                             <th>Nama Kategori</th>
                             <th>Deskripsi</th>
                             <th class="text-center">Checklist</th>
@@ -91,6 +98,7 @@
                         @forelse ($categories as $cat)
                             <tr>
                                 <td>{{ $categories->firstItem() + $loop->index }}</td>
+                                <td class="fw-bold">{{ $cat->kode_kategori ?? '-' }}</td>
                                 <td class="fw-semibold">{{ $cat->nama_kategori }}</td>
                                 <td class="text-muted small">{{ $cat->deskripsi ?? '-' }}</td>
                                 <td class="text-center">
@@ -103,6 +111,7 @@
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button class="btn btn-sm btn-outline-primary btn-edit-cat"
                                             data-id="{{ $cat->id }}"
+                                            data-kode="{{ $cat->kode_kategori }}"
                                             data-nama="{{ $cat->nama_kategori }}"
                                             data-deskripsi="{{ $cat->deskripsi }}"
                                             data-checklist='@json($cat->checklist_items ?? [])'>
@@ -146,7 +155,11 @@
                 @csrf @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Nama Kategori</label>
+                        <label class="form-label">Kode Kategori <span class="text-danger">*</span></label>
+                        <input type="text" name="kode_kategori" id="editKodeKat" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Kategori <span class="text-danger">*</span></label>
                         <input type="text" name="nama_kategori" id="editNamaKat" class="form-control" required>
                     </div>
                     <div class="mb-3">
@@ -262,11 +275,13 @@ $(function () {
     // EDIT KATEGORI
     $('.btn-edit-cat').on('click', function () {
         const id        = $(this).data('id');
+        const kode      = $(this).data('kode');
         const nama      = $(this).data('nama');
         const desk      = $(this).data('deskripsi') || '';
         const checklist = $(this).data('checklist') || [];
         
         $('#formEditKat').attr('action', `/manajemen-aset/kategori/${id}`);
+        $('#editKodeKat').val(kode);
         $('#editNamaKat').val(nama);
         $('#editDeskripsiKat').val(desk);
         

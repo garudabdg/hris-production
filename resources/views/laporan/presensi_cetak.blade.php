@@ -318,6 +318,7 @@
                         <td class="sticky-col third-col">{{ $d['nama_karyawan'] }}</td>
                         <td>{{ $d['nama_jabatan'] }}</td>
                         <td style="text-align: center">{{ $d['kode_dept'] }}</td>
+                        <td style="text-align: center">{{ $d['sub_departemen'] ?? '-' }}</td>
                         <td style="text-align: center">{{ $d['kode_cabang'] }}</td>
                         @php
                             $total_denda = 0;

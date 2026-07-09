@@ -100,6 +100,12 @@
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <h6 class="fw-bold mb-0"><i class="ti ti-list-check me-2"></i>Item Checklist</h6>
                             <div class="d-flex gap-2 align-items-center">
+                                <a href="{{ $selectedAsset ? route('asset-perawatan.export-pdf-form', ['kode_asset' => $selectedAsset->kode_asset]) : '#' }}" 
+                                   id="btnCetakPdfForm" 
+                                   class="btn btn-sm btn-outline-danger" 
+                                   target="_blank">
+                                    <i class="ti ti-file-pdf me-1"></i>Cetak Form
+                                </a>
                                 <button type="button" id="btnTambahItem" class="btn btn-sm btn-outline-primary">Tambah Item</button>
                                 <span class="badge bg-label-primary" id="totalItems">{{ count($checklistItems) }} item</span>
                             </div>
@@ -303,6 +309,10 @@ $(function() {
                 $kategoriNama.text(data.kategori || '-');
                 $kategoriInfo.show();
                 $totalItems.text(data.items.length + ' item');
+
+                // Update href Cetak PDF
+                const baseExportUrl = "{{ route('asset-perawatan.export-pdf-form') }}";
+                $('#btnCetakPdfForm').attr('href', baseExportUrl + '?kode_asset=' + kodeAsset);
 
                 renderRows(data.items);
                 $checklistSection.removeClass('d-none');
