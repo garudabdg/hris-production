@@ -74,7 +74,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" class="font-bold text-gray-900 w-full outline-none" readonly>
+                    <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" class="font-bold text-gray-900 w-full outline-none">
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Team</label>

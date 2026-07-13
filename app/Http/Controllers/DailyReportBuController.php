@@ -104,16 +104,16 @@ class DailyReportBuController extends Controller
                 ->select('karyawan.*', 'departemen.nama_dept')
                 ->first();
 
-            // Cek apakah sudah ada report hari ini
-            $today = Carbon::now(config('app.timezone'))->format('Y-m-d');
-            $existingReport = DailyReportBu::where('nik', $karyawan->nik)
-                ->where('tanggal', $today)
-                ->first();
+            // Cek apakah sudah ada report hari ini (Di-comment agar bisa bikin report tanggal sebelumnya)
+            // $today = Carbon::now(config('app.timezone'))->format('Y-m-d');
+            // $existingReport = DailyReportBu::where('nik', $karyawan->nik)
+            //     ->where('tanggal', $today)
+            //     ->first();
 
-            if ($existingReport) {
-                return redirect()->route('dailyreportbu.edit', $existingReport->id)
-                    ->with('info', 'Anda sudah mengisi report hari ini. Silakan edit report yang ada.');
-            }
+            // if ($existingReport) {
+            //     return redirect()->route('dailyreportbu.edit', $existingReport->id)
+            //         ->with('info', 'Anda sudah mengisi report hari ini. Silakan edit report yang ada.');
+            // }
 
             if (\Jenssegers\Agent\Facades\Agent::isMobile()) {
                 return view('aktivitaskaryawan.create-dailyreport-mobile', compact('karyawan', 'platforms', 'tipeOffline'));

@@ -220,7 +220,10 @@
                         </div>
                     </div>
                     <input type="hidden" name="nik" value="{{ $karyawan->nik ?? '' }}">
-                    <input type="hidden" name="tanggal" value="{{ date('Y-m-d') }}">
+                    <div class="input-group-modern mt-3">
+                        <label>Tanggal</label>
+                        <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                    </div>
                 @endif
             </div>
 
