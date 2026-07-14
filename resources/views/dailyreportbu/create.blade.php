@@ -1,32 +1,50 @@
+@extends('layouts.app')
+@section('titlepage', 'Buat Daily Report Business')
+
+@section('navigasi')
+    <span>Daily Report Business</span> / <span>Create</span>
+@endsection
+
+@section('content')
+
 @if(auth()->user()->hasRole('karyawan'))
 {{-- ======================================================== --}}
 {{-- KARYAWAN VIEW (Tailwind CSS, Desktop Optimized)          --}}
 {{-- ======================================================== --}}
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buat Daily Report Business</title>
+@push('mystyle')
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .form-input { 
+        .tw-wrap { font-family: 'Inter', sans-serif; }
+        .tw-wrap .form-input { 
             width: 100%; border: 1px solid #d1d5db; border-radius: 0.375rem; 
             padding: 0.5rem 0.75rem; font-size: 0.875rem; transition: border-color 0.15s;
+            background-color: #ffffff;
+            color: #111827;
         }
-        .form-input:focus { outline: none; border-color: #3b82f6; ring: 2px; ring-color: #93c5fd; }
-        .number-input::-webkit-inner-spin-button, .number-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .number-input { text-align: center; font-weight: 600; }
+        .tw-wrap .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px #93c5fd; }
+        .tw-wrap .number-input::-webkit-inner-spin-button, .tw-wrap .number-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .tw-wrap .number-input { text-align: center; font-weight: 600; }
+        /* Basic borders for Tailwind elements since preflight is false */
+        .tw-wrap table, .tw-wrap th, .tw-wrap td, .tw-wrap tr { border-color: #f3f4f6; border-style: solid; }
+        .tw-wrap ion-icon { vertical-align: -0.125em; }
     </style>
-</head>
-<body>
-    <div class="max-w-7xl mx-auto pt-24 pb-8 px-4 sm:px-6 lg:px-8">
+@endpush
+
+@push('myscript')
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@endpush
+
+<div class="tw-wrap w-full max-w-7xl mx-auto pb-8">
         {{-- Header --}}
         <div class="mb-8 flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div>
@@ -74,7 +92,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" class="font-bold text-gray-900 w-full outline-none">
+                    <input type="date" name="tanggal" id="tanggal" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" class="font-bold text-gray-900 w-full outline-none">
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Team</label>
@@ -242,6 +260,7 @@
         </form>
     </div>
 
+    @push('myscript')
     <script>
         let offlineIndex = 1;
         function addOfflineRow() {
@@ -323,19 +342,11 @@
             })
         }
     </script>
-</body>
-</html>
+    @endpush
 @else
 {{-- ======================================================== --}}
 {{-- ADMIN VIEW (Bootstrap, layouts.app)                        --}}
 {{-- ======================================================== --}}
-@extends('layouts.app')
-@section('titlepage', 'Buat Daily Report Business')
-
-@section('content')
-@section('navigasi')
-    <span>Daily Report Business</span> / <span>Create</span>
-@endsection
 
 <div class="row">
     <div class="col-lg-12">
@@ -563,3 +574,54 @@
 </script>
 @endpush
 @endif
+@push('myscript')
+<script>
+    $(document).ready(function() {
+        $('#tanggal, #nik').on('change', function() {
+            let tanggal = $('#tanggal').val();
+            let nik = $('#nik').length ? $('#nik').val() : null;
+
+            if (tanggal) {
+                $.ajax({
+                    url: '{{ route("dailyreportbu.checkExisting") }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        tanggal: tanggal,
+                        nik: nik
+                    },
+                    success: function(res) {
+                        if (res.exists) {
+                            Swal.fire({
+                                title: 'Data Sudah Ada',
+                                text: 'Laporan untuk tanggal ini sudah ada. Anda akan diarahkan ke halaman edit data.',
+                                icon: 'info',
+                                showCancelButton: true,
+                                confirmButtonText: 'Ya, Lanjut Edit',
+                                cancelButtonText: 'Batal'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    window.location.href = res.edit_url;
+                                } else {
+                                    // revert to today if cancelled
+                                    let today = new Date().toISOString().split('T')[0];
+                                    $('#tanggal').val(today);
+                                    if(typeof flatpickr !== 'undefined') {
+                                        $('#tanggal')[0]._flatpickr.setDate(today);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Trigger pencarian data awal jika tanggal sudah terisi otomatis
+        setTimeout(function() {
+            $('#tanggal').trigger('change');
+        }, 500);
+    });
+</script>
+@endpush
+@endsection

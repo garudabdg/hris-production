@@ -15,7 +15,7 @@
                     <a href="{{ route('dailyreportbu.export.pdf', ['id' => $report->id]) }}" target="_blank" class="btn btn-danger btn-sm">
                         <i class="ti ti-file-export me-1"></i> Export PDF
                     </a>
-                    <a href="{{ route('dailyreportbu.index') }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
                         <i class="ti ti-arrow-left me-1"></i> Kembali
                     </a>
                 </div>

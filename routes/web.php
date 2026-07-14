@@ -737,6 +737,7 @@ Route::middleware(['auth', 'account.setup'])->group(function () {
     // Daily Report BU Routes
     Route::controller(DailyReportBuController::class)->group(function () {
         Route::get('/dailyreportbu', 'index')->name('dailyreportbu.index')->can('dailyreportbu.index');
+        Route::post('/dailyreportbu/check-existing', 'checkExisting')->name('dailyreportbu.checkExisting')->can('dailyreportbu.create');
         Route::get('/dailyreportbu/create', 'create')->name('dailyreportbu.create')->can('dailyreportbu.create');
         Route::post('/dailyreportbu', 'store')->name('dailyreportbu.store')->can('dailyreportbu.create');
         Route::get('/dailyreportbu/{id}/show', 'show')->name('dailyreportbu.show')->can('dailyreportbu.index');

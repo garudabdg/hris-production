@@ -84,6 +84,40 @@ class DailyReportBuController extends Controller
     }
 
     /**
+     * Check if report already exists for date (AJAX)
+     */
+    public function checkExisting(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = User::where('id', auth()->user()->id)->first();
+        $user_karyawan = Userkaryawan::where('id_user', $user->id)->first();
+
+        $nik = $request->nik;
+        if ($user->hasRole('karyawan')) {
+            $nik = $user_karyawan->nik;
+        }
+
+        $tanggal = $request->tanggal;
+
+        if (!$nik || !$tanggal) {
+            return response()->json(['exists' => false]);
+        }
+
+        $report = DailyReportBu::where('nik', $nik)
+            ->where('tanggal', $tanggal)
+            ->first();
+
+        if ($report) {
+            return response()->json([
+                'exists' => true,
+                'edit_url' => route('dailyreportbu.edit', $report->id)
+            ]);
+        }
+
+        return response()->json(['exists' => false]);
+    }
+
+    /**
      * Form buat daily report baru
      */
     public function create()
@@ -432,7 +466,12 @@ class DailyReportBuController extends Controller
 
             DB::commit();
 
-            $redirect = $user->hasRole('karyawan') ? route('dashboard.index') : route('dailyreportbu.index');
+            if ($request->has('previous_url') && !empty($request->input('previous_url'))) {
+                $redirect = $request->input('previous_url');
+            } else {
+                $redirect = $user->hasRole('karyawan') ? route('dashboard.index') : route('dailyreportbu.index');
+            }
+            
             return redirect($redirect)
                 ->with('success', 'Data berhasil diperbarui.');
 

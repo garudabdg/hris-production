@@ -1,32 +1,41 @@
+@extends('layouts.app')
+@section('titlepage', 'Edit Daily Report Business')
+
+@section('navigasi')
+    <span>Daily Report Business</span> / <span>Edit</span>
+@endsection
+
+@section('content')
+
 @if(auth()->user()->hasRole('karyawan'))
 {{-- ======================================================== --}}
 {{-- KARYAWAN VIEW (Tailwind CSS, Desktop Optimized)          --}}
 {{-- ======================================================== --}}
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Daily Report Business</title>
+@push('mystyle')
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .form-input { 
+        /* Tailwind preflight disables reset, so we scope it */
+        .tw-wrap { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .tw-wrap .form-input { 
             width: 100%; border: 1px solid #d1d5db; border-radius: 0.375rem; 
             padding: 0.5rem 0.75rem; font-size: 0.875rem; transition: border-color 0.15s;
+            background: #fff;
         }
-        .form-input:focus { outline: none; border-color: #3b82f6; ring: 2px; ring-color: #93c5fd; }
-        .number-input::-webkit-inner-spin-button, .number-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .number-input { text-align: center; font-weight: 600; }
+        .tw-wrap .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px #93c5fd; }
+        .tw-wrap .number-input::-webkit-inner-spin-button, .tw-wrap .number-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .tw-wrap .number-input { text-align: center; font-weight: 600; }
     </style>
-</head>
-<body>
-    <div class="max-w-7xl mx-auto pt-24 pb-8 px-4 sm:px-6 lg:px-8">
+@endpush
+
+<div class="tw-wrap w-full max-w-7xl mx-auto pb-8">
         {{-- Header --}}
         <div class="mb-8 flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div>
@@ -35,7 +44,7 @@
                 </h1>
                 <p class="text-sm text-gray-500 mt-1">Perbarui laporan aktivitas Anda untuk tanggal {{ \Carbon\Carbon::parse($report->tanggal)->format('d F Y') }}.</p>
             </div>
-            <a href="{{ route('dashboard.index') }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
+            <a href="{{ old('previous_url', url()->previous()) }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
                 <ion-icon name="arrow-back"></ion-icon> Kembali
             </a>
         </div>
@@ -61,6 +70,7 @@
         <form action="{{ route('dailyreportbu.update', $report->id) }}" method="POST" id="formReport">
             @csrf
             @method('PUT')
+            <input type="hidden" name="previous_url" value="{{ old('previous_url', url()->previous()) }}">
             
             {{-- Personal Info (Auto filled for Karyawan) --}}
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -284,7 +294,7 @@
 
             {{-- Submit --}}
             <div class="flex justify-end gap-3 mb-10">
-                <a href="{{ route('dashboard.index') }}" class="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors">Batal</a>
+                <a href="{{ old('previous_url', url()->previous()) }}" class="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors">Batal</a>
                 <button type="button" onclick="submitForm()" class="px-8 py-3 bg-yellow-500 text-white rounded-lg font-bold hover:bg-yellow-600 transition-colors shadow-sm flex items-center gap-2">
                     <ion-icon name="save"></ion-icon> Perbarui Report
                 </button>
@@ -292,6 +302,7 @@
         </form>
     </div>
 
+    @push('myscript')
     <script>
         let offlineIndex = {{ max($offIdx ?? 1, 1) * 100 }}; // Make sure it's unique
         function addOfflineRow() {
@@ -372,20 +383,11 @@
                 }
             })
         }
-    </script>
-</body>
-</html>
+    @endpush
 @else
 {{-- ======================================================== --}}
 {{-- ADMIN VIEW (Bootstrap, layouts.app)                        --}}
 {{-- ======================================================== --}}
-@extends('layouts.app')
-@section('titlepage', 'Edit Daily Report Business')
-
-@section('content')
-@section('navigasi')
-    <span>Daily Report Business</span> / <span>Edit</span>
-@endsection
 
 <div class="row">
     <div class="col-lg-12">
@@ -397,6 +399,7 @@
                 <form action="{{ route('dailyreportbu.update', $report->id) }}" method="POST" id="formReportAdmin">
                     @csrf
                     @method('PUT')
+                    <input type="hidden" name="previous_url" value="{{ old('previous_url', url()->previous()) }}">
                     
                     <div class="row mb-4">
                         <div class="col-md-6">
@@ -582,7 +585,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ route('dailyreportbu.index') }}" class="btn btn-outline-secondary">Batal</a>
+                        <a href="{{ old('previous_url', url()->previous()) }}" class="btn btn-outline-secondary">Batal</a>
                         <button type="submit" class="btn btn-warning"><i class="ti ti-pencil me-1"></i> Perbarui Report</button>
                     </div>
                 </form>
@@ -590,7 +593,6 @@
         </div>
     </div>
 </div>
-@endsection
 
 @push('myscript')
 <script>
@@ -655,3 +657,5 @@
 </script>
 @endpush
 @endif
+@endsection
+
